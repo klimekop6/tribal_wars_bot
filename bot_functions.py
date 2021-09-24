@@ -9,23 +9,23 @@ import time
 import logging
 logging.basicConfig(filename='log.txt', level=logging.ERROR)
 
-def log_in() -> None:
+def log_in(driver: webdriver, settings: dict) -> None:
     """ logowanie """
+    
+    driver.get('https://www.plemiona.pl/page/play/pl' + settings['world'])
 
-    driver.get('https://www.plemiona.pl/page/play/pl160')
+  #username = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,'input[name="username"]')))
+  #password = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,'input[name="password"]')))
 
-    username = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,'input[name="username"]')))
-    password = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,'input[name="password"]')))
+  #username.clear()
+  #password.clear()
+  #username.send_keys('klimekop6')
+  #password.send_keys('u56708')
 
-    username.clear()
-    password.clear()
-    username.send_keys('klimekop6')
-    password.send_keys('u56708')
+  #WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'btn-login'))).click()
+  #WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//span[text()="Świat 160"]'))).click()
 
-    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'btn-login'))).click()
-    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//span[text()="Świat 160"]'))).click()
-
-def attacks_labels() -> None:
+def attacks_labels(driver: webdriver) -> None:
     """ etykiety ataków """
 
     if not driver.find_element_by_id('incomings_amount').text:
@@ -52,10 +52,10 @@ def attacks_labels() -> None:
     element.click()
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//input[@value="Etykieta"]'))).click()
 
-def dodge_attacks() -> None:
+def dodge_attacks(driver: webdriver) -> None:
     """ unika wybranej wielkości offów """    
 
-    villages = player_villages()
+    villages = player_villages(driver)
 
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'incomings_cell'))).click() # przełącz do strony nadchodzących ataków
     manage_filters = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))) # filtr ataków
@@ -110,7 +110,7 @@ def dodge_attacks() -> None:
                 del dates[0], targets[0]
                 break
 
-def player_villages() -> dict:
+def player_villages(driver: webdriver) -> dict:
     """ tworzy i zwraca słownik z id i koordynatami wiosek gracza """
 
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="menu_row"]/td[11]/a'))).click()
@@ -127,7 +127,7 @@ def player_villages() -> dict:
 
     return villages
 
-def market_offers() -> None:
+def market_offers(driver: webdriver) -> None:
     """ wystawianie offert tylko dla plemienia """
     
     current_village_link = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="menu_row2_village"]/a')))
@@ -163,7 +163,7 @@ def market_offers() -> None:
         else:
             continue
 
-def send_back_support() -> None:
+def send_back_support(driver: webdriver) -> None:
     """ odsyłanie wybranego wsparcia z przeglądanej wioski """
 
     code = driver.find_element_by_xpath('//*[@id="withdraw_selected_units_village_info"]/table/tbody').get_attribute("innerHTML")
@@ -186,7 +186,7 @@ def send_back_support() -> None:
             html = html[:html.find('value')] + 'value="" ' + html[html.find('min'):]
             driver.execute_script(f'''arguments[0].innerHTML = '{html}';''', ele)
             
-def mark_villages_on_map() -> None:
+def mark_villages_on_map(driver: webdriver) -> None:
     """ zaznacza na mapie wioski spełniające konkretne kryteria na podstawie przeglądów plemiennych """
 
     villages_to_mark = []
@@ -231,6 +231,7 @@ def mark_villages_on_map() -> None:
         element = driver.find_element_by_xpath('//*[@id="map_group_management"]/table/tbody/tr/td/input[@value="Zapisz"]') # zapisuję wybór
         driver.execute_script('return arguments[0].scrollIntoView(true);', element)
         element.click()
+
 
 if __name__ == "__main__":
     #    txt = 'txt'
