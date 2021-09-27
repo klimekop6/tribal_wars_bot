@@ -1,7 +1,6 @@
 from tkinter import *
 from tkinter.ttk import *
 from ttkbootstrap import Style
-#from PIL import ImageTk, Image
 import tkinter.messagebox
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
