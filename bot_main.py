@@ -17,15 +17,22 @@ class DataBaseConnection:
         self.cursor = None
 
     def __enter__(self):
-        self.cnxn = pyodbc.connect('''DRIVER={ODBC Driver 17 for SQL Server};
-                                     SERVER=***REMOVED***;
-                                     DATABASE=Plemiona;
-                                     UID=***REMOVED***;
-                                     PWD=***REMOVED***''')
-        self.cursor = self.cnxn.cursor()
-        return self.cursor
-
+        try:
+            self.cnxn = pyodbc.connect('''DRIVER={ODBC Driver 17 for SQL Server};
+                                        SERVER=***REMOVED***;
+                                        DATABASE=Plemiona;
+                                        UID=***REMOVED***;
+                                        PWD=***REMOVED***''',
+                                        timeout=3)             
+            self.cursor = self.cnxn.cursor()
+            return self.cursor
+        except pyodbc.OperationalError:
+            pass      
+            
     def __exit__(self, exc_type, exc_value, exc_tracebac):
+        if not self.cnxn:
+            MyFunc.custom_error('Serwer jest tymczasowo niedostępny.')            
+            return True
         self.cnxn.commit()
         self.cnxn.close()
 
@@ -51,10 +58,30 @@ class MyFunc:
             f.close()            
         return settings
 
-    def error(self, title: str, message: str) -> None:
-        self.master.attributes('-topmost', 0)
+    def center(window) -> None:
+        """ place window in the center of a screen """
+
+        window.update_idletasks()
+        window.geometry(f'+{int(window.winfo_screenwidth()/2 - window.winfo_reqwidth()/2)}'
+                             f'+{int(window.winfo_screenheight()/2 - window.winfo_reqheight()/2)}')
+
+    def error(self, title: str, message: str, topmost: bool=False) -> None:
+        if topmost: self.master.attributes('-topmost', 0)
         tkinter.messagebox.showerror(title=title, message=message)                
-        self.master.attributes('-topmost', 1)
+        if topmost: self.master.attributes('-topmost', 1)
+
+    def custom_error(message: str) -> None:
+        
+        error_window = Toplevel(borderwidth=1, relief='groove')
+        error_window.overrideredirect(True)
+        error_window.attributes('-topmost', 1)
+
+        #title_label = Label(error_window, text=title).grid(row=0, column=0, padx=5, pady=5)
+        message_label = Label(error_window, text=message).grid(row=1, column=0, padx=5, pady=5)
+
+        ok_button = Button(error_window, text='ok', command=error_window.destroy).grid(row=2, column=0, padx=5, pady=(5,8), ipady=0)
+        
+        MyFunc.center(error_window)
 
     def chrome_profile_path() -> None:
         """ wyszukuję i zapisuje w ustawieniach aplikacji aktualną ścierzkę do profilu użytkownika przeglądarki chrome """
@@ -106,7 +133,6 @@ class MyFunc:
 
         self.custom_bar.bind('<B1-Motion>', move_window)
         self.title_label.bind('<B1-Motion>', move_window)
-
 
 class MainWindow:
 
@@ -210,9 +236,7 @@ class LogInWindow:
                     settings['logged'] = True
                     return
         
-        self.master = Toplevel()
-        self.master.geometry(f'+{int(main_window.master.winfo_screenwidth()/2 - self.master.winfo_reqwidth()/2)}'
-                             f'+{int(main_window.master.winfo_screenheight()/2 - self.master.winfo_reqheight()/2)}')
+        self.master = Toplevel(borderwidth=1, relief='groove')
         self.master.overrideredirect(True)
         self.master.resizable(0, 0)
         self.master.attributes('-topmost', 1)
@@ -261,6 +285,8 @@ class LogInWindow:
         self.user_password_input.bind('<Return>', self.log_in)
         self.custom_bar.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event))
         self.title_label.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event))
+
+        MyFunc.center(self.master)
     
     def log_in(self, event=None):
         with DataBaseConnection() as cursor:            
@@ -271,24 +297,25 @@ class LogInWindow:
                             + "'")
             row = cursor.fetchone()
             if not row:                
-                MyFunc.error(self, title='Błąd', message='Wprowadzono nieprawidłowe dane')
+                MyFunc.error(self, title='Błąd', message='Wprowadzono nieprawidłowe dane', topmost=True)
                 return
             if not MyFunc.if_paid(str(row[5])):
-                MyFunc.error(self, title='Błąd', message='Ważność konta wygasła')
+                MyFunc.error(self, title='Błąd', message='Ważność konta wygasła', topmost=True)
                 return
             if row[6]:
-                MyFunc.error(self, title='Błąd', message='Konto jest już obecnie w użyciu')
+                MyFunc.error(self, title='Błąd', message='Konto jest już obecnie w użyciu', topmost=True)
                 return
+            settings['logged'] = True
 
-        if self.remember_me.get():
-            settings['user_name'] = self.user_name_input.get()
-            settings['user_password'] = self.user_password_input.get()
-            with open('settings.json', 'w') as settings_json_file:
-                json.dump(settings, settings_json_file)
-        
-        self.master.destroy() 
-        main_window.master.deiconify()
-        settings['logged'] = True
+        if settings['logged']:
+            if self.remember_me.get():
+                settings['user_name'] = self.user_name_input.get()
+                settings['user_password'] = self.user_password_input.get()
+                with open('settings.json', 'w') as settings_json_file:
+                    json.dump(settings, settings_json_file)
+            
+            self.master.destroy() 
+            main_window.master.deiconify()        
 
     def get_pos(self, event):
         xwin = self.master.winfo_x()
@@ -315,6 +342,7 @@ if __name__ == '__main__':
     main_window = MainWindow()
     style = Style(theme='darkly')
     style.theme_use()
+    #MyFunc.custom_error('Nie udało się połączyć z serwerem.')
     log_in_window = LogInWindow()
     
     main_window.master.mainloop()
