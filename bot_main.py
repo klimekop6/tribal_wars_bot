@@ -1,7 +1,6 @@
 from tkinter import *
 from tkinter.ttk import *
 from ttkbootstrap import Style
-import tkinter.messagebox
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import json
@@ -31,7 +30,7 @@ class DataBaseConnection:
             
     def __exit__(self, exc_type, exc_value, exc_tracebac):
         if not self.cnxn:
-            MyFunc.custom_error('Serwer jest tymczasowo niedostępny.')            
+            MyFunc().custom_error('Serwer jest tymczasowo niedostępny.')           
             return True
         self.cnxn.commit()
         self.cnxn.close()
@@ -65,23 +64,24 @@ class MyFunc:
         window.geometry(f'+{int(window.winfo_screenwidth()/2 - window.winfo_reqwidth()/2)}'
                              f'+{int(window.winfo_screenheight()/2 - window.winfo_reqheight()/2)}')
 
-    def error(self, title: str, message: str, topmost: bool=False) -> None:
-        if topmost: self.master.attributes('-topmost', 0)
-        tkinter.messagebox.showerror(title=title, message=message)                
-        if topmost: self.master.attributes('-topmost', 1)
-
-    def custom_error(message: str) -> None:
+    def custom_error(self, message: str) -> None:
         
-        error_window = Toplevel(borderwidth=1, relief='groove')
-        error_window.overrideredirect(True)
-        error_window.attributes('-topmost', 1)
+        self.master = Toplevel(borderwidth=1, relief='groove')
+        self.master.overrideredirect(True)
+        self.master.attributes('-topmost', 1)        
+        self.master.bell()
 
-        #title_label = Label(error_window, text=title).grid(row=0, column=0, padx=5, pady=5)
-        message_label = Label(error_window, text=message).grid(row=1, column=0, padx=5, pady=5)
+        #title_label = Label(self.master, text=title).grid(row=0, column=0, padx=5, pady=5)
+        self.message_label = Label(self.master, text=message)
+        self.message_label.grid(row=1, column=0, padx=5, pady=5)
 
-        ok_button = Button(error_window, text='ok', command=error_window.destroy).grid(row=2, column=0, padx=5, pady=(5,8), ipady=0)
-        
-        MyFunc.center(error_window)
+        self.ok_button = Button(self.master, text='ok', command=self.master.destroy)
+        self.ok_button.grid(row=2, column=0, pady=(5,8))
+     
+        self.message_label.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event, 'message_label'))
+        self.ok_button.focus_force()
+        self.ok_button.bind('<Return>', lambda event: self.master.destroy())
+        MyFunc.center(self.master)
 
     def chrome_profile_path() -> None:
         """ wyszukuję i zapisuje w ustawieniach aplikacji aktualną ścierzkę do profilu użytkownika przeglądarki chrome """
@@ -117,7 +117,7 @@ class MyFunc:
             if key in settings:
                 entries[key].set(settings[key])
 
-    def get_pos(self, event) -> None:
+    def get_pos(self, event, *args) -> None:
         xwin = self.master.winfo_x()
         ywin = self.master.winfo_y()
         startx = event.x_root
@@ -127,12 +127,12 @@ class MyFunc:
         xwin = xwin - startx
 
         def move_window(event):
-            self.master.geometry(f"+{event.x_root + xwin}+{event.y_root + ywin}")
+            self.master.geometry(f'+{event.x_root + xwin}+{event.y_root + ywin}')
         startx = event.x_root
         starty = event.y_root
 
-        self.custom_bar.bind('<B1-Motion>', move_window)
-        self.title_label.bind('<B1-Motion>', move_window)
+        for arg in args:
+            getattr(self, arg).bind('<B1-Motion>', move_window)
 
 class MainWindow:
 
@@ -145,45 +145,60 @@ class MainWindow:
         self.master.overrideredirect(True)
         self.master.attributes('-topmost', 1)
 
-        self.custom_bar = Frame(self.master)
+        # main_frame -> custom_bar, content_frame
+        self.main_frame = Frame(self.master, borderwidth=1, relief='groove')
+        self.main_frame.grid(row=0, column=0, sticky=(N, S, E, W))
+
+        self.custom_bar = Frame(self.main_frame)
         self.custom_bar.grid(row=0, column=0, sticky=(N, S, E, W))
         self.custom_bar.columnconfigure(3, weight=1)
 
+        self.content_frame = Frame(self.main_frame)
+        self.content_frame.grid(row=1, column=0, sticky=(N, S, E, W))
+
+        # custom_bar
         self.title_label = Label(self.custom_bar, text='Tribal Wars Bot')
         self.title_label.grid(row=0, column=2, padx=5 , sticky=W)
 
-        self.photo = PhotoImage(file='minimize1.png')
-        self.photoimage = self.photo.subsample(10, 8)
+        self.photo = PhotoImage(file='minimize2.png')
+        self.minimize = self.photo.subsample(2, 2)
 
-        self.minimize_button = Button(self.custom_bar, image=self.photoimage, command=self.hide)
+        self.minimize_button = Button(self.custom_bar, style='primary.Link.TButton', image=self.minimize, command=self.hide)
         self.minimize_button.grid(row=0, column=3, padx=(5, 0), pady=5, sticky=E)
 
-        self.exit_button = Button(self.custom_bar, text='X', command=self.master.destroy)
+        self.photo = PhotoImage(file='exit3.png')
+        self.exit = self.photo.subsample(8, 8)
+
+        self.exit_button = Button(self.custom_bar, style='primary.Link.TButton', image=self.exit, command=self.master.destroy)
         self.exit_button.grid(row=0, column=4, padx=(0, 5), pady=3, sticky=E)      
 
-        n = Notebook(self.master)
+        self.custom_bar.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event, 'custom_bar'))
+        self.title_label.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event, 'title_label'))
+
+        # content_frame
+
+        # notebook with frames 
+        n = Notebook(self.content_frame)
         n.grid(row=1, column=0, padx=5, pady=5, sticky=(N, S, E, W))
         f1 = Frame(n)
         f2 = Frame(n)
         f3 = Frame(n)
         f4 = Frame(n)
-        n.add(f1, text='One')
+        n.add(f1, text='Farma')
         n.add(f2, text='Two')
         n.add(f3, text='Three')
         n.add(f4, text='Ustawienia')        
-        self.master.rowconfigure(0, weight=1)
-        self.master.columnconfigure(0, weight=1)
+        self.content_frame.rowconfigure(0, weight=1)
+        self.content_frame.columnconfigure(0, weight=1)
 
-        # f1 -> 'One'
-        self.run_button = Button(f1, text='start', command=lambda: MyFunc.run_driver())
-        self.run_button.grid(row=0, column=0, padx=5, pady=5, sticky=(W, E))
-
-        self.log_in_button = Button(f1, text='zaloguj', command=lambda: bot_functions.log_in(driver, settings))
-        self.log_in_button.grid(row=1, column=0, padx=5, pady=5, sticky=(W, E))
+        # f1 -> 'Farma'
+        
 
         # f2 -> 'Two'
         Label(f2, compound=LEFT, text='adin dwa tri', image=self.photo).grid(row=0, column=0)
+
         # f3 -> 'Three'
+
         # f4 -> 'Ustawienia'
         self.world_number = Label(f4, text='Numer świata')
         self.world_number.grid(row=0, column=0, padx=5, pady=5, sticky=(W, E))
@@ -193,16 +208,24 @@ class MainWindow:
         self.world_number_input = Entry(f4, textvariable=entries_content['world'])
         self.world_number_input.grid(row=0, column=1, padx=5, pady=5, sticky=(W, E))
 
-        self.save_button = Button(self.master, text='zapisz', command=lambda: MyFunc.save_entry_to_settings(entries_content))
+        entries_content['auto_farm'] = StringVar()
+        self.auto_farm = Checkbutton(f4, text='Automatyczne farmienie', 
+                                    variable=entries_content['auto_farm'], 
+                                    onvalue=True, offvalue=False)
+        self.auto_farm.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky=(W, E))
+
+        # content_frame
+        self.save_button = Button(self.content_frame, text='zapisz', command=lambda: MyFunc.save_entry_to_settings(entries_content))
         self.save_button.grid(row=2, column=0, padx=5, pady=5, sticky=(W, E))
 
+        self.run_button = Button(self.content_frame, text='uruchom', command=self.run)
+        self.run_button.grid(row=3, column=0, padx=5, pady=5, sticky=(W, E))
+
+        # other things
         MyFunc.fill_entry_from_settings(entries_content)
 
-        self.custom_bar.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event))
-        self.title_label.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event))
-
         self.master.attributes('-alpha', 1.0)
-        self.master.withdraw()          
+        #self.master.withdraw()          
     
     def hide(self):
         self.master.attributes('-alpha', 0.0)
@@ -212,6 +235,10 @@ class MainWindow:
             self.master.overrideredirect(True)
             self.master.attributes('-alpha', 1.0)
         self.minimize_button.bind("<Map>", show)    
+
+    def run(self):
+        MyFunc.run_driver()
+        bot_functions.log_in(driver, settings)
 
 class LogInWindow:
 
@@ -226,11 +253,11 @@ class LogInWindow:
                                 + "'")
                 row = cursor.fetchone()
                 if not row:
-                    tkinter.messagebox.showerror(title='Błąd', message='Automatyczne logowanie nie powiodło się')
+                    MyFunc().custom_error('Automatyczne logowanie nie powiodło się.')
                 elif not MyFunc.if_paid(str(row[5])):
-                    tkinter.messagebox.showerror(title='Błąd', message='Ważność konta wygasła')                
+                    MyFunc().custom_error('Ważność konta wygasła.')                
                 elif row[6]:
-                    tkinter.messagebox.showerror(title='Błąd', message='Konto jest już obecnie w użyciu')                
+                    MyFunc().custom_error('Konto jest już obecnie w użyciu.')                
                 else:                    
                     main_window.master.deiconify()
                     settings['logged'] = True
@@ -283,8 +310,8 @@ class LogInWindow:
 
         self.user_name_input.focus()
         self.user_password_input.bind('<Return>', self.log_in)
-        self.custom_bar.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event))
-        self.title_label.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event))
+        self.custom_bar.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event, 'custom_bar'))
+        self.title_label.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event, 'title_label'))
 
         MyFunc.center(self.master)
     
@@ -297,13 +324,13 @@ class LogInWindow:
                             + "'")
             row = cursor.fetchone()
             if not row:                
-                MyFunc.error(self, title='Błąd', message='Wprowadzono nieprawidłowe dane', topmost=True)
+                MyFunc().custom_error('Wprowadzono nieprawidłowe dane')
                 return
             if not MyFunc.if_paid(str(row[5])):
-                MyFunc.error(self, title='Błąd', message='Ważność konta wygasła', topmost=True)
+                MyFunc().custom_error('Ważność konta wygasła')
                 return
             if row[6]:
-                MyFunc.error(self, title='Błąd', message='Konto jest już obecnie w użyciu', topmost=True)
+                MyFunc().custom_error('Konto jest już obecnie w użyciu')
                 return
             settings['logged'] = True
 
@@ -317,32 +344,15 @@ class LogInWindow:
             self.master.destroy() 
             main_window.master.deiconify()        
 
-    def get_pos(self, event):
-        xwin = self.master.winfo_x()
-        ywin = self.master.winfo_y()
-        startx = event.x_root
-        starty = event.y_root
-
-        ywin = ywin - starty
-        xwin = xwin - startx
-
-        def move_window(event):
-            self.master.geometry(f"+{event.x_root + xwin}+{event.y_root + ywin}")
-        startx = event.x_root
-        starty = event.y_root
-
-        self.custom_bar.bind('<B1-Motion>', move_window)
-        self.title_label.bind('<B1-Motion>', move_window)
-
 if __name__ == '__main__':
     
     settings = MyFunc.load_settings()
     driver = None
-
+    
     main_window = MainWindow()
     style = Style(theme='darkly')
+    style.map('primary.Link.TButton', background=[('active', 'gray18')], bordercolor=[('active', '')])
     style.theme_use()
-    #MyFunc.custom_error('Nie udało się połączyć z serwerem.')
-    log_in_window = LogInWindow()
-    
+    #log_in_window = LogInWindow()
+
     main_window.master.mainloop()
