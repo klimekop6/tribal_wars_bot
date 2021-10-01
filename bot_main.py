@@ -160,7 +160,7 @@ class MainWindow:
         self.title_label = Label(self.custom_bar, text='Tribal Wars Bot')
         self.title_label.grid(row=0, column=2, padx=5 , sticky=W)
 
-        self.photo = PhotoImage(file='minimize2.png')
+        self.photo = PhotoImage(file='minimize.png')
         self.minimize = self.photo.subsample(2, 2)
 
         self.minimize_button = Button(self.custom_bar, style='primary.Link.TButton', image=self.minimize, command=self.hide)
@@ -190,9 +190,34 @@ class MainWindow:
         n.add(f4, text='Ustawienia')        
         self.content_frame.rowconfigure(0, weight=1)
         self.content_frame.columnconfigure(0, weight=1)
+        entries_content = {}
 
         # f1 -> 'Farma'
-        
+        templates = Notebook(f1)
+        templates.grid(pady=5, padx=5, sticky=(N, S, E, W))
+        A = Frame(templates)
+        B = Frame(templates)
+        C = Frame(templates)
+        templates.add(A, text='Szablon A')
+        templates.add(B, text='Szablon B')
+        templates.add(C, text='Szablon C')
+        f1.rowconfigure(0, weight=1)
+        f1.columnconfigure(0, weight=1)
+
+        # A
+        self.min_wall_level = Label(A, text='Minimalny poziom muru')
+        self.min_wall_level.grid(row=0, column=0, padx=5, pady=(10, 5), sticky=W)
+
+        entries_content['min_wall_A'] = StringVar()
+        self.min_wall_level.input = Entry(A, textvariable=entries_content['min_wall_A'])
+        self.min_wall_level.input.grid(row=0, column=1, padx=5, pady=(10, 5))
+
+        self.max_wall_level = Label(A, text='Maksymalny poziom muru')
+        self.max_wall_level.grid(row=1, column=0, padx=5, pady=5, sticky=W)
+
+        entries_content['max_wall_A'] = StringVar()
+        self.max_wall_level.input = Entry(A, textvariable=entries_content['max_wall_A'])
+        self.max_wall_level.input.grid(row=1, column=1, padx=5, pady=5)
 
         # f2 -> 'Two'
         Label(f2, compound=LEFT, text='adin dwa tri', image=self.photo).grid(row=0, column=0)
@@ -201,12 +226,11 @@ class MainWindow:
 
         # f4 -> 'Ustawienia'
         self.world_number = Label(f4, text='Numer świata')
-        self.world_number.grid(row=0, column=0, padx=5, pady=5, sticky=(W, E))
-
-        entries_content = {}
+        self.world_number.grid(row=0, column=0, padx=5, pady=(10, 5), sticky=(W, E))
+        
         entries_content['world'] = StringVar()
         self.world_number_input = Entry(f4, textvariable=entries_content['world'])
-        self.world_number_input.grid(row=0, column=1, padx=5, pady=5, sticky=(W, E))
+        self.world_number_input.grid(row=0, column=1, padx=5, pady=(10, 5), sticky=(W, E))
 
         entries_content['auto_farm'] = StringVar()
         self.auto_farm = Checkbutton(f4, text='Automatyczne farmienie', 
