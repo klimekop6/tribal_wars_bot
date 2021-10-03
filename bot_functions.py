@@ -232,6 +232,37 @@ def mark_villages_on_map(driver: webdriver) -> None:
         driver.execute_script('return arguments[0].scrollIntoView(true);', element)
         element.click()
 
+def auto_farm(driver: webdriver, sleep_time: int) -> None:
+    """ automatyczne wysyłanie wojsk w asystencie farmera """ 
+
+    while True:
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'manager_icon_farm'))).click()
+        walls_level = [int(ele.text) for ele in driver.find_elements_by_xpath('//*[@id="plunder_list"]/tbody/tr/td[7]')]
+        villages_to_farm = zip(driver.find_elements_by_xpath('//*[@id="plunder_list"]/tbody/tr/td[9]/a'), # szablon A
+                            driver.find_elements_by_xpath('//*[@id="plunder_list"]/tbody/tr/td[10]/a')) # szablon B
+        start_time = 0
+        for village, wall_level in zip(villages_to_farm, walls_level): 
+            if int(driver.find_element_by_xpath('//*[@id="light"]').text) < 2:
+                print('brak wojsk')
+                break
+            while time.time() - start_time < 0.15:
+                time.sleep(0.01)
+            if wall_level < 1:
+                try:
+                    village[0].click()
+                except:
+                    driver.execute_script('return arguments[0].scrollIntoView(true);', village[0])
+                    village[0].click()
+            elif wall_level == 1:
+                try:
+                    village[1].click()
+                except:
+                    driver.execute_script('return arguments[0].scrollIntoView(true);', village[1])
+                    village[1].click()
+            else:
+                continue       
+            start_time = time.time()
+        time.sleep(sleep_time)
 
 if __name__ == "__main__":
     #    txt = 'txt'
