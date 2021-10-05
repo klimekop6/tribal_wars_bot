@@ -144,6 +144,7 @@ class MainWindow:
         self.master.eval('tk::PlaceWindow . center')  
         self.master.overrideredirect(True)
         self.master.attributes('-topmost', 1)
+        print('hello')
 
         # main_frame -> custom_bar, content_frame
         self.main_frame = Frame(self.master, borderwidth=1, relief='groove')
