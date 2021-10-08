@@ -141,10 +141,11 @@ class MyFunc:
 
         def disableChildren(parent):
             if not parent.winfo_children():
-                parent.config(state='disabled')
+                if parent.winfo_class() not in ('Frame', 'Labelframe', 'TSeparator'):
+                    parent.config(state='disabled')
             for child in parent.winfo_children():
                 wtype = child.winfo_class()
-                if wtype not in ('Frame','Labelframe'):
+                if wtype not in ('Frame', 'Labelframe', 'TSeparator'):
                     if child not in ommit:
                         child.configure(state='disable')
                 else:
@@ -152,33 +153,47 @@ class MyFunc:
 
         def enableChildren(parent):
             if not parent.winfo_children():
-                parent.config(state='normal')
+                if parent.winfo_class() not in ('Frame', 'Labelframe', 'TSeparator'):
+                    parent.config(state='normal')
             for child in parent.winfo_children():
                 wtype = child.winfo_class()
-                if wtype not in ('Frame','Labelframe'):
+                if wtype not in ('Frame', 'Labelframe', 'TSeparator'):
                     if child not in ommit:
                         child.configure(state='normal')
                 else:
                     enableChildren(child)
 
+        def check_button_fix(parent):
+            for child in parent.winfo_children():
+                wtype = child.winfo_class()
+                if wtype in ('TCheckbutton'):
+                    if child not in ommit:
+                        child.invoke()
+                        child.invoke()
+                
         if not isinstance(value, int): 
             value = int(entries_content[value].get())
 
-        if not reverse:
-            if value:
-                disableChildren(parent)
+        if not isinstance(parent, list):
+            parent = [parent]
+        
+        for parent_ in parent:
+            if not reverse:
+                if value:
+                    disableChildren(parent_)
+                else:
+                    enableChildren(parent_)
+                    check_button_fix(parent_)
             else:
-                enableChildren(parent)
-        else:
-            if value:
-                enableChildren(parent)
-            else:
-                disableChildren(parent)
+                if value:
+                    enableChildren(parent_)
+                    check_button_fix(parent_)
+                else:
+                    disableChildren(parent_)
 
     def change_state_on_settings_load(parent, name, entries_content, reverse=False, *ommit) -> None:
-        if name in settings:  
-            if settings[name] == '':
-                return
+        if name in settings:
+            if settings[name] == '': return 
             if int(settings[name]) or reverse:
                 MyFunc.change_state(parent, int(settings[name]), entries_content, reverse, *ommit) 
 
@@ -235,10 +250,12 @@ class MainWindow:
         f2 = Frame(n)
         f3 = Frame(n)
         f4 = Frame(n)
+        f5 = Frame(n)
         n.add(f1, text='Farma')
-        n.add(f2, text='Two')
-        n.add(f3, text='Three')
-        n.add(f4, text='Ustawienia')        
+        n.add(f2, text='Planer')
+        n.add(f3, text='Budynki')
+        n.add(f4, text='Rynek')
+        n.add(f5, text='Ustawienia')        
         self.content_frame.rowconfigure(0, weight=1)
         self.content_frame.columnconfigure(0, weight=1)
 
@@ -263,46 +280,53 @@ class MainWindow:
         self.active_A = Checkbutton(A, text='Aktywuj szablon', 
                                     variable=self.entries_content['active_A'], 
                                     onvalue=True, offvalue=False,
-                                    command=lambda: (MyFunc.change_state(*self.elements_state[0]), 
-                                    self.attacks_number_input_A.config(state='disabled') 
-                                    if int(self.entries_content['active_A'].get()) and 
-                                     int(self.entries_content['max_attacks_A'].get()) else None))
-        self.active_A.grid(row=0, column=0, columnspan=2, padx=5, pady=(20, 10))
+                                    command=lambda: MyFunc.change_state(*self.elements_state[0]))
+        self.active_A.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
         self.elements_state.append([A, 'active_A', self.entries_content, True, self.active_A])
         
+        Separator(A, orient=HORIZONTAL).grid(row=1, column=0, columnspan=2, sticky=(W, E))
+
         self.wall = Label(A, text='Poziom muru')
-        self.wall.grid(row=1, column=0, pady=10, padx=5, sticky=W)
+        self.wall.grid(row=2, column=0, columnspan=2, pady=(20, 15), padx=5, sticky=W)
+
+        self.entries_content['wall_ignore_A'] = StringVar()
+        self.wall_ignore = Checkbutton(A, text='Ignoruj poziom', 
+                                       variable=self.entries_content['wall_ignore_A'], 
+                                       onvalue=True, offvalue=False,
+                                       command=lambda: MyFunc.change_state(*self.elements_state[1]))
+        self.wall_ignore.grid(row=3, column=0, pady=5, padx=(25, 5), sticky=W)     
 
         self.min_wall_level = Label(A, text='Min')
-        self.min_wall_level.grid(row=2, column=0, pady=5, padx=(25, 5), sticky=W)
+        self.min_wall_level.grid(row=4, column=0, pady=5, padx=(25, 5), sticky=W)
 
         self.entries_content['min_wall_A'] = StringVar()
         self.min_wall_level_input = Entry(A, width=5, textvariable=self.entries_content['min_wall_A'], justify='center')
-        self.min_wall_level_input.grid(row=2, column=1, pady=5, padx=(5, 25), sticky=E)
+        self.min_wall_level_input.grid(row=4, column=1, pady=5, padx=(5, 25), sticky=E)
 
         self.max_wall_level = Label(A, text='Max')
-        self.max_wall_level.grid(row=3, column=0, pady=5, padx=(25, 5), sticky=W)
+        self.max_wall_level.grid(row=5, column=0, pady=5, padx=(25, 5), sticky=W)
 
         self.entries_content['max_wall_A'] = StringVar()
         self.max_wall_level_input_A = Entry(A, width=5, textvariable=self.entries_content['max_wall_A'], justify='center')
-        self.max_wall_level_input_A.grid(row=3, column=1, pady=5, padx=(5, 25), sticky=E)
+        self.max_wall_level_input_A.grid(row=5, column=1, pady=5, padx=(5, 25), sticky=E)
+        self.elements_state.append([[self.min_wall_level_input, self.max_wall_level_input_A], 'wall_ignore_A', self.entries_content])               
 
         self.attacks = Label(A, text='Wysyłka ataków')
-        self.attacks.grid(row=4, column=0, pady=10, padx=5, sticky=W)        
+        self.attacks.grid(row=6, column=0, columnspan=2, pady=(20, 10), padx=5, sticky=W)        
 
         self.entries_content['max_attacks_A'] = StringVar()
         self.max_attacks_A = Checkbutton(A, text='Maksymalna ilość', 
                                     variable=self.entries_content['max_attacks_A'], 
                                     onvalue=True, offvalue=False, 
-                                    command=lambda: MyFunc.change_state(*self.elements_state[1]))
-        self.max_attacks_A.grid(row=5, column=0, pady=5, padx=(25, 5), sticky=W)
+                                    command=lambda: MyFunc.change_state(*self.elements_state[2]))
+        self.max_attacks_A.grid(row=7, column=0, pady=5, padx=(25, 5), sticky=W)
 
         self.attacks = Label(A, text='Ilość ataków')
-        self.attacks.grid(row=6, column=0, pady=(5, 10), padx=(25, 5), sticky=W)
+        self.attacks.grid(row=8, column=0, pady=(5, 10), padx=(25, 5), sticky=W)
 
         self.entries_content['attacks_number_A'] = StringVar()
         self.attacks_number_input_A = Entry(A, width=5, textvariable=self.entries_content['attacks_number_A'], justify='center')
-        self.attacks_number_input_A.grid(row=6, column=1, pady=(5, 10), padx=(5, 25), sticky=E)
+        self.attacks_number_input_A.grid(row=8, column=1, pady=(5, 10), padx=(5, 25), sticky=E)
         self.elements_state.append([self.attacks_number_input_A, 'max_attacks_A', self.entries_content])
         #endregion
         
@@ -315,75 +339,140 @@ class MainWindow:
         self.active_B = Checkbutton(B, text='Aktywuj szablon', 
                                     variable=self.entries_content['active_B'], 
                                     onvalue=True, offvalue=False,
-                                    command=lambda: (MyFunc.change_state(*self.elements_state[2]), 
-                                    self.attacks_number_input_B.config(state='disabled') 
-                                    if int(self.entries_content['active_B'].get()) and 
-                                    int(self.entries_content['max_attacks_B'].get()) else None))
-        self.active_B.grid(row=0, column=0, columnspan=2, padx=5, pady=(20, 10))
+                                    command=lambda: MyFunc.change_state(*self.elements_state[3]))
+        self.active_B.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
         self.elements_state.append([B, 'active_B', self.entries_content, True, self.active_B])
-        
+
+        Separator(B, orient=HORIZONTAL).grid(row=1, column=0, columnspan=2, sticky=(W, E))
+
         self.wall = Label(B, text='Poziom muru')
-        self.wall.grid(row=1, column=0, pady=10, padx=5, sticky=W)
+        self.wall.grid(row=2, column=0, columnspan=2, pady=(20, 15), padx=5, sticky=W)
+
+        self.entries_content['wall_ignore_B'] = StringVar()
+        self.wall_ignore_B = Checkbutton(B, text='Ignoruj poziom', 
+                                       variable=self.entries_content['wall_ignore_B'], 
+                                       onvalue=True, offvalue=False,
+                                       command=lambda: MyFunc.change_state(*self.elements_state[4]))
+        self.wall_ignore_B.grid(row=3, column=0, pady=5, padx=(25, 5), sticky=W)          
 
         self.min_wall_level = Label(B, text='Min')
-        self.min_wall_level.grid(row=2, column=0, pady=5, padx=(25, 5), sticky=W)
+        self.min_wall_level.grid(row=4, column=0, pady=5, padx=(25, 5), sticky=W)
 
         self.entries_content['min_wall_B'] = StringVar()
         self.min_wall_level_input_B = Entry(B, width=5, textvariable=self.entries_content['min_wall_B'], justify='center')
-        self.min_wall_level_input_B.grid(row=2, column=1, pady=5, padx=(5, 25), sticky=E)
+        self.min_wall_level_input_B.grid(row=4, column=1, pady=5, padx=(5, 25), sticky=E)
 
         self.max_wall_level = Label(B, text='Max')
-        self.max_wall_level.grid(row=3, column=0, pady=5, padx=(25, 5), sticky=W)
+        self.max_wall_level.grid(row=5, column=0, pady=5, padx=(25, 5), sticky=W)
 
         self.entries_content['max_wall_B'] = StringVar()
         self.max_wall_level_input_B = Entry(B, width=5, textvariable=self.entries_content['max_wall_B'], justify='center')
-        self.max_wall_level_input_B.grid(row=3, column=1, pady=5, padx=(5, 25), sticky=E)
+        self.max_wall_level_input_B.grid(row=5, column=1, pady=5, padx=(5, 25), sticky=E)
+        self.elements_state.append([[self.min_wall_level_input_B, self.max_wall_level_input_B], 'wall_ignore_B', self.entries_content])               
 
         self.attacks = Label(B, text='Wysyłka ataków')
-        self.attacks.grid(row=4, column=0, pady=10, padx=5, sticky=W)        
+        self.attacks.grid(row=6, column=0, columnspan=2, pady=(20, 10), padx=5, sticky=W)        
 
         self.entries_content['max_attacks_B'] = StringVar()
         self.max_attacks_B = Checkbutton(B, text='Maksymalna ilość', 
                                     variable=self.entries_content['max_attacks_B'], 
                                     onvalue=True, offvalue=False, 
-                                    command=lambda: MyFunc.change_state(*self.elements_state[3]))
-        self.max_attacks_B.grid(row=5, column=0, pady=5, padx=(25, 5), sticky=W)
+                                    command=lambda: MyFunc.change_state(*self.elements_state[5]))
+        self.max_attacks_B.grid(row=7, column=0, pady=5, padx=(25, 5), sticky=W)
 
         self.attacks = Label(B, text='Ilość ataków')
-        self.attacks.grid(row=6, column=0, pady=(5, 10), padx=(25, 5), sticky=W)
+        self.attacks.grid(row=8, column=0, pady=(5, 10), padx=(25, 5), sticky=W)
 
         self.entries_content['attacks_number_B'] = StringVar()
         self.attacks_number_input_B = Entry(B, width=5, textvariable=self.entries_content['attacks_number_B'], justify='center')
-        self.attacks_number_input_B.grid(row=6, column=1, pady=(5, 10), padx=(5, 25), sticky=E)
+        self.attacks_number_input_B.grid(row=8, column=1, pady=(5, 10), padx=(5, 25), sticky=E)
         self.elements_state.append([self.attacks_number_input_B, 'max_attacks_B', self.entries_content])
         #endregion        
         
         # Szablon C
         #region
+        C.columnconfigure(1, weight=1)
+        C.columnconfigure(0, weight=1)
+        
+        self.entries_content['active_C'] = StringVar()
+        self.active_C = Checkbutton(C, text='Aktywuj szablon', 
+                                    variable=self.entries_content['active_C'], 
+                                    onvalue=True, offvalue=False,
+                                    command=lambda: MyFunc.change_state(*self.elements_state[6]))
+        self.active_C.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
+        self.elements_state.append([C, 'active_C', self.entries_content, True, self.active_C])
+
+        Separator(C, orient=HORIZONTAL).grid(row=1, column=0, columnspan=2, sticky=(W, E))
+
+        self.wall = Label(C, text='Poziom muru')
+        self.wall.grid(row=2, column=0, columnspan=2, pady=(20, 15), padx=5, sticky=W)
+
+        self.entries_content['wall_ignore_C'] = StringVar()
+        self.wall_ignore_C = Checkbutton(C, text='Ignoruj poziom', 
+                                       variable=self.entries_content['wall_ignore_C'], 
+                                       onvalue=True, offvalue=False,
+                                       command=lambda: MyFunc.change_state(*self.elements_state[7]))
+        self.wall_ignore_C.grid(row=3, column=0, pady=5, padx=(25, 5), sticky=W)  
+
+        self.min_wall_level = Label(C, text='Min')
+        self.min_wall_level.grid(row=4, column=0, pady=5, padx=(25, 5), sticky=W)
+
+        self.entries_content['min_wall_C'] = StringVar()
+        self.min_wall_level_input_C = Entry(C, width=5, textvariable=self.entries_content['min_wall_C'], justify='center')
+        self.min_wall_level_input_C.grid(row=4, column=1, pady=5, padx=(5, 25), sticky=E)
+
+        self.max_wall_level = Label(C, text='Max')
+        self.max_wall_level.grid(row=5, column=0, pady=5, padx=(25, 5), sticky=W)
+
+        self.entries_content['max_wall_C'] = StringVar()
+        self.max_wall_level_input_C = Entry(C, width=5, textvariable=self.entries_content['max_wall_C'], justify='center')
+        self.max_wall_level_input_C.grid(row=5, column=1, pady=5, padx=(5, 25), sticky=E)
+        self.elements_state.append([[self.min_wall_level_input_C, self.max_wall_level_input_C], 'wall_ignore_C', self.entries_content])               
+
+        self.attacks = Label(C, text='Wysyłka ataków')
+        self.attacks.grid(row=6, column=0, pady=(20, 10), padx=5, sticky=W)        
+
+        self.entries_content['max_attacks_C'] = StringVar()
+        self.max_attacks_C = Checkbutton(C, text='Maksymalna ilość', 
+                                    variable=self.entries_content['max_attacks_C'], 
+                                    onvalue=True, offvalue=False, 
+                                    command=lambda: MyFunc.change_state(*self.elements_state[8]))
+        self.max_attacks_C.grid(row=7, column=0, pady=5, padx=(25, 5), sticky=W)
+
+        self.attacks = Label(C, text='Ilość ataków')
+        self.attacks.grid(row=8, column=0, pady=(5, 10), padx=(25, 5), sticky=W)
+
+        self.entries_content['attacks_number_C'] = StringVar()
+        self.attacks_number_input_C = Entry(C, width=5, textvariable=self.entries_content['attacks_number_C'], justify='center')
+        self.attacks_number_input_C.grid(row=8, column=1, pady=(5, 10), padx=(5, 25), sticky=E)
+        self.elements_state.append([self.attacks_number_input_C, 'max_attacks_C', self.entries_content])
         #endregion
 
-        # f2 -> 'Two'
+        # f2 -> 'Planer'
         f2.columnconfigure(0, weight=1)
 
         Label(f2, compound=LEFT, text='adin dwa tri', image=self.photo).grid(row=0, column=0)
 
-        # f3 -> 'Three'
+        # f3 -> 'Budynki'
         f3.columnconfigure(0, weight=1)
 
-        # f4 -> 'Ustawienia'
+        # f4 -> 'Rynek'
         f4.columnconfigure(0, weight=1)
-        f4.columnconfigure(1, weight=1)
+
+        # f5 -> 'Ustawienia'
+        f5.columnconfigure(0, weight=1)
+        f5.columnconfigure(1, weight=1)
 
 
-        self.world_number = Label(f4, text='Numer świata')
+        self.world_number = Label(f5, text='Numer świata')
         self.world_number.grid(row=0, column=0, padx=5, pady=(10, 5), sticky=W)
         
         self.entries_content['world'] = StringVar()
-        self.world_number_input = Entry(f4, textvariable=self.entries_content['world'], width=3)
+        self.world_number_input = Entry(f5, textvariable=self.entries_content['world'], width=3)
         self.world_number_input.grid(row=0, column=1, padx=5, pady=(10, 5))
 
         self.entries_content['auto_farm'] = StringVar()
-        self.auto_farm = Checkbutton(f4, text='Automatyczne farmienie', 
+        self.auto_farm = Checkbutton(f5, text='Automatyczne farmienie', 
                                     variable=self.entries_content['auto_farm'], 
                                     onvalue=True, offvalue=False)
         self.auto_farm.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky=W)

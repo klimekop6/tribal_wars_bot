@@ -232,112 +232,81 @@ def mark_villages_on_map(driver: webdriver) -> None:
         driver.execute_script('return arguments[0].scrollIntoView(true);', element)
         element.click()
 
-def auto_farm(driver: webdriver, sleep_time: int) -> None:
+def auto_farm(driver: webdriver, settings: dict[str]) -> None:
     """ automatyczne wysyłanie wojsk w asystencie farmera """ 
 
-    while True:
+    # automatyczne farmienie
 
-        # przechodzi do asystenta farmera
-        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'manager_icon_farm'))).click()
+    # przechodzi do asystenta farmera
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'manager_icon_farm'))).click()
 
-        # element wykorzystany do przesuwania strony w dół
-        page_body = driver.find_element_by_id('ds_body')
+    # szablon A i B plus aktualnie dostępne jednostki w wiosce
+    template_troops = driver.find_element_by_id('content_value').get_attribute('innerHTML')
+    template_troops = template_troops[template_troops.find('<table class="vis"'):template_troops.find('<script type="text/javascript">')]
+    available_troops = template_troops[template_troops.find('id="units_home"'):].split('<tr>')[2:]
+    template_troops = {'A': template_troops[:template_troops.find('</tbody>')],'B': template_troops[template_troops.find('farm_icon_b'):template_troops.find('id="farm_units"')]}
+    template_troops['A'] = template_troops['A'].split('<tr>')[2:]
+    template_troops['B'] = template_troops['B'].split('<tr>')[1:]
+    template_troops['A'] = template_troops['A'][0].split('<td')[1:-1]
+    template_troops['B'] = template_troops['B'][0].split('<td')[1:-1]
 
-        # szablon A i B plus aktualnie dostępne jednostki w wiosce
-        template_troops = driver.find_element_by_id('content_value').get_attribute('innerHTML')
-        template_troops = template_troops[template_troops.find('<table class="vis"'):template_troops.find('<script type="text/javascript">')]
-        available_troops = template_troops[template_troops.find('id="units_home"'):].split('<tr>')[2:]
-        template_troops = {'A': template_troops[:template_troops.find('</tbody>')],'B': template_troops[template_troops.find('farm_icon_b'):template_troops.find('id="farm_units"')]}
-        template_troops['A'] = template_troops['A'].split('<tr>')[2:]
-        template_troops['B'] = template_troops['B'].split('<tr>')[1:]
-        template_troops['A'] = template_troops['A'][0].split('<td')[1:-1]
-        template_troops['B'] = template_troops['B'][0].split('<td')[1:-1]
+    for key in template_troops:
+        tmp = {}
+        for row in template_troops[key]:
+            value = int(row[row.find('value="')+7:row.rfind('">')])
+            if value:
+                tmp[row[row.find('name="')+6:row.find('size')-2]] = value
+        template_troops[key] = tmp
 
-        for key in template_troops:
-            tmp = {}
-            for row in template_troops[key]:
-                value = int(row[row.find('value="')+7:row.rfind('">')])
-                if value:
-                    tmp[row[row.find('name="')+6:row.find('size')-2]] = value
-            template_troops[key] = tmp
+    for row in available_troops:
+        available_troops = row.split('<td')[2:]
+    for index, row in enumerate(available_troops): 
+        available_troops[index] = {'key': row[row.find('id="')+4:row.find('">')], 'value': row[row.find('">')+2:row.find('</td')]}
 
-        for row in available_troops:
-            available_troops = row.split('<td')[2:]
-        for index, row in enumerate(available_troops): 
-            available_troops[index] = {'key': row[row.find('id="')+4:row.find('">')], 'value': row[row.find('">')+2:row.find('</td')]}
+    tmp = available_troops
+    available_troops = {}
+    for row in tmp:
+        available_troops[row['key']] = int(row['value'])
 
-        tmp = available_troops
-        available_troops = {}
-        for row in tmp:
-            available_troops[row['key']] = int(row['value'])
+    # lista poziomów murów
+    walls_level = driver.find_element_by_id('plunder_list').get_attribute('innerHTML').split('<tr')[3:]
+    for index, row in enumerate(walls_level):
+        walls_level[index] = row.split('<td')[7:8]
+    for index, row in enumerate(walls_level):
+        for ele in row:
+            walls_level[index] = ele[ele.find('>')+1:ele.find('<')] 
+    walls_level = [ele if ele=='?' else int(ele) for ele in walls_level]
 
-        # lista poziomów murów
-        walls_level = driver.find_element_by_id('plunder_list').get_attribute('innerHTML').split('<tr')[3:]
-        for index, row in enumerate(walls_level):
-            walls_level[index] = row.split('<td')[7:8]
-        for index, row in enumerate(walls_level):
-            for ele in row:
-                walls_level[index] = ele[ele.find('>')+1:ele.find('<')] 
-        walls_level = [ele if ele=='?' else int(ele) for ele in walls_level]
+    # lista przycisków do wysyłki szablonów A i B
+    villages_to_farm = {}
+    villages_to_farm['A'] = 9 # szablon A
+    villages_to_farm['B'] = 10 # szablon B
 
-        # lista przycisków do wysyłki szablonów A i B
-        villages_to_farm = zip(driver.find_elements_by_xpath('//*[@id="plunder_list"]/tbody/tr/td[9]/a'), # szablon A
-                            driver.find_elements_by_xpath('//*[@id="plunder_list"]/tbody/tr/td[10]/a')) # szablon B
-
-        # wysyłka wojsk w asystencie farmera
-        start_time = 0
-        scroll = False
-        no_units = {'A': False, 'B': False}
-        for village, wall_level in zip(villages_to_farm, walls_level): 
+    # wysyłka wojsk w asystencie farmera
+    start_time = 0
+    no_units = False
+    for index, template in enumerate(villages_to_farm):
+        villages_to_farm[template] = driver.find_elements_by_xpath(f'//*[@id="plunder_list"]/tbody/tr/td[{villages_to_farm[template]}]/a')
+        for village, wall_level in zip(villages_to_farm[template], walls_level): 
             if isinstance(wall_level, str):
                 continue        
-            if wall_level < 1:
-                for unit, number in template_troops['A'].items():
+            if 0 <= wall_level <= 0:
+                for unit, number in template_troops[template].items():
                     if available_troops[unit] - number < 0:
-                        no_units['A'] = True
+                        no_units = True
                         break
                     available_troops[unit] -= number
-                if no_units['A'] and no_units['B']:
-                    print('Brak jednostek A')
+                if no_units:
                     break
-                if no_units['A']:
-                    continue
                 while time.time() - start_time < 0.195:
                     time.sleep(0.01)
-                try:
-                    village[0].click()
-                except:
-                    scroll = True
-                    page_body.send_keys(Keys.DOWN)
-                    time.sleep(0.1)
-                    village[0].click()
-            elif wall_level == 1:
-                for unit, number in template_troops['B'].items():
-                    if available_troops[unit] - number < 0:
-                        no_units['B'] = True
-                        break
-                    available_troops[unit] -= number
-                if no_units['A'] and no_units['B']:
-                    print('Brak jednostek B')
-                    break
-                if no_units['B']:
-                    continue
-                while time.time() - start_time < 0.195:
-                    time.sleep(0.01)
-                try:
-                    village[1].click()
-                except:
-                    scroll = True
-                    page_body.send_keys(Keys.DOWN)
-                    time.sleep(0.1)
-                    village[1].click()
-            else:
-                continue       
+                driver.execute_script('return arguments[0].scrollIntoView(true);', village)
+                village.click()
             start_time = time.time()
-            if scroll: 
-                page_body.send_keys(Keys.DOWN)
-
-        time.sleep(sleep_time)
+        if index < len(villages_to_farm)-1:
+            no_units = False
+            driver.refresh()
+    time.sleep(sleep_time)
 
 if __name__ == "__main__":
     #    txt = 'txt'
