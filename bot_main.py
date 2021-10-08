@@ -8,6 +8,8 @@ import pyodbc
 import time
 import bot_functions
 import threading
+import logging
+logging.basicConfig(filename='log.txt', level=logging.ERROR)
 
 # context manager
 class DataBaseConnection:
@@ -99,11 +101,14 @@ class MyFunc:
     def run_driver() -> None:
         """ uruchamia sterownik i przeglądarkę google chrome """
 
-        global driver
-        chrome_options = Options()
-        chrome_options.add_argument('user-data-dir=' + settings['path']) 
-        driver = webdriver.Chrome('chromedriver.exe', options=chrome_options)
-        driver.maximize_window()
+        try:
+            global driver
+            chrome_options = Options()
+            chrome_options.add_argument('user-data-dir=' + settings['path']) 
+            driver = webdriver.Chrome('chromedriver.exe', options=chrome_options)
+            driver.maximize_window()
+        except BaseException as exc:
+            logging.error(exc)
 
     def save_entry_to_settings(entries: dict) -> None:
 
@@ -222,7 +227,6 @@ class MainWindow:
         self.master.attributes('-alpha', 0.0)
         self.master.iconbitmap(default='ikona.ico')        
         self.master.title('Tribal Wars 24/7')        
-        self.master.eval('tk::PlaceWindow . center')  
         self.master.overrideredirect(True)
         self.master.attributes('-topmost', 1)
 
@@ -546,6 +550,7 @@ class LogInWindow:
                     MyFunc().custom_error('Konto jest już obecnie w użyciu.')                
                 else:                    
                     main_window.master.deiconify()
+                    MyFunc.center(main_window.master)
                     settings['logged'] = True
                     return
         
@@ -583,9 +588,9 @@ class LogInWindow:
         self.user_name_input.grid(row=2, column=1, pady=(5, 5), padx=5)
         self.user_password_input.grid(row=3, column=1, pady=4, padx=5)
 
-        self.remember_me = IntVar(0)
+        self.remember_me = StringVar()
         self.remember_me_button = Checkbutton(self.content, text='Zapamiętaj mnie', 
-                                         variable=self.remember_me, onvalue=1, offvalue=0)
+                                         variable=self.remember_me, onvalue=True, offvalue=False)
         self.remember_me_button.grid(row=4, columnspan=2, pady=4, padx=5, sticky='W')
 
         self.log_in_button = Button(self.content, text='Zaloguj', command=self.log_in)
@@ -628,7 +633,8 @@ class LogInWindow:
                     json.dump(settings, settings_json_file)
             
             self.master.destroy() 
-            main_window.master.deiconify()        
+            main_window.master.deiconify()
+            MyFunc.center(main_window.master)
 
 if __name__ == '__main__':
     
