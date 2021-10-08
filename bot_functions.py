@@ -232,15 +232,8 @@ def mark_villages_on_map(driver: webdriver) -> None:
         driver.execute_script('return arguments[0].scrollIntoView(true);', element)
         element.click()
 
-def auto_farm(driver: webdriver, entries_content: dict[str]) -> None:
+def auto_farm(driver: webdriver, settings: dict[str]) -> None:
     """ automatyczne wysyłanie wojsk w asystencie farmera """ 
-
-    villages_to_farm = {}
-    if entries_content['A']['active']: 
-        villages_to_farm['A'] = 9 # szablon A
-    villages_to_farm['B'] = 10 # szablon B
-    villages_to_farm['B'] = 11 # szablon C
-
 
     # przechodzi do asystenta farmera
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'manager_icon_farm'))).click()
@@ -281,12 +274,16 @@ def auto_farm(driver: webdriver, entries_content: dict[str]) -> None:
         for ele in row:
             walls_level[index] = ele[ele.find('>')+1:ele.find('<')] 
     walls_level = [ele if ele=='?' else int(ele) for ele in walls_level]
-
+    
     # lista przycisków do wysyłki szablonów A, B i C
     villages_to_farm = {}
-    villages_to_farm['A'] = 9 # szablon A
-    villages_to_farm['B'] = 10 # szablon B
-    villages_to_farm['B'] = 11 # szablon C
+        
+    if int(settings['A']['active']): 
+        villages_to_farm['A'] = 9 # szablon A
+    if int(settings['B']['active']): 
+        villages_to_farm['B'] = 10 # szablon B
+    if int(settings['C']['active']):     
+        villages_to_farm['C'] = 11 # szablon C
 
     # wysyłka wojsk w asystencie farmera
     start_time = 0
@@ -296,7 +293,7 @@ def auto_farm(driver: webdriver, entries_content: dict[str]) -> None:
         for village, wall_level in zip(villages_to_farm[template], walls_level): 
             if isinstance(wall_level, str):
                 continue        
-            if 0 <= wall_level <= 0:
+            if int(settings[template]['min_wall']) <= wall_level <= int(settings[template]['max_wall']):
                 for unit, number in template_troops[template].items():
                     if available_troops[unit] - number < 0:
                         no_units = True

@@ -7,6 +7,7 @@ import json
 import pyodbc
 import time
 import bot_functions
+import threading
 
 # context manager
 class DataBaseConnection:
@@ -246,7 +247,7 @@ class MainWindow:
         self.minimize_button = Button(self.custom_bar, style='primary.Link.TButton', image=self.minimize, command=self.hide)
         self.minimize_button.grid(row=0, column=3, padx=(5, 0), pady=5, sticky=E)
 
-        self.photo = PhotoImage(file='exit3.png')
+        self.photo = PhotoImage(file='exit.png')
         self.exit = self.photo.subsample(8, 8)
 
         self.exit_button = Button(self.custom_bar, style='primary.Link.TButton', image=self.exit, command=self.master.destroy)
@@ -498,7 +499,7 @@ class MainWindow:
         self.save_button = Button(self.content_frame, text='zapisz', command=lambda: MyFunc.save_entry_to_settings(self.entries_content))
         self.save_button.grid(row=2, column=0, padx=5, pady=5, sticky=(W, E))
 
-        self.run_button = Button(self.content_frame, text='uruchom', command=self.run)
+        self.run_button = Button(self.content_frame, text='uruchom', command=lambda: threading.Thread(target=self.run).start())
         self.run_button.grid(row=3, column=0, padx=5, pady=5, sticky=(W, E))
 
         # other things
@@ -522,6 +523,8 @@ class MainWindow:
     def run(self):
         MyFunc.run_driver()
         bot_functions.log_in(driver, settings)
+        MyFunc.save_entry_to_settings(self.entries_content)
+        bot_functions.auto_farm(driver, settings)
 
 class LogInWindow:
 
