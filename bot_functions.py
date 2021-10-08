@@ -232,10 +232,15 @@ def mark_villages_on_map(driver: webdriver) -> None:
         driver.execute_script('return arguments[0].scrollIntoView(true);', element)
         element.click()
 
-def auto_farm(driver: webdriver, settings: dict[str]) -> None:
+def auto_farm(driver: webdriver, entries_content: dict[str]) -> None:
     """ automatyczne wysyłanie wojsk w asystencie farmera """ 
 
-    # automatyczne farmienie
+    villages_to_farm = {}
+    if entries_content['A']['active']: 
+        villages_to_farm['A'] = 9 # szablon A
+    villages_to_farm['B'] = 10 # szablon B
+    villages_to_farm['B'] = 11 # szablon C
+
 
     # przechodzi do asystenta farmera
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'manager_icon_farm'))).click()
@@ -277,10 +282,11 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
             walls_level[index] = ele[ele.find('>')+1:ele.find('<')] 
     walls_level = [ele if ele=='?' else int(ele) for ele in walls_level]
 
-    # lista przycisków do wysyłki szablonów A i B
+    # lista przycisków do wysyłki szablonów A, B i C
     villages_to_farm = {}
     villages_to_farm['A'] = 9 # szablon A
     villages_to_farm['B'] = 10 # szablon B
+    villages_to_farm['B'] = 11 # szablon C
 
     # wysyłka wojsk w asystencie farmera
     start_time = 0
@@ -306,7 +312,6 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
         if index < len(villages_to_farm)-1:
             no_units = False
             driver.refresh()
-    time.sleep(sleep_time)
 
 if __name__ == "__main__":
     #    txt = 'txt'
