@@ -116,7 +116,11 @@ class MyFunc:
         for key in entries:
             if key in settings:
                 if settings[key]:
-                    entries[key].set(settings[key])
+                    if isinstance(settings[key], dict):
+                        for key_ in settings[key]:
+                            entries[key][key_].set(settings[key][key_])
+                    else:
+                        entries[key].set(settings[key])
                 else:
                     entries[key].set(0)
 
