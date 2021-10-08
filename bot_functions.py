@@ -306,7 +306,6 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
         if index < len(villages_to_farm)-1:
             no_units = False
             driver.refresh()
-    time.sleep(sleep_time)
 
 if __name__ == "__main__":
     #    txt = 'txt'
