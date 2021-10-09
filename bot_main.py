@@ -528,12 +528,19 @@ class MainWindow:
         self.minimize_button.bind("<Map>", show)    
 
     def run(self):
+        """ uruchamia całego bota """
+        
+        MyFunc.save_entry_to_settings(self.entries_content)
         MyFunc.run_driver()
         bot_functions.log_in(driver, settings)
-        MyFunc.save_entry_to_settings(self.entries_content)
         while True:
             bot_functions.auto_farm(driver, settings)
+
+            # tu pozostałe funkcje
+
+            driver.get('chrome://newtab')
             time.sleep(2700)
+            bot_functions.log_in(driver, settings)
 
 class LogInWindow:
 

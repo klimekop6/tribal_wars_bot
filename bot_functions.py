@@ -14,16 +14,20 @@ def log_in(driver: webdriver, settings: dict) -> None:
     
     driver.get('https://www.plemiona.pl/page/play/pl' + settings['world'])
 
-  #username = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,'input[name="username"]')))
-  #password = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,'input[name="password"]')))
+    if f'pl{settings["world"]}.plemiona.pl' not in driver.current_url:
 
-  #username.clear()
-  #password.clear()
-  #username.send_keys('klimekop6')
-  #password.send_keys('u56708')
+        username = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,'input[name="username"]')))
+        password = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR,'input[name="password"]')))
 
-  #WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'btn-login'))).click()
-  #WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//span[text()="Świat 160"]'))).click()
+        username.send_keys(Keys.CONTROL+'a')
+        username.send_keys(Keys.DELETE)
+        password.send_keys(Keys.CONTROL+'a')
+        password.send_keys(Keys.DELETE)
+        username.send_keys('klimekop6')
+        password.send_keys('u56708')
+
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'btn-login'))).click()
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f'//span[text()="Świat {settings["world"]}"]'))).click()
 
 def attacks_labels(driver: webdriver) -> None:
     """ etykiety ataków """
