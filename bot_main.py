@@ -1,5 +1,6 @@
 from tkinter import *
 from tkinter.ttk import *
+import selenium
 from ttkbootstrap import Style
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -485,19 +486,21 @@ class MainWindow:
         f5.columnconfigure(0, weight=1)
         f5.columnconfigure(1, weight=1)
 
-
         self.world_number = Label(f5, text='Numer świata')
-        self.world_number.grid(row=0, column=0, padx=5, pady=(10, 5), sticky=W)
+        self.world_number.grid(row=0, column=0, padx=5, pady=(10, 5), sticky=E)
         
         self.entries_content['world'] = StringVar()
-        self.world_number_input = Entry(f5, textvariable=self.entries_content['world'], width=3)
-        self.world_number_input.grid(row=0, column=1, padx=5, pady=(10, 5))
+        self.world_number_input = Entry(f5, textvariable=self.entries_content['world'], width=3, justify='center')
+        self.world_number_input.grid(row=0, column=1, padx=5, pady=(10, 5), sticky=W)
 
         self.entries_content['auto_farm'] = StringVar()
         self.auto_farm = Checkbutton(f5, text='Automatyczne farmienie', 
                                     variable=self.entries_content['auto_farm'], 
                                     onvalue=True, offvalue=False)
-        self.auto_farm.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky=W)
+        self.auto_farm.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+
+        self.user_path = Button(f5, text='ścierzka profilu przeglądarki', command=MyFunc.chrome_profile_path)
+        self.user_path.grid(row=2, column=0, columnspan=2, pady=5, sticky=(S))
 
         # content_frame
         self.save_button = Button(self.content_frame, text='zapisz', command=lambda: MyFunc.save_entry_to_settings(self.entries_content))
@@ -528,7 +531,9 @@ class MainWindow:
         MyFunc.run_driver()
         bot_functions.log_in(driver, settings)
         MyFunc.save_entry_to_settings(self.entries_content)
-        bot_functions.auto_farm(driver, settings)
+        while True:
+            bot_functions.auto_farm(driver, settings)
+            time.sleep(2700)
 
 class LogInWindow:
 

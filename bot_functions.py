@@ -309,17 +309,3 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
         if index < len(villages_to_farm)-1:
             no_units = False
             driver.refresh()
-
-if __name__ == "__main__":
-    #    txt = 'txt'
-    #    try:
-    #        int(txt)
-    #    except ValueError:
-    #        logging.error('Wprowadzono inne znaki niż cyfry!')
-
-    while True:
-        driver = webdriver.Chrome('chromedriver.exe')
-        log_in()
-        attacks_labels()
-        driver.close()
-        time.sleep(900)
