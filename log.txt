@@ -1,1 +1,0 @@
-ERROR:root:Wprowadzono inne znaki ni¿ cyfry!
