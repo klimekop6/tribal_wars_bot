@@ -1,10 +1,13 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.ui import Select
 from math import sqrt
 import time
+import re
 
 import logging
 logging.basicConfig(filename='log.txt', level=logging.ERROR)
@@ -29,6 +32,11 @@ def log_in(driver: webdriver, settings: dict) -> None:
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CLASS_NAME, 'btn-login'))).click()
         WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f'//span[text()="Świat {settings["world"]}"]'))).click()
 
+    html = driver.page_source
+    if html.find('popup_box_daily_bonus') != -1:
+        WebDriverWait(driver, 10, 0.33).until(EC.element_to_be_clickable((By.XPATH,
+                                '//*[@id="popup_box_daily_bonus"]/div/a'))).click()
+
 def attacks_labels(driver: webdriver) -> None:
     """ etykiety ataków """
 
@@ -36,15 +44,14 @@ def attacks_labels(driver: webdriver) -> None:
         return    
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'incomings_cell'))).click() # otwarcie karty z nadchodzącymi atakami
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/div[1]/*[@data-group-type="all"]'))).click() # zmiana grupy na wszystkie
-    manage_filters = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))) # zwraca element z filrem ataków
+    manage_filters = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))) # zwraca element z filtrem ataków
     if driver.find_element_by_xpath('//*[@id="paged_view_content"]/div[2]').get_attribute('style').find('display: none') != -1:
         manage_filters.click()
     etkyieta_rozkazu = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/div[2]/form/table/tbody/tr[2]/td[2]/input')))
 
     etkyieta_rozkazu.clear()
     etkyieta_rozkazu.send_keys('Atak')
-
-    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/div[2]/form/table/tbody/tr[7]/td/input'))).click()
+    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/div[2]/form/table/tbody/tr[6]/td/input'))).click()
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a')))
     try:
         driver.find_element_by_id('incomings_table')
@@ -242,74 +249,113 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
     # przechodzi do asystenta farmera
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'manager_icon_farm'))).click()
 
-    # szablon A i B plus aktualnie dostępne jednostki w wiosce
-    template_troops = driver.find_element_by_id('content_value').get_attribute('innerHTML')
-    template_troops = template_troops[template_troops.find('<table class="vis"'):template_troops.find('<script type="text/javascript">')]
-    available_troops = template_troops[template_troops.find('id="units_home"'):].split('<tr>')[2:]
-    template_troops = {'A': template_troops[:template_troops.find('</tbody>')],'B': template_troops[template_troops.find('farm_icon_b'):template_troops.find('id="farm_units"')]}
-    template_troops['A'] = template_troops['A'].split('<tr>')[2:]
-    template_troops['B'] = template_troops['B'].split('<tr>')[1:]
-    template_troops['A'] = template_troops['A'][0].split('<td')[1:-1]
-    template_troops['B'] = template_troops['B'][0].split('<td')[1:-1]
+    # sprawdza czy znajduję się w prawidłowej grupie jeśli nie to przechodzi do prawidłowej
+    driver.find_element_by_id('open_groups').click()
+    current_group = WebDriverWait(driver, 10, 0.033).until(EC.presence_of_element_located((By.XPATH, '//*[@id="group_id"]/option[@selected="selected"]'))).text
 
-    for key in template_troops:
-        tmp = {}
-        for row in template_troops[key]:
-            value = int(row[row.find('value="')+7:row.rfind('">')])
-            if value:
-                tmp[row[row.find('name="')+6:row.find('size')-2]] = value
-        template_troops[key] = tmp
+    if current_group != settings['farm_group']:
+        select = Select(driver.find_element_by_id('group_id'))
+        select.select_by_visible_text(settings['farm_group'])
+        WebDriverWait(driver, 10, 0.033).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a'))).click()
+    driver.find_element_by_id('close_groups').click()
 
-    for row in available_troops:
-        available_troops = row.split('<td')[2:]
-    for index, row in enumerate(available_troops): 
-        available_troops[index] = {'key': row[row.find('id="')+4:row.find('">')], 'value': row[row.find('">')+2:row.find('</td')]}
+    # początkowa wioska - format '(439|430) K44'
+    starting_village = driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text
 
-    tmp = available_troops
-    available_troops = {}
-    for row in tmp:
-        available_troops[row['key']] = int(row['value'])
-
-    # lista poziomów murów
-    walls_level = driver.find_element_by_id('plunder_list').get_attribute('innerHTML').split('<tr')[3:]
-    for index, row in enumerate(walls_level):
-        walls_level[index] = row.split('<td')[7:8]
-    for index, row in enumerate(walls_level):
-        for ele in row:
-            walls_level[index] = ele[ele.find('>')+1:ele.find('<')] 
-    walls_level = [ele if ele=='?' else int(ele) for ele in walls_level]
-    
-    # lista przycisków do wysyłki szablonów A, B i C
-    villages_to_farm = {}
+    while True:
         
-    if int(settings['A']['active']): 
-        villages_to_farm['A'] = 9 # szablon A
-    if int(settings['B']['active']): 
-        villages_to_farm['B'] = 10 # szablon B
-    if int(settings['C']['active']):     
-        villages_to_farm['C'] = 11 # szablon C
+        # szablon A i B plus aktualnie dostępne jednostki w wiosce
+        template_troops = driver.find_element_by_id('content_value').get_attribute('innerHTML')
+        template_troops = template_troops[template_troops.find('<table class="vis"'):template_troops.find('<script type="text/javascript">')]
+        available_troops = template_troops[template_troops.find('id="units_home"'):].split('<tr>')[2:]
+        template_troops = {'A': template_troops[:template_troops.find('</tbody>')],'B': template_troops[template_troops.find('farm_icon_b'):template_troops.find('id="farm_units"')]}
+        template_troops['A'] = template_troops['A'].split('<tr>')[2:]
+        template_troops['B'] = template_troops['B'].split('<tr>')[1:]
+        template_troops['A'] = template_troops['A'][0].split('<td')[1:-1]
+        template_troops['B'] = template_troops['B'][0].split('<td')[1:-1]
 
-    # wysyłka wojsk w asystencie farmera
-    start_time = 0
-    no_units = False
-    for index, template in enumerate(villages_to_farm):
-        villages_to_farm[template] = driver.find_elements_by_xpath(f'//*[@id="plunder_list"]/tbody/tr/td[{villages_to_farm[template]}]/a')
-        for village, wall_level in zip(villages_to_farm[template], walls_level): 
-            if isinstance(wall_level, str):
-                continue        
-            if int(settings[template]['min_wall']) <= wall_level <= int(settings[template]['max_wall']):
-                for unit, number in template_troops[template].items():
-                    if available_troops[unit] - number < 0:
-                        no_units = True
+        for key in template_troops:
+            tmp = {}
+            for row in template_troops[key]:
+                value = int(row[row.find('value="')+7:row.rfind('">')])
+                if value:
+                    tmp[row[row.find('name="')+6:row.find('size')-2]] = value
+            template_troops[key] = tmp
+
+        for row in available_troops:
+            available_troops = row.split('<td')[2:]
+        for index, row in enumerate(available_troops): 
+            available_troops[index] = {'key': row[row.find('id="')+4:row.find('">')], 'value': row[row.find('">')+2:row.find('</td')]}
+
+        tmp = available_troops
+        available_troops = {}
+        for row in tmp:
+            available_troops[row['key']] = int(row['value'])
+
+        # lista poziomów murów
+        walls_level = driver.find_element_by_id('plunder_list').get_attribute('innerHTML').split('<tr')[3:]
+        for index, row in enumerate(walls_level):
+            walls_level[index] = row.split('<td')[7:8]
+        for index, row in enumerate(walls_level):
+            for ele in row:
+                walls_level[index] = ele[ele.find('>')+1:ele.find('<')] 
+        walls_level = [ele if ele=='?' else int(ele) for ele in walls_level]
+        
+        # lista przycisków do wysyłki szablonów A, B i C
+        villages_to_farm = {}
+            
+        if int(settings['A']['active']): 
+            villages_to_farm['A'] = 9 # szablon A
+        if int(settings['B']['active']): 
+            villages_to_farm['B'] = 10 # szablon B
+        if int(settings['C']['active']):     
+            villages_to_farm['C'] = 11 # szablon C
+
+        # wysyłka wojsk w asystencie farmera
+        start_time = 0
+        no_units = False
+        for index, template in enumerate(villages_to_farm):
+            villages_to_farm[template] = driver.find_elements_by_xpath(f'//*[@id="plunder_list"]/tbody/tr/td[{villages_to_farm[template]}]/a')
+            for village, wall_level in zip(villages_to_farm[template], walls_level): 
+                if isinstance(wall_level, str):
+                    continue        
+                if int(settings[template]['min_wall']) <= wall_level <= int(settings[template]['max_wall']):
+                    for unit, number in template_troops[template].items():
+                        if available_troops[unit] - number < 0:
+                            no_units = True
+                            break
+                        available_troops[unit] -= number
+                    if no_units:
                         break
-                    available_troops[unit] -= number
-                if no_units:
-                    break
-                while time.time() - start_time < 0.195:
-                    time.sleep(0.01)
-                driver.execute_script('return arguments[0].scrollIntoView(true);', village)
-                village.click()
-            start_time = time.time()
-        if index < len(villages_to_farm)-1:
-            no_units = False
-            driver.refresh()
+                    html = driver.page_source
+                    if html.find('captcha') != -1:
+                        driver.save_screenshot('before.png')
+                        time.sleep(30)
+                        driver.save_screenshot('after.png')
+                    while time.time() - start_time < 0.195:
+                        time.sleep(0.01)
+                    driver.execute_script('return arguments[0].scrollIntoView(true);', village)
+                    village.click()
+                start_time = time.time()
+            if index < len(villages_to_farm)-1:
+                no_units = False
+                driver.refresh()
+
+        # przełącz wioskę i sprawdź czy nie jest to wioska startowa
+        ActionChains(driver).send_keys('d').perform()
+        if starting_village == driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text:
+            break
+
+def check_groups(driver: webdriver, settings: dict[str], run_driver, checkbox) -> None:
+    """ sprawdza dostępne grupy i zapisuje je w settings.json """
+
+    if not driver:
+        driver = run_driver()
+        log_in(driver, settings)
+
+    driver.find_element_by_id('open_groups').click()
+    groups = WebDriverWait(driver, 10, 0.033).until(EC.presence_of_element_located((By.ID, 'group_id'))).get_attribute('innerHTML')
+    driver.find_element_by_id('close_groups').click()
+    groups = [group[1:-1] for group in re.findall(r'>[^<].+?<', groups)]
+    settings['groups'] = groups
+    checkbox['values'] = settings['groups']

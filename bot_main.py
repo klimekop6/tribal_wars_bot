@@ -1,15 +1,22 @@
 from tkinter import *
 from tkinter.ttk import *
-import selenium
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
 from ttkbootstrap import Style
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support import expected_conditions as EC
+
+import subprocess
 import json
 import pyodbc
 import time
+import datetime
 import bot_functions
 import threading
 import logging
+import ctypes
+import sys
 logging.basicConfig(filename='log.txt', level=logging.ERROR)
 
 # context manager
@@ -41,6 +48,37 @@ class DataBaseConnection:
 
 class MyFunc:
 
+    def chrome_profile_path() -> None:
+        """ wyszukuję i zapisuje w ustawieniach aplikacji aktualną ścierzkę do profilu użytkownika przeglądarki chrome """
+
+        driver = webdriver.Chrome('chromedriver.exe')
+        driver.get('chrome://version')
+        path = driver.find_element_by_xpath('//*[@id="profile_path"]').text
+        path = path[:path.find('Temp\\')] + 'Google\\Chrome\\User Data'
+        settings['path'] = path
+        settings['first_lunch'] = False
+
+        with open('settings.json', 'w') as settings_json_file:
+            json.dump(settings, settings_json_file)
+
+    def first_app_lunch() -> None:
+        """ do some stuff if app was just installed for the 1st time """
+
+        def is_admin():
+            try:
+                return ctypes.windll.shell32.IsUserAnAdmin()
+            except:
+                return False
+
+        if is_admin():
+            # Code of your program here
+            subprocess.run('regedit /s anticaptcha-plugin.reg')
+        else:
+            # Re-run the program with admin rights
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 1)
+
+        MyFunc.chrome_profile_path()
+        
     def current_time() -> str:
         return time.strftime('%d/%m/%Y %H:%M:%S', time.localtime())
 
@@ -55,7 +93,7 @@ class MyFunc:
             settings = json.load(f)
         except FileNotFoundError:
             f = open('settings.json', 'w')
-            json.dump({}, f)
+            json.dump({'first_lunch': True}, f)
             settings = {}
         finally:
             f.close()            
@@ -87,27 +125,17 @@ class MyFunc:
         self.ok_button.bind('<Return>', lambda event: self.master.destroy())
         MyFunc.center(self.master)
 
-    def chrome_profile_path() -> None:
-        """ wyszukuję i zapisuje w ustawieniach aplikacji aktualną ścierzkę do profilu użytkownika przeglądarki chrome """
-
-        driver = webdriver.Chrome('chromedriver.exe')
-        driver.get('chrome://version')
-        path = driver.find_element_by_xpath('//*[@id="profile_path"]').text
-        path = path[:path.find('Temp\\')] + 'Google\\Chrome\\User Data'
-        settings['path'] = path
-
-        with open('settings.json', 'w') as settings_json_file:
-            json.dump(settings, settings_json_file)
-
     def run_driver() -> None:
         """ uruchamia sterownik i przeglądarkę google chrome """
-
+        
+        global driver
         try:
-            global driver
             chrome_options = Options()
-            chrome_options.add_argument('user-data-dir=' + settings['path']) 
+            chrome_options.add_argument('user-data-dir=' + settings['path'])
+            chrome_options.add_extension(extension='0.60_0.crx')  
             driver = webdriver.Chrome('chromedriver.exe', options=chrome_options)
             driver.maximize_window()
+            return driver
         except BaseException as exc:
             logging.error(exc)
 
@@ -244,7 +272,11 @@ class MainWindow:
 
         # custom_bar
         self.title_label = Label(self.custom_bar, text='Tribal Wars Bot')
-        self.title_label.grid(row=0, column=2, padx=5 , sticky=W)
+        self.title_label.grid(row=0, column=1, padx=(5, 0) , sticky=W)
+
+        self.time = StringVar()
+        self.title_timer = Label(self.custom_bar, textvariable=self.time)
+        self.title_timer.grid(row=0, column=2, padx=5)
 
         self.photo = PhotoImage(file='minimize.png')
         self.minimize = self.photo.subsample(2, 2)
@@ -255,17 +287,20 @@ class MainWindow:
         self.photo = PhotoImage(file='exit.png')
         self.exit = self.photo.subsample(8, 8)
 
-        self.exit_button = Button(self.custom_bar, style='primary.Link.TButton', image=self.exit, command=self.master.destroy)
+        self.exit_button = Button(self.custom_bar, style='primary.Link.TButton', image=self.exit, 
+                                command= lambda: [MyFunc.save_entry_to_settings(self.entries_content),
+                                subprocess.run('taskkill /IM chromedriver.exe /F') if driver else None, self.master.destroy()])
         self.exit_button.grid(row=0, column=4, padx=(0, 5), pady=3, sticky=E)      
 
         self.custom_bar.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event, 'custom_bar'))
         self.title_label.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event, 'title_label'))
+        self.title_timer.bind('<Button-1>', lambda event: MyFunc.get_pos(self, event, 'title_timer'))
 
         # content_frame
 
         # notebook with frames 
         n = Notebook(self.content_frame)
-        n.grid(row=1, column=0, padx=5, pady=5, sticky=(N, S, E, W))
+        n.grid(row=1, column=0, padx=5, pady=(0, 5), sticky=(N, S, E, W))
         f1 = Frame(n)
         f2 = Frame(n)
         f3 = Frame(n)
@@ -500,13 +535,32 @@ class MainWindow:
         self.auto_farm.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
 
         self.user_path = Button(f5, text='ścierzka profilu przeglądarki', command=MyFunc.chrome_profile_path)
-        self.user_path.grid(row=2, column=0, columnspan=2, pady=5, sticky=(S))
+        self.user_path.grid(row=2, column=0, columnspan=2, pady=5, sticky=S)
+
+        self.entries_content['farm_group'] = StringVar()
+        if 'groups' not in settings:
+            settings['groups'] = None
+        self.farm_group = Combobox(f5, textvariable=self.entries_content['farm_group'])
+        self.farm_group.grid(row=3, column=0, padx=5, pady=5, sticky=E)
+        self.farm_group.state(['readonly'])
+        self.farm_group['values'] = settings['groups']
+        # self.farm_group.bind("<<ComboboxSelected>>", self.farm_group.configure(selectbackground='yellow')) # podpięcie metody pod zdarzenie zmiany zaznaczenia
+
+        self.update_groups = Button(f5, text='update', command=lambda: bot_functions.check_groups(driver, settings, MyFunc.run_driver, self.farm_group))
+        self.update_groups.grid(row=3, column=1, padx=5, pady=5, sticky=W)
+
+        self.farm_sleep_time_label = Label(f5, text='Czas przed kolejnym wysłaniem farmy [min]')
+        self.farm_sleep_time_label.grid(row=4, column=0, padx=5, pady=5, sticky=E)
+
+        self.entries_content['farm_sleep_time'] = StringVar()
+        self.farm_sleep_time = Entry(f5, textvariable=self.entries_content['farm_sleep_time'], width=5, justify='center')
+        self.farm_sleep_time.grid(row=4, column=1, padx=5, pady=5, sticky=W)
 
         # content_frame
         self.save_button = Button(self.content_frame, text='zapisz', command=lambda: MyFunc.save_entry_to_settings(self.entries_content))
         self.save_button.grid(row=2, column=0, padx=5, pady=5, sticky=(W, E))
 
-        self.run_button = Button(self.content_frame, text='uruchom', command=lambda: threading.Thread(target=self.run).start())
+        self.run_button = Button(self.content_frame, text='uruchom', command=lambda: threading.Thread(target=self.run, name='main_function', daemon=True).start())
         self.run_button.grid(row=3, column=0, padx=5, pady=5, sticky=(W, E))
 
         # other things
@@ -534,12 +588,29 @@ class MainWindow:
         MyFunc.run_driver()
         bot_functions.log_in(driver, settings)
         while True:
-            bot_functions.auto_farm(driver, settings)
+            try:                                
+                bot_functions.attacks_labels(driver)
+                bot_functions.auto_farm(driver, settings)
 
-            # tu pozostałe funkcje
+                # tu pozostałe funkcje
 
+            except BaseException as exc:
+                html = driver.page_source
+                if html.find('captcha') != -1:
+                    driver.save_screenshot('before.png')
+                    time.sleep(30)
+                    driver.save_screenshot('after.png')
+                else:
+                    logging.error(exc)
+                    break
+
+            # zamyka stronę plemion i uruchamia timer
             driver.get('chrome://newtab')
-            time.sleep(2700)
+            for _ in range(int(settings['farm_sleep_time'])*60, 0, -1):
+                self.time.set(f'{datetime.timedelta(seconds=_)}')
+                time.sleep(1)
+            self.time.set('')
+
             bot_functions.log_in(driver, settings)
 
 class LogInWindow:
@@ -650,9 +721,12 @@ class LogInWindow:
 
 if __name__ == '__main__':
     
-    settings = MyFunc.load_settings()
     driver = None
-    
+    settings = MyFunc.load_settings()
+
+    if settings['first_lunch']:
+        MyFunc.first_app_lunch()
+
     main_window = MainWindow()
     style = Style(theme='darkly')
     style.map('primary.Link.TButton', background=[('active', 'gray18')], bordercolor=[('active', '')])
