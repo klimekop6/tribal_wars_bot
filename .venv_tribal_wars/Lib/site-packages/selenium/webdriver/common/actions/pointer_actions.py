@@ -25,10 +25,16 @@ from selenium.webdriver.remote.webelement import WebElement
 
 class PointerActions(Interaction):
 
-    def __init__(self, source=None):
-        if source is None:
+    def __init__(self, source=None, duration=250):
+        """
+        Args:
+        - source: PointerInput instance
+        - duration: override the default 250 msecs of DEFAULT_MOVE_DURATION in source
+        """
+        if not source:
             source = PointerInput(interaction.POINTER_MOUSE, "mouse")
         self.source = source
+        self._duration = duration
         super(PointerActions, self).__init__(source)
 
     def pointer_down(self, button=MouseButton.LEFT):
@@ -40,7 +46,7 @@ class PointerActions(Interaction):
     def move_to(self, element, x=None, y=None):
         if not isinstance(element, WebElement):
             raise AttributeError("move_to requires a WebElement")
-        if x is not None or y is not None:
+        if x or y:
             el_rect = element.rect
             left_offset = el_rect['width'] / 2
             top_offset = el_rect['height'] / 2
@@ -49,15 +55,15 @@ class PointerActions(Interaction):
         else:
             left = 0
             top = 0
-        self.source.create_pointer_move(origin=element, x=int(left), y=int(top))
+        self.source.create_pointer_move(origin=element, duration=self._duration, x=int(left), y=int(top))
         return self
 
     def move_by(self, x, y):
-        self.source.create_pointer_move(origin=interaction.POINTER, x=int(x), y=int(y))
+        self.source.create_pointer_move(origin=interaction.POINTER, duration=self._duration, x=int(x), y=int(y))
         return self
 
     def move_to_location(self, x, y):
-        self.source.create_pointer_move(origin='viewport', x=int(x), y=int(y))
+        self.source.create_pointer_move(origin='viewport', duration=self._duration, x=int(x), y=int(y))
         return self
 
     def click(self, element=None):
@@ -87,8 +93,11 @@ class PointerActions(Interaction):
     def double_click(self, element=None):
         if element:
             self.move_to(element)
-        self.click()
-        self.click()
+        self.pointer_down(MouseButton.LEFT)
+        self.pointer_up(MouseButton.LEFT)
+        self.pointer_down(MouseButton.LEFT)
+        self.pointer_up(MouseButton.LEFT)
+        return self
 
     def pause(self, duration=0):
         self.source.create_pause(duration)
