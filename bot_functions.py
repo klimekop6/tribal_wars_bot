@@ -1,6 +1,7 @@
 import re
 import time
 import traceback
+import threading
 from math import sqrt, ceil
 
 import logging
@@ -22,7 +23,7 @@ logging.basicConfig(filename='log.txt', level=logging.ERROR)
 
 def attacks_labels(driver: webdriver, notifications: bool=False) -> bool:
     """Etykiety ataków"""
-
+   
     if not driver.find_element_by_id('incomings_amount').text:
         return False
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'incomings_cell'))).click()  # Otwarcie karty z nadchodzącymi atakami
@@ -191,7 +192,7 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
                         captcha_solved = True
                     while time.time()-start_time < 0.195:
                         time.sleep(0.01)
-                    driver.execute_script('return arguments[0].scrollIntoView(true);', village)
+                    driver.execute_script('return arguments[0].scrollIntoView({block: "center"});', village)
                     village.click()
                 start_time = time.time()
             if index < len(villages_to_farm)-1:
@@ -311,8 +312,8 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
             if current_group != settings['gathering_group']:
                 select = Select(driver.find_element_by_id('group_id'))
                 select.select_by_visible_text(settings['gathering_group'])
-                WebDriverWait(driver, 10, 0.033).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a'))).click()
-            close_group = driver.find_element_by_id('closelink_group_popup')
+                WebDriverWait(driver, 3, 0.025).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a'))).click()            
+            close_group = WebDriverWait(driver, 3, 0.025).until(EC.element_to_be_clickable((By.ID, 'closelink_group_popup')))
             driver.execute_script('return arguments[0].scrollIntoView(true);', close_group)
             close_group.click()
             WebDriverWait(driver, 2, 0.033).until(EC.presence_of_element_located((By.XPATH, '//*[@id="close_groups"][@style="display: none;"]')))
@@ -676,13 +677,13 @@ def player_villages(driver: webdriver) -> dict:
 def premium_exchange(driver: webdriver, settings: dict) -> None:
     """Umożliwia automatyczną sprzedaż lub zakup surwców za punkty premium"""
     
-    if 'intro' in driver.current_url:  # Jeśli na stronie startowej zaraz po zalogowaniu
+    url = driver.current_url
+    if 'intro' in url or 'php?screen' in url:  # Jeśli na stronie startowej zaraz po zalogowaniu
         url = driver.find_element_by_xpath('//*[@id="menu_row2_village"]/a')
         url = url.get_attribute('href')
         url = url[:url.find('&screen=')+8] + 'market&mode=exchange'
         driver.get(url)
     else:
-        url = driver.current_url
         url = url[:url.find('&screen=')+8] + 'market&mode=exchange'
         driver.get(url)
 
@@ -824,12 +825,153 @@ def send_back_support(driver: webdriver) -> None:
             driver.execute_script(f'''arguments[0].innerHTML = '{html}';''', ele)
 
 
-def send_troops() -> None:
+def send_troops(driver: webdriver, settings: dict) -> int:
     """Send troops at given time.
     It can be attack or help.
     You can also use it for fakes.
     """
 
+    send_time = settings['scheduler']['ready_schedule'][0]['send_time']
+    list_to_send = []
+    for cell_in_list in settings['scheduler']['ready_schedule']:
+        if cell_in_list['send_time'] > send_time+8: 
+            break
+        list_to_send.append(cell_in_list)
+
+    for index, send_info in enumerate(list_to_send):  
+
+        if index > 0:
+            driver.execute_script(f'window.open("{send_info["url"]}");')
+            driver.switch_to.window(driver.window_handles[index])
+        else:
+            driver.get(send_info['url'])
+
+        match send_info['template_type']:
+            case 'send_all':
+
+                def choose_all_units_with_exceptions(troops_dict: dict) -> None:
+                    '''Choose all units and than unclick all unnecessary'''
+
+                    slowest_troop_speed = troops_dict[send_info['slowest_troop']]
+                    for troop_name, troop_speed in troops_dict.items():
+                        if troop_speed > slowest_troop_speed:
+                            del troops_dict[troop_name]
+
+                    driver.find_element(By.ID, 'selectAllUnits').click()
+                    doc = lxml.html.fromstring(driver.find_element(By.XPATH, '//*[@id="command-data-form"]/table/tbody/tr').get_attribute('innerHTML'))
+                    for col in doc:
+                        col = col.xpath('table/tbody/tr/td')
+                        for troop in col:
+                            if troop.get('class') == 'nowrap unit-input-faded':
+                                continue
+                            troop_name = troop.xpath('a')[1].get('data-unit')
+                            if troop_name not in troops_dict:
+                                troop_button_id = troop.xpath('a')[1].get('id')
+                                driver.find_element(By.ID, troop_button_id).click()
+
+                # Choose troops to send
+                match send_info['army_type']:
+                    
+                    case 'only_off':
+                        troops_off = {
+                            'axe': 18,
+                            'light': 10,
+                            'marcher': 10,
+                            'ram': 30,
+                            'catapult': 30,
+                            'knight': 10
+                        }
+                        choose_all_units_with_exceptions(troops_dict=troops_off)
+                        
+                    case 'only_deff':
+                        troops_deff = {
+                            'spear': 18,
+                            'sword': 22,
+                            'archer': 18,
+                            'spy': 9,
+                            'heavy': 11,
+                        }
+                        choose_all_units_with_exceptions(troops_dict=troops_deff)
+
+                if send_info['send_snob'] == 'send_snob':
+                    if send_info['snob_amount'] and send_info['snob_amount']!='0':
+                        snob_input = driver.find_element(By.ID, 'unit_input_snob')
+                        snob_input.send_keys('1')
+
+            case 'send_fake':
+                # Choose troops to send
+
+                pass
+            case 'send_my_template':
+                # Choose troops to send
+                for troop_name, troop_value in send_info['troops'].items():
+                    if troop_value:
+                        troop_input = driver.find_element(By.ID, f'unit_input_{troop_name}')
+                        troop_input.send_keys(troop_value)
+
+        # Click command_type button (attack or support)
+        driver.find_element(By.ID, send_info['command']).click()
+
+    if len(list_to_send) > 1:
+        driver.switch_to.window(driver.window_handles[0])
+        def click_without_wait(ele):
+            try:
+                ele.click()
+            except:
+                pass
+
+    for index, send_info in enumerate(list_to_send):
+
+        if index > 0:
+            a = time.time()
+            driver.switch_to.window(driver.window_handles[1])
+            print('switch time', time.time()-a) 
+
+        current_time = driver.find_element(By.XPATH, '//*[@id="date_arrival"]/span')  # 01
+        send_button = driver.find_element(By.ID, 'troop_confirm_submit')
+        arrival_time = re.search(r'\d{2}:\d{2}:\d{2}', send_info['arrival_time']).group()
+
+        if current_time.text[-8:] < arrival_time:   
+            ms = int(send_info['arrival_time'][-3:]) - 15
+            if ms < 10:
+                sec = 0
+            else:
+                sec = ms / 1000
+            while True:
+                if current_time.text[-8:] == arrival_time:
+                    if sec:
+                        time.sleep(sec)
+                    a = time.time()
+                    threading.Thread(
+                        target=lambda: click_without_wait(send_button), 
+                        name='fast_click', 
+                        daemon=True
+                        ).start()        
+                    print(time.time()-a)                
+                    break
+        else:
+            a = time.time()
+            threading.Thread(
+                target=lambda: click_without_wait(send_button), 
+                name='fast_click', 
+                daemon=True
+                ).start()
+            print(time.time()-a)    
+
+        # if len(list_to_send) > 1: 
+        #     if index > 0:
+        #         # time.sleep(0.05)
+        #         driver.close()       
+
+    if len(list_to_send) > 1:
+        time.sleep(0.5)            
+        for index in range(len(list_to_send)):
+            if index > 0:
+                driver.switch_to.window(driver.window_handles[1])
+                driver.close()
+
+    driver.switch_to.window(driver.window_handles[0])
+    return len(list_to_send)
 
 def train_knight(driver: webdriver) -> None:
     """Train knights to gain experience and lvl up"""
@@ -906,6 +1048,8 @@ def unwanted_page_content(driver: webdriver, html: str) -> bool:
         close_group = driver.find_element_by_id('closelink_group_popup')
         driver.execute_script('return arguments[0].scrollIntoView(true);', close_group)
         close_group.click()
+        
+        return True
 
     # Nieznane -> log_error
     else:

@@ -1,6 +1,0 @@
-25.11.2021 17:09:32 wood 716 stone 635 iron 661 
-25.11.2021 17:12:46 wood 789 stone 635 iron 737 
-25.11.2021 17:15:11 wood 810 stone 635 iron 797 
-25.11.2021 17:16:40 wood 760 stone 645 iron 747 
-25.11.2021 17:18:48 wood 580 stone 587 iron 461 
-25.11.2021 17:19:30 wood 580 stone 587 iron 461 
