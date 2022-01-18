@@ -400,11 +400,10 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
             for troop_name in available_troops:
                 if troops_to_send[key][troop_name] > 0:
                     _input = WebDriverWait(driver, 3, 0.01).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="scavenge_screen"]/div/div[1]/table/tbody/tr[2]/td/input[@name="{troop_name}"]')))
-                    _input.click()
                     try:
-                        _input.is_selected
+                        _input.click()
                     except:
-                        driver.execute_script('return arguments[0].scrollIntoView(true);', _input)
+                        driver.execute_script('return arguments[0].scrollIntoView(false);', _input)
                         _input.click()
                     _input.clear()
                     if reduce_ratio != 1:
@@ -428,7 +427,7 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
             if army_sum < 10:
                 break
             start = WebDriverWait(driver, 3, 0.01).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="scavenge_screen"]/div/div[2]/div[{key}]/div[3]/div/div[2]/a[1]')))
-            driver.execute_script('return arguments[0].scrollIntoView(true);', start)
+            driver.execute_script('return arguments[0].scrollIntoView({block: "center"});', start)
             start.click()
             WebDriverWait(driver, 2, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="scavenge_screen"]/div/div[2]/div[{key}]/div[3]/div/ul/li[4]/span[@class="return-countdown"]')))
 

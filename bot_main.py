@@ -3,8 +3,8 @@ import datetime
 import json
 import logging
 import os
-import subprocess
 import random
+import subprocess
 import sys
 import threading
 import time
@@ -1606,10 +1606,10 @@ class MainWindow:
 
 
         # content_frame
-        self.save_button = ttk.Button(self.content_frame, text='zapisz', command=lambda: MyFunc.save_entry_to_settings(self.entries_content))
+        self.save_button = ttk.Button(self.content_frame, text='Zapisz', command=lambda: MyFunc.save_entry_to_settings(self.entries_content))
         self.save_button.grid(row=2, column=0, padx=5, pady=5, sticky=('W', 'E'))
 
-        self.run_button = ttk.Button(self.content_frame, text='uruchom', command=lambda: threading.Thread(target=self.run, name='main_function', daemon=True).start())
+        self.run_button = ttk.Button(self.content_frame, text='Uruchom', command=lambda: threading.Thread(target=self.run, name='main_function', daemon=True).start())
         self.run_button.grid(row=3, column=0, padx=5, pady=5, sticky=('W', 'E'))
 
         # Other things
@@ -1644,12 +1644,12 @@ class MainWindow:
         else:            
             # Ustawia domyślne wartości elementów GUI (entries_content)
             for key in self.entries_content:
-                if isinstance(settings[key], dict):
-                    for key_ in settings[key]:
-                        if isinstance(settings[key][key_], dict):
-                            for _key_ in settings[key][key_]:
-                                if isinstance(settings[key][key_][_key_], dict):
-                                    for __key__ in settings[key][key_][_key_]:
+                if isinstance(self.entries_content[key], dict):
+                    for key_ in self.entries_content[key]:
+                        if isinstance(self.entries_content[key][key_], dict):
+                            for _key_ in self.entries_content[key][key_]:
+                                if isinstance(self.entries_content[key][key_][_key_], dict):
+                                    for __key__ in self.entries_content[key][key_][_key_]:
                                         self.entries_content[key][key_][_key_][__key__].set(value='')                                                
                                 else:
                                     self.entries_content[key][key_][_key_].set(value='')                                    
