@@ -1,3 +1,5 @@
+from distutils.log import error
+import random
 import re
 import time
 import traceback
@@ -222,6 +224,11 @@ def check_groups(driver: webdriver, settings: dict[str], run_driver, *args) -> N
         log_in(driver, settings)
         tmp_driver = True
 
+    logged_in = True
+    if f'pl{settings["world_number"]}.plemiona.pl' not in driver.current_url:
+        logged_in = False
+        driver.get('https://www.plemiona.pl/page/play/pl' + settings['world_number'])
+
     driver.find_element_by_id('open_groups').click()
     groups = WebDriverWait(driver, 10, 0.033).until(EC.presence_of_element_located((By.ID, 'group_id'))).get_attribute('innerHTML')
     driver.find_element_by_id('close_groups').click()
@@ -230,8 +237,12 @@ def check_groups(driver: webdriver, settings: dict[str], run_driver, *args) -> N
     for combobox in args:
         combobox['values'] = settings['groups']
         combobox.set('Wybierz grupę')
+        
     if tmp_driver:
         driver.quit()
+
+    if not logged_in:
+        driver.get('chrome://newtab')
 
 
 def cut_time(driver: webdriver) -> None:
@@ -527,9 +538,11 @@ def log_error(driver: webdriver, msg: str='') -> None:
     """Write erros with traceback into log.txt file"""
     
     driver.save_screenshot(f'{time.strftime("%H-%M-%S", time.localtime())}.png')
+    error_str = traceback.format_exc()
+    error_str = error_str[:error_str.find('Stacktrace')]
     logging.error(f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())}\n'        
                   f'{driver.current_url}\n'
-                  f'{traceback.format_exc()}\n'
+                  f'{error_str}\n'
                   f'{msg}')
 
 
@@ -541,7 +554,7 @@ def log_in(driver: webdriver, settings: dict) -> bool:
     # Czy prawidłowo wczytano i zalogowano się na stronie
     if f'pl{settings["world_number"]}.plemiona.pl' in driver.current_url:
         return True   
-
+    
     # Ręczne logowanie na stronie plemion
     elif 'https://www.plemiona.pl/' == driver.current_url:
 
@@ -837,6 +850,7 @@ def send_troops(driver: webdriver, settings: dict) -> int:
             break
         list_to_send.append(cell_in_list)
 
+    attacks_list_to_repeat = []
     for index, send_info in enumerate(list_to_send):  
 
         if index > 0:
@@ -878,7 +892,8 @@ def send_troops(driver: webdriver, settings: dict) -> int:
                             'marcher': 10,
                             'ram': 30,
                             'catapult': 30,
-                            'knight': 10
+                            'knight': 10,
+                            'snob': 35
                         }
                         choose_all_units_with_exceptions(troops_dict=troops_off)
                         
@@ -895,6 +910,7 @@ def send_troops(driver: webdriver, settings: dict) -> int:
                 if send_info['send_snob'] == 'send_snob':
                     if send_info['snob_amount'] and send_info['snob_amount']!='0':
                         snob_input = driver.find_element(By.ID, 'unit_input_snob')
+                        snob_input.clear()
                         snob_input.send_keys('1')
 
             case 'send_fake':
@@ -908,8 +924,34 @@ def send_troops(driver: webdriver, settings: dict) -> int:
                         troop_input = driver.find_element(By.ID, f'unit_input_{troop_name}')
                         troop_input.send_keys(troop_value)
 
+                if send_info['repeat_attack'] and int(send_info['repeat_attack']):
+                    if send_info['repeat_attack_number']:                        
+                        repeat_attack_number = int(send_info['repeat_attack_number'])
+                        if repeat_attack_number > 0:
+                            # Add dict to list of attacks to repeat and in the end add to self.to_do
+                            attacks_list_to_repeat.append(
+                                {
+                                    'func': 'send_troops', 
+                                    'start_time': send_info['send_time'] + 2*send_info['travel_time'] + 1, 
+                                    'world_number': settings['world_number']}
+                                )
+                            # Add the same attack to scheduler with changed send_time etc.
+                            attack_to_add = send_info.copy()
+                            if repeat_attack_number == 1:
+                                attack_to_add['repeat_attack'] = 0
+                            attack_to_add['repeat_attack_number'] = repeat_attack_number-1
+                            attack_to_add['send_time'] += 2*send_info['travel_time'] + 9
+                            arrival_time_in_sec = attack_to_add['send_time'] + send_info['travel_time']
+                            arrival_time = time.localtime(arrival_time_in_sec)
+                            attack_to_add['arrival_time'] = time.strftime(f'%d.%m.%Y %H:%M:%S:{round(random.random()*100000):0<6}', arrival_time)
+                            settings['scheduler']['ready_schedule'].append(attack_to_add)
+        
         # Click command_type button (attack or support)
-        driver.find_element(By.ID, send_info['command']).click()
+        driver.find_element(By.ID, send_info['command']).click()    
+
+    # Sort all added attacks in scheduler
+    if attacks_list_to_repeat:
+        settings['scheduler']['ready_schedule'].sort(key=lambda x: x['send_time'])             
 
     if len(list_to_send) > 1:
         driver.switch_to.window(driver.window_handles[0])
@@ -922,9 +964,7 @@ def send_troops(driver: webdriver, settings: dict) -> int:
     for index, send_info in enumerate(list_to_send):
 
         if index > 0:
-            a = time.time()
             driver.switch_to.window(driver.window_handles[1])
-            print('switch time', time.time()-a) 
 
         current_time = driver.find_element(By.XPATH, '//*[@id="date_arrival"]/span')  # 01
         send_button = driver.find_element(By.ID, 'troop_confirm_submit')
@@ -940,27 +980,24 @@ def send_troops(driver: webdriver, settings: dict) -> int:
                 if current_time.text[-8:] == arrival_time:
                     if sec:
                         time.sleep(sec)
-                    a = time.time()
-                    threading.Thread(
-                        target=lambda: click_without_wait(send_button), 
-                        name='fast_click', 
-                        daemon=True
-                        ).start()        
-                    print(time.time()-a)                
+                    if len(list_to_send) == 1:
+                        send_button.click()
+                    else:
+                        threading.Thread(
+                            target=lambda: click_without_wait(send_button), 
+                            name='fast_click', 
+                            daemon=True
+                            ).start()        
                     break
         else:
-            a = time.time()
-            threading.Thread(
-                target=lambda: click_without_wait(send_button), 
-                name='fast_click', 
-                daemon=True
-                ).start()
-            print(time.time()-a)    
-
-        # if len(list_to_send) > 1: 
-        #     if index > 0:
-        #         # time.sleep(0.05)
-        #         driver.close()       
+            if len(list_to_send) == 1:
+                send_button.click()
+            else:
+                threading.Thread(
+                    target=lambda: click_without_wait(send_button), 
+                    name='fast_click', 
+                    daemon=True
+                    ).start()
 
     if len(list_to_send) > 1:
         time.sleep(0.5)            
@@ -968,9 +1005,9 @@ def send_troops(driver: webdriver, settings: dict) -> int:
             if index > 0:
                 driver.switch_to.window(driver.window_handles[1])
                 driver.close()
-
-    driver.switch_to.window(driver.window_handles[0])
-    return len(list_to_send)
+        driver.switch_to.window(driver.window_handles[0])
+        
+    return len(list_to_send), attacks_list_to_repeat
 
 def train_knight(driver: webdriver) -> None:
     """Train knights to gain experience and lvl up"""

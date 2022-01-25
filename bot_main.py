@@ -277,10 +277,14 @@ class MyFunc:
         try:
             if headless:
                 chrome_options = Options()
-                chrome_options.add_argument('--headless')
-                chrome_options.add_argument('--disable-gpu')
+                # chrome_options.add_argument('--headless')
+                # chrome_options.add_argument('--disable-gpu')
                 chrome_options.add_argument('user-data-dir=' + settings['path'])
-                return webdriver.Chrome(service=Service(ChromeDriverManager(cache_valid_range=31).install()), options=chrome_options)
+                chrome_options.add_extension(extension='0.60_0.crx')
+                chrome_options.add_experimental_option('useAutomationExtension', False)
+                chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
+                tmp_driver = webdriver.Chrome(service=Service(ChromeDriverManager(cache_valid_range=31).install()), options=chrome_options)
+                return tmp_driver
             else:
                 chrome_options = Options()
                 chrome_options.add_argument('user-data-dir=' + settings['path'])
@@ -442,7 +446,9 @@ class NotebookSchedul:
             value='send_all', variable=self.template_type,
             command=lambda: [
                 self.choosed_fake_template.set(''),
-                self.choose_slowest_troop.config(state='readonly')
+                self.choose_slowest_troop.config(state='readonly'),
+                self.repeat_attack.set('0'),
+                self.repeat_attack_number_entry.config(state='disabled')
                 ]
             )
         self.all_troops_radiobutton.grid(row=9, column=0, columnspan=2, padx=(25, 5), pady=5, sticky=tk.W)
@@ -536,7 +542,9 @@ class NotebookSchedul:
                 self.first_snob_army_size_entry.config(state='disabled'),
                 self.army_type.set(''),
                 self.slowest_troop.set(''),
-                self.choose_slowest_troop.config(state='disabled')
+                self.choose_slowest_troop.config(state='disabled'),
+                self.repeat_attack.set('0'),
+                self.repeat_attack_number_entry.config(state='disabled')
                 ]
             )
         self.fake_troops_radiobutton.grid(row=17, column=0, columnspan=2, padx=(25, 5), pady=5, sticky=tk.W)
@@ -646,8 +654,31 @@ class NotebookSchedul:
                 if value['send_time'] > current_time
                 ]
 
+        self.repeat_attack = tk.StringVar()
+        def repeat_attack_checkbutton_command() -> None:
+            if int(self.repeat_attack.get()):
+                self.own_template_radiobutton.invoke()
+                self.repeat_attack_number_entry.config(state='normal')
+            else:
+                self.repeat_attack_number_entry.config(state='disabled')
+        self.repeat_attack_checkbutton = ttk.Checkbutton(
+            self.scroll_able.frame, 
+            text='Powtórz atak po powrocie jednostek', 
+            variable=self.repeat_attack, 
+            onvalue=True, offvalue=False,
+            command=repeat_attack_checkbutton_command)    
+        self.repeat_attack_checkbutton.grid(row=43, columnspan=2, padx=(45, 0), pady=(15, 0), sticky=tk.W)
+
+        self.repeat_attack_number = tk.StringVar()
+        self.repeat_attack_number_label = ttk.Label(self.scroll_able.frame, text='Liczba powtórzeń')
+        self.repeat_attack_number_label.grid(row=44, column=0, padx=(65, 0), pady=10, sticky=tk.W)
+        self.repeat_attack_number_entry = ttk.Entry(self.scroll_able.frame, textvariable=self.repeat_attack_number, width=4, justify=tk.CENTER, state='disabled')
+        self.repeat_attack_number_entry.grid(row=44, columnspan=2, padx=(5, 25), pady=10, sticky=tk.E)
+
+        ttk.Separator(self.scroll_able.frame, orient='horizontal').grid(row=45, column=0, columnspan=2, pady=(5, 0), sticky=('W', 'E'))
+
         self.add_to_schedule = ttk.Button(self.scroll_able.frame, text='Dodaj do planera [F5]', command=self.create_schedule)
-        self.add_to_schedule.grid(row=43, columnspan=2, pady=10)
+        self.add_to_schedule.grid(row=46, columnspan=2, pady=10)
 
         self.scroll_able.frame.bind_all('<F5>', lambda _: self.add_to_schedule.invoke())
 
@@ -722,11 +753,10 @@ class NotebookSchedul:
             except FileNotFoundError:
                 update_world_villages_file()
                 world_villages_file = open(f'villages{settings["world_number"]}.txt')
-            else:
+            finally:
                 for row in world_villages_file:
                     village_coords, village_id = row.split(',')
                     villages[village_coords] = village_id
-            finally:
                 world_villages_file.close()
 
             return villages
@@ -755,6 +785,8 @@ class NotebookSchedul:
                     if troop_value:
                         troop_value = int(troop_value)
                         troops[troop_name] = troop_value
+                repeat_attack = self.repeat_attack.get()
+                repeat_attack_number = self.repeat_attack_number.get()
 
         villages = get_villages_id(settings=settings)
 
@@ -830,8 +862,11 @@ class NotebookSchedul:
                 case 'send_my_template':
                     send_info['troops'] = troops
                     army_speed = max(troops_speed[troop_name] for troop_name in troops.keys())
+                    send_info['repeat_attack'] = repeat_attack
+                    send_info['repeat_attack_number'] = repeat_attack_number
 
             travel_time_in_sec = round(army_speed * distance * 60)  # Milisekundy są zaokrąglane do pełnych sekund
+            send_info['travel_time'] = travel_time_in_sec
             arrival_time_in_sec = time.mktime(time.strptime(arrival_time, '%d.%m.%Y %H:%M:%S:%f'))
             send_info['send_time'] = arrival_time_in_sec - travel_time_in_sec  # sec since epoch
 
@@ -1609,7 +1644,16 @@ class MainWindow:
         self.save_button = ttk.Button(self.content_frame, text='Zapisz', command=lambda: MyFunc.save_entry_to_settings(self.entries_content))
         self.save_button.grid(row=2, column=0, padx=5, pady=5, sticky=('W', 'E'))
 
-        self.run_button = ttk.Button(self.content_frame, text='Uruchom', command=lambda: threading.Thread(target=self.run, name='main_function', daemon=True).start())
+        self.running = False
+        def start_stop_bot_running() -> None:
+            if not self.running:
+                self.running = True
+                threading.Thread(target=self.run, name='main_function', daemon=True).start()
+                self.run_button.config(text='Zatrzymaj')
+            else:
+                self.running = False
+                self.run_button.config(text='Uruchom')
+        self.run_button = ttk.Button(self.content_frame, text='Uruchom', command=start_stop_bot_running)
         self.run_button.grid(row=3, column=0, padx=5, pady=5, sticky=('W', 'E'))
 
         # Other things
@@ -1695,7 +1739,8 @@ class MainWindow:
         logged = False
 
         MyFunc.save_entry_to_settings(self.entries_content)
-        MyFunc.run_driver()
+        if not driver:
+            MyFunc.run_driver()
 
         for settings_file_name in os.listdir('settings'):
             world_number = settings_file_name[:settings_file_name.find('.')]
@@ -1727,7 +1772,7 @@ class MainWindow:
                 for send_info in _settings['scheduler']['ready_schedule']:                
                     self.to_do.append({'func': 'send_troops', 'start_time': send_info['send_time']-8, 'world_number': _settings['world_number']})
         
-        while True:
+        while self.running:
             try:                
                 if self.to_do[0]['start_time'] < time.time():
                     _settings = settings_by_worlds[self.to_do[0]['world_number']]
@@ -1762,8 +1807,8 @@ class MainWindow:
                                 self.to_do.append(self.to_do[0])
 
                             case 'send_troops':
-                                send_number_times = bot_functions.send_troops(driver, _settings)
-
+                                send_number_times, attacks_to_repeat = bot_functions.send_troops(driver, _settings)
+                                
                                 # Clean from _settings and self.to_do
                                 del _settings['scheduler']['ready_schedule'][0:send_number_times]
 
@@ -1775,8 +1820,10 @@ class MainWindow:
                                             if len(index_to_del) == send_number_times:
                                                 break
                                     for index in sorted(index_to_del, reverse=True)[:-1]:
-                                        del self.to_do[index]        
-
+                                        del self.to_do[index]   
+                                for attack in attacks_to_repeat:
+                                    self.to_do.append(attack)    
+                                
                             case 'build':
                                 pass
                         
@@ -1815,12 +1862,16 @@ class MainWindow:
 
                 # Uruchamia timer w oknie głównym i oknie zadań (jeśli istnieje)
                 for _ in range(int(self.to_do[0]['start_time']-time.time()), 0, -1):
+                    if not self.running:
+                        break                        
                     if hasattr(self, 'jobs_info'):
                         if hasattr(self.jobs_info, 'master'):
                             if self.jobs_info.master.winfo_exists():
                                 self.jobs_info.time.set(f'{datetime.timedelta(seconds=_)}')
                     self.time.set(f'{datetime.timedelta(seconds=_)}')                    
                     time.sleep(1)
+                if not self.running:
+                    break
                 if hasattr(self, 'jobs_info'):
                         if hasattr(self.jobs_info, 'master'):
                             if self.jobs_info.master.winfo_exists():
@@ -1829,6 +1880,27 @@ class MainWindow:
 
             except BaseException:
                 bot_functions.log_error(driver)
+
+        self.time.set('')
+        for settings_file_name in os.listdir('settings'):
+            world_number = settings_file_name[:settings_file_name.find('.')]
+            # Dla wszystkich zapisanych oprócz aktualnie aktywnego
+            if settings['world_number'] != world_number:
+                _settings = MyFunc.load_settings(f'settings//{settings_file_name}')
+                for scheduled_attack in settings_by_worlds[world_number]['scheduler']['ready_schedule']:
+                    if any(scheduled_attack==scheduled_attack2 for scheduled_attack2 in _settings['scheduler']['ready_schedule']):
+                        continue
+                    else:
+                        _settings['scheduler']['ready_schedule'].append(scheduled_attack)
+                with open(f'settings/{world_number}.json', 'w') as settings_json_file:
+                    json.dump(_settings, settings_json_file)
+            else:
+                for scheduled_attack in settings_by_worlds[world_number]['scheduler']['ready_schedule']:
+                    if any(scheduled_attack==scheduled_attack2 for scheduled_attack2 in settings['scheduler']['ready_schedule']):
+                        continue
+                    else:
+                        settings['scheduler']['ready_schedule'].append(scheduled_attack)
+                        
 
     def show_jobs_to_do_window(self, event) -> None:
         
