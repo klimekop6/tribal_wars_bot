@@ -21,7 +21,6 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
 import bot_functions
-import email_notifications
 
 logging.basicConfig(filename='log.txt', level=logging.ERROR)
 
@@ -58,15 +57,15 @@ class MyFunc:
     def center(window, parent=None) -> None:
         """Place window in the center of a screen or parent widget"""
 
+        window.update_idletasks()
         if parent:
+            window_geometry = window.winfo_geometry()
             parent_geometry = parent.winfo_geometry()
-            parent_x, parent_y = parent_geometry[parent_geometry.find('+')+1:].split('+')
-            window.update_idletasks()
-            window.geometry(f'+{int(int(parent.winfo_rootx()) + parent.winfo_reqwidth()/2 - window.winfo_reqwidth()/2)}'
-                            f'+{int(int(parent.winfo_rooty()) + parent.winfo_reqheight()/2 - window.winfo_reqheight()/2)}')
-
+            window_x, window_y = window_geometry[:window_geometry.find('+')].split('x')
+            parent_x, parent_y = parent_geometry[:parent_geometry.find('+')].split('x')
+            window.geometry(f'+{int(int(parent.winfo_rootx()) + int(parent_x)/2 - int(window_x)/2)}'
+                            f'+{int(int(parent.winfo_rooty()) + int(parent_y)/2 - int(window_y)/2)}')
         else:
-            window.update_idletasks()
             window.geometry(f'+{int(window.winfo_screenwidth()/2 - window.winfo_reqwidth()/2)}'
                             f'+{int(window.winfo_screenheight()/2 - window.winfo_reqheight()/2)}')
 
@@ -196,19 +195,23 @@ class MyFunc:
                                                     if settings[key][key_][_key_][__key__]:
                                                         entries[key][key_][_key_][__key__].set(settings[key][key_][_key_][__key__])
                                                     else:
-                                                        entries[key][key_][_key_][__key__].set(0)                                                    
+                                                        if not entries[key][key_][_key_][__key__].get():
+                                                            entries[key][key_][_key_][__key__].set(0)                                                    
                                             else:
                                                 entries[key][key_][_key_].set(settings[key][key_][_key_])
                                         else:
-                                            entries[key][key_][_key_].set(0)
+                                            if not entries[key][key_][_key_].get():
+                                                entries[key][key_][_key_].set(0)   
                                 else:                                    
                                     entries[key][key_].set(settings[key][key_])
                             else:
-                                entries[key][key_].set(0)
+                                if not entries[key][key_].get():
+                                    entries[key][key_].set(0) 
                     else:
                         entries[key].set(settings[key])
                 else:
-                    entries[key].set(0)
+                    if not entries[key].get():
+                        entries[key].set(0) 
 
     def first_app_lunch() -> None:
         """Do some stuff if app was just installed for the 1st time"""     
@@ -257,14 +260,14 @@ class MyFunc:
         except FileNotFoundError:
             f = open('settings.json', 'w')
             settings = {'first_lunch': True}
-            settings["gathering_troops"] = {"spear": {"use": False, "left_in_village": 0},
-                                            "sword": {"use": False, "left_in_village": 0}, 
-                                            "axe": {"use": False, "left_in_village": 0}, 
-                                            "archer": {"use": False, "left_in_village": 0}, 
-                                            "light": {"use": False, "left_in_village": 0}, 
-                                            "marcher": {"use": False, "left_in_village": 0}, 
-                                            "heavy": {"use": False, "left_in_village": 0}, 
-                                            "knight": {"use": False, "left_in_village": 0}}
+            settings['gathering_troops'] = {'spear': {'use': False, 'left_in_village': 0, 'send_max': 0},
+                                            'sword': {'use': False, 'left_in_village': 0, 'send_max': 0}, 
+                                            'axe': {'use': False, 'left_in_village': 0, 'send_max': 0}, 
+                                            'archer': {'use': False, 'left_in_village': 0, 'send_max': 0}, 
+                                            'light': {'use': False, 'left_in_village': 0, 'send_max': 0}, 
+                                            'marcher': {'use': False, 'left_in_village': 0, 'send_max': 0}, 
+                                            'heavy': {'use': False, 'left_in_village': 0, 'send_max': 0}, 
+                                            'knight': {'use': False, 'left_in_village': 0, 'send_max': 0}}
             json.dump(settings, f)
         finally:
             f.close()            
@@ -357,40 +360,61 @@ class ScrollableFrame:
 
         def _on_mousewheel(self, event):
             self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+        def _frame_width(event):
+            canvas_width = event.width
+            self.canvas.itemconfig(self.canvas_frame, width=canvas_width-11)
+            # self.canvas.config(width=self.frame.winfo_reqwidth())
+            # self.canvas.itemconfig(self.canvas_frame, width=self.frame.winfo_reqwidth())
         
         # --- Create self.canvas with scrollbar ---
         
         self.canvas = tk.Canvas(parent)
         self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
+        self.canvas.columnconfigure(0, weight=1)
+        self.canvas.rowconfigure(0, weight=1)
 
-        self.scrollbar = ttk.Scrollbar(parent, command=self.canvas.yview)
+        self.frame = ttk.Frame(self.canvas)
+        self.frame.grid(row=0, column=0, sticky=tk.NSEW)
+        self.frame.columnconfigure(0, weight=1)
+        self.frame.columnconfigure(1, weight=1)
+
+        self.scrollbar = ttk.Scrollbar(self.canvas, command=self.canvas.yview)
         self.scrollbar.grid(row=0, column=1, sticky=tk.NS)
 
         self.canvas.configure(yscrollcommand = self.scrollbar.set)
         self.canvas.bind('<Enter>', lambda event: _bound_to_mousewheel(self, event))
         self.canvas.bind('<Leave>', lambda event: _unbound_to_mousewheel(self, event))
 
+        # --- Put frame in self.canvas ---
+        
+        self.canvas_frame = self.canvas.create_window((0, 0), window=self.frame, anchor=tk.NW)
+
         # Update scrollregion after starting 'mainloop'
         # when all widgets are in self.canvas.
-        self.canvas.bind('<Configure>', on_configure)
-
-        # --- Put frame in self.canvas ---
-
-        self.frame = ttk.Frame(self.canvas)
-        self.canvas.create_window((0, 0), window=self.frame, anchor=tk.NW)
+        self.frame.bind('<Configure>', on_configure)
+        self.canvas.bind('<Configure>', _frame_width)
 
     def update_canvas(self, max_height: int=500) -> None:
         """Update canvas size depend on frame requested size"""
 
-        self.frame.update_idletasks()
-        if self.frame.winfo_reqheight() <= max_height:
-            self.canvas['height'] = self.frame.winfo_reqheight()
-        else:
-            self.canvas['height'] = max_height
-        self.canvas['width'] = self.frame.winfo_reqwidth()
+        # # self.frame['width'] = 440
+        # # self.frame.update_idletasks()
+        # # if self.frame.winfo_reqheight() <= max_height:
+        # #     self.canvas['height'] = self.frame.winfo_reqheight()
+        # # else:
+        # #     self.canvas['height'] = max_height
+        # self.frame.update_idletasks()
+        # print(self.canvas['width'])
+        # print(self.frame['width'])
+        # # self.parent['width'] = 450
+        # print(self.frame.winfo_reqwidth())
+        # print(self.parent.winfo_reqwidth())
+        # print(self.scrollbar.winfo_reqwidth())
+        # print('-------------------------------------------------')
 
-        self.frame.update_idletasks()
-        self.canvas.yview_moveto(0)
+        # # self.canvas.yview_moveto(0)
+        pass
 
 
 class NotebookSchedul:
@@ -402,7 +426,7 @@ class NotebookSchedul:
         self.entries_content = entries_content
 
         parent.columnconfigure(0, weight=1)
-        parent.columnconfigure(1, weight=1)
+        parent.rowconfigure(0, weight=1)
 
         photo = tk.PhotoImage(file='icons//minimize.png')
         self.minus = photo.subsample(2, 2)
@@ -1020,6 +1044,202 @@ class NotebookSchedul:
                 label.grid_forget()
 
 
+class NotebookGathering:
+    """Content and functions to put in notebook frame f2 named 'Zbieractwo'."""
+
+    def __init__(self, parent: tk.Widget, entries_content: dict, elements_state: list) -> None:
+
+        self.parent = parent
+        self.entries_content = entries_content
+        self.elements_state = elements_state
+        
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(0, weight=1)
+        # parent.columnconfigure(1, weight=1)
+
+        self.scroll_able = ScrollableFrame(parent)
+        
+        self.entries_content['gathering'] = {}
+        self.entries_content['gathering_troops'] = {
+            'spear': {'left_in_village': tk.StringVar(), 'send_max': tk.StringVar()},
+            'sword': {'left_in_village': tk.StringVar(), 'send_max': tk.StringVar()}, 
+            'axe': {'left_in_village': tk.StringVar(), 'send_max': tk.StringVar()}, 
+            'archer': {'left_in_village': tk.StringVar(), 'send_max': tk.StringVar()}, 
+            'light': {'left_in_village': tk.StringVar(), 'send_max': tk.StringVar()}, 
+            'marcher': {'left_in_village': tk.StringVar(), 'send_max': tk.StringVar()}, 
+            'heavy': {'left_in_village': tk.StringVar(), 'send_max': tk.StringVar()}, 
+            'knight': {'left_in_village': tk.StringVar(), 'send_max': tk.StringVar()}
+            }
+        
+        gathering_troops = self.entries_content['gathering_troops']
+
+        self.entries_content['gathering']['active'] = tk.StringVar()
+        self.active_gathering = ttk.Checkbutton(self.scroll_able.frame, text='Aktywuj zbieractwo', 
+                                    variable=self.entries_content['gathering']['active'], 
+                                    onvalue=True, offvalue=False,
+                                    command=lambda: MyFunc.change_state(*self.elements_state[9]))
+        self.active_gathering.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
+        self.elements_state.append([self.scroll_able.frame, 'active', self.entries_content['gathering'], True, self.active_gathering])
+        
+        ttk.Separator(self.scroll_able.frame, orient='horizontal').grid(row=1, column=0, columnspan=2, sticky=('W', 'E'))
+
+        # ------------------------------------------------------------------------------------------------------------------
+        ttk.Label(self.scroll_able.frame, text='Ustawienia').grid(row=5, columnspan=2, padx=5, pady=(20, 15), sticky='W')     
+
+        ttk.Label(self.scroll_able.frame , text='Grupa zbieractwa').grid(row=6, column=0, padx=(25, 5), pady=5, sticky='W')        
+
+        ttk.Combobox(self.scroll_able.frame)
+
+        self.entries_content['gathering_group'] = tk.StringVar()
+        if 'groups' not in settings:
+            settings['groups'] = None
+        self.gathering_group = ttk.Combobox(self.scroll_able.frame, textvariable=self.entries_content['gathering_group'], justify='center', width=16)
+        self.gathering_group.grid(row=6, column=1, padx=(5, 25), pady=5, sticky='E')
+        self.gathering_group.set('Wybierz grupę')
+        self.gathering_group['values'] = settings['groups']
+        for key in self.gathering_group.keys():
+            print(key)
+            print(self.gathering_group[key])
+            print('--------------------------------------------')
+
+        self.gathering_max_resources = ttk.Label(self.scroll_able.frame, text='Maks surowców do zebrania')
+        self.gathering_max_resources.grid(row=7, column=0, padx=(25, 5), pady=(10, 5), sticky='W')
+
+        self.entries_content['gathering_max_resources'] = tk.StringVar()
+        self.gathering_max_resources_input = ttk.Entry(self.scroll_able.frame, textvariable=self.entries_content['gathering_max_resources'], justify='center', width=18)
+        self.gathering_max_resources_input.grid(row=7, column=1, padx=(5, 25), pady=(10, 5), sticky='E')
+
+        # ------------------------------------------------------------------------------------------------------------------
+        ttk.Label(self.scroll_able.frame, text='Dozwolone jednostki do wysłania').grid(row=8, columnspan=2, padx=5, pady=(20, 15), sticky='W')
+
+        troops_frame = ttk.Frame(self.scroll_able.frame)
+        troops_frame.grid(row=9, columnspan=2, sticky='EW')
+        # troops_frame.columnconfigure(0, weight=1)
+        troops_frame.columnconfigure(1, weight=1)
+        troops_frame.columnconfigure(2, weight=1)
+        # troops_frame.columnconfigure(3, weight=1)
+        troops_frame.columnconfigure(4, weight=1)
+        troops_frame.columnconfigure(5, weight=1)
+
+        ttk.Label(troops_frame, text='Zostaw min').grid(row=8, column=1)
+        ttk.Label(troops_frame, text='Wyślij max').grid(row=8, column=2)
+        ttk.Label(troops_frame, text='Zostaw min').grid(row=8, column=4)
+        ttk.Label(troops_frame, text='Wyślij max').grid(row=8, column=5, padx=(0, 25))
+
+        self.entries_content['gathering_troops']['spear']['use'] = tk.StringVar()
+        self.spear_photo = tk.PhotoImage(file='icons//spear.png')
+        self.gathering_spear = ttk.Checkbutton(troops_frame, image=self.spear_photo, compound='left', 
+                                    variable=self.entries_content['gathering_troops']['spear']['use'], 
+                                    onvalue=True, offvalue=False)
+        self.gathering_spear.grid(row=9, column=0, padx=(25, 0), pady=5, sticky='W')
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['spear']['left_in_village']).grid(row=9, column=1, pady=5)
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['spear']['send_max']).grid(row=9, column=2, pady=5)
+
+        self.entries_content['gathering_troops']['light']['use'] = tk.StringVar()
+        self.light_photo = tk.PhotoImage(file='icons//light.png')
+        self.gathering_light = ttk.Checkbutton(troops_frame, image=self.light_photo, compound='left', 
+                                    variable=self.entries_content['gathering_troops']['light']['use'], 
+                                    onvalue=True, offvalue=False)
+        self.gathering_light.grid(row=9, column=3, pady=5, sticky='W')
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['light']['left_in_village']).grid(row=9, column=4, pady=5)
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['light']['send_max']).grid(row=9, column=5, pady=5, padx=(0, 25))
+
+        self.entries_content['gathering_troops']['sword']['use'] = tk.StringVar()
+        self.sword_photo = tk.PhotoImage(file='icons//sword.png')
+        self.gathering_sword = ttk.Checkbutton(troops_frame, image=self.sword_photo, compound='left', 
+                                    variable=self.entries_content['gathering_troops']['sword']['use'], 
+                                    onvalue=True, offvalue=False)
+        self.gathering_sword.grid(row=10, column=0, padx=(25, 0), pady=5, sticky='W')
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['sword']['left_in_village']).grid(row=10, column=1, pady=5)
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['sword']['send_max']).grid(row=10, column=2, pady=5)
+
+        self.entries_content['gathering_troops']['marcher']['use'] = tk.StringVar()
+        self.marcher_photo = tk.PhotoImage(file='icons//marcher.png')
+        self.gathering_marcher = ttk.Checkbutton(troops_frame, image=self.marcher_photo, compound='left', 
+                                    variable=self.entries_content['gathering_troops']['marcher']['use'], 
+                                    onvalue=True, offvalue=False)
+        self.gathering_marcher.grid(row=10, column=3, pady=5, sticky='W')
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['marcher']['left_in_village']).grid(row=10, column=4, pady=5)
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['marcher']['send_max']).grid(row=10, column=5, pady=5, padx=(0, 25))
+
+        self.entries_content['gathering_troops']['axe']['use'] = tk.StringVar()
+        self.axe_photo = tk.PhotoImage(file='icons//axe.png')
+        self.gathering_axe = ttk.Checkbutton(troops_frame, image=self.axe_photo, compound='left', 
+                                    variable=self.entries_content['gathering_troops']['axe']['use'], 
+                                    onvalue=True, offvalue=False)
+        self.gathering_axe.grid(row=11, column=0, padx=(25, 0), pady=5, sticky='W')
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['axe']['left_in_village']).grid(row=11, column=1, pady=5)
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['axe']['send_max']).grid(row=11, column=2, pady=5)
+
+        self.entries_content['gathering_troops']['heavy']['use'] = tk.StringVar()
+        self.heavy_photo = tk.PhotoImage(file='icons//heavy.png')
+        self.gathering_heavy = ttk.Checkbutton(troops_frame, image=self.heavy_photo, compound='left', 
+                                    variable=self.entries_content['gathering_troops']['heavy']['use'], 
+                                    onvalue=True, offvalue=False)
+        self.gathering_heavy.grid(row=11, column=3, pady=5, sticky='W')
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['heavy']['left_in_village']).grid(row=11, column=4, pady=5)
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['heavy']['send_max']).grid(row=11, column=5, pady=5, padx=(0, 25))
+
+        self.entries_content['gathering_troops']['archer']['use'] = tk.StringVar()
+        self.archer_photo = tk.PhotoImage(file='icons//archer.png')
+        self.gathering_archer = ttk.Checkbutton(troops_frame, image=self.archer_photo, compound='left', 
+                                    variable=self.entries_content['gathering_troops']['archer']['use'], 
+                                    onvalue=True, offvalue=False)
+        self.gathering_archer.grid(row=12, column=0, padx=(25, 0), pady=(5, 10), sticky='W')
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['archer']['left_in_village']).grid(row=12, column=1, pady=5)
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['archer']['send_max']).grid(row=12, column=2, pady=5)
+
+        self.entries_content['gathering_troops']['knight']['use'] = tk.StringVar()
+        self.knight_photo = tk.PhotoImage(file='icons//knight.png')
+        self.gathering_knight = ttk.Checkbutton(troops_frame, image=self.knight_photo, compound='left', 
+                                    variable=self.entries_content['gathering_troops']['knight']['use'], 
+                                    onvalue=True, offvalue=False)
+        self.gathering_knight.grid(row=12, column=3, pady=(5, 10), sticky='W')
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['knight']['left_in_village']).grid(row=12, column=4, pady=5)
+        ttk.Entry(troops_frame, width=5, textvariable=gathering_troops['knight']['send_max']).grid(row=12, column=5, pady=5, padx=(0, 25))
+
+        # ------------------------------------------------------------------------------------------------------------------
+        ttk.Label(self.scroll_able.frame, text='Poziomy zbieractwa do pominięcia').grid(row=13, columnspan=2, padx=5, pady=(20, 15), sticky='W')
+
+        f2_1 = ttk.Frame(self.scroll_able.frame)
+        f2_1.grid(row=14, column=0, columnspan=2)
+
+        self.entries_content['gathering']['ommit'] = {}
+
+        self.entries_content['gathering']['ommit']['first_level_gathering'] = tk.StringVar()
+        self.ommit_first_level_gathering = ttk.Checkbutton(f2_1, text='Pierwszy', 
+                                    variable=self.entries_content['gathering']['ommit']['first_level_gathering'], 
+                                    onvalue=True, offvalue=False)
+        self.ommit_first_level_gathering.grid(row=14, column=0, padx=(25, 5), pady=(5, 10))
+
+        self.entries_content['gathering']['ommit']['second_level_gathering'] = tk.StringVar()
+        self.ommit_second_level_gathering = ttk.Checkbutton(f2_1, text='Drugi', 
+                                    variable=self.entries_content['gathering']['ommit']['second_level_gathering'], 
+                                    onvalue=True, offvalue=False)
+        self.ommit_second_level_gathering.grid(row=14, column=1, padx=10, pady=(5, 10))
+
+        self.entries_content['gathering']['ommit']['thrid_level_gathering'] = tk.StringVar()
+        self.ommit_thrid_level_gathering = ttk.Checkbutton(f2_1, text='Trzeci', 
+                                    variable=self.entries_content['gathering']['ommit']['thrid_level_gathering'], 
+                                    onvalue=True, offvalue=False)
+        self.ommit_thrid_level_gathering.grid(row=14, column=2, padx=10, pady=(5, 10))
+
+        self.entries_content['gathering']['ommit']['fourth_level_gathering'] = tk.StringVar()
+        self.ommit_fourth_level_gathering = ttk.Checkbutton(f2_1, text='Czwarty', 
+                                    variable=self.entries_content['gathering']['ommit']['fourth_level_gathering'], 
+                                    onvalue=True, offvalue=False)
+        self.ommit_fourth_level_gathering.grid(row=14, column=3, padx=(5, 25), pady=(5, 10))
+
+        self.entries_content['gathering']['stop_if_incoming_attacks'] = tk.StringVar()
+        self.stop_if_incoming_attacks = ttk.Checkbutton(self.scroll_able.frame, text='Wstrzymaj wysyłkę wojsk gdy wykryto nadchodzące ataki', 
+                                    variable=self.entries_content['gathering']['stop_if_incoming_attacks'], 
+                                    onvalue=True, offvalue=False)
+        self.stop_if_incoming_attacks.grid(row=15, column=0, columnspan=2, padx=25, pady=(10, 5))
+
+        # Update canvas size depend on frame requested size
+        self.scroll_able.update_canvas(max_height=500)
+
+
 class TopLevel(tk.Toplevel):
 
     def __init__(self, *args, **kwargs) -> None:
@@ -1088,22 +1308,30 @@ class MainWindow:
 
     def __init__(self) -> None:
         self.master = tk.Tk()
+        self.master.geometry('480x720')
         self.master.attributes('-alpha', 0.0)
         self.master.iconbitmap(default='icons//ikona.ico')        
         self.master.title('Tribal Wars 24/7')        
         self.master.overrideredirect(True)
         self.master.attributes('-topmost', 1)
 
+        self.master.columnconfigure(0, weight=1)
+        self.master.rowconfigure(0, weight=1)
+
         # main_frame -> custom_bar, content_frame
         self.main_frame = ttk.Frame(self.master, borderwidth=1, relief='groove')
         self.main_frame.grid(row=0, column=0, sticky=('N', 'S', 'E', 'W'))
+        self.main_frame.columnconfigure(0, weight=1)
+        self.main_frame.rowconfigure(1, weight=1)
 
         self.custom_bar = ttk.Frame(self.main_frame)
-        self.custom_bar.grid(row=0, column=0, sticky=('N', 'S', 'E', 'W'))
+        self.custom_bar.grid(row=0, column=0, sticky=('E', 'W'))
         self.custom_bar.columnconfigure(3, weight=1)
 
         self.content_frame = ttk.Frame(self.main_frame)
         self.content_frame.grid(row=1, column=0, sticky=('N', 'S', 'E', 'W'))
+        self.content_frame.rowconfigure(0, weight=1)
+        self.content_frame.columnconfigure(0, weight=1)
 
         # custom_bar
         self.title_label = ttk.Label(self.custom_bar, text='Tribal Wars Bot')
@@ -1140,19 +1368,19 @@ class MainWindow:
 
         # Notebook with frames 
         n = ttk.Notebook(self.content_frame)
-        n.grid(row=1, column=0, padx=5, pady=(0, 5), sticky=('N', 'S', 'E', 'W'))
+        n.grid(row=0, column=0, padx=5, pady=(0, 5), sticky=('N', 'S', 'E', 'W'))
         f1 = ttk.Frame(n)
         f2 = ttk.Frame(n)
         f3 = ttk.Frame(n)
         f4 = ttk.Frame(n)
         f5 = ttk.Frame(n)
+        f6 = ttk.Frame(n)
         n.add(f1, text='Farma')
         n.add(f2, text='Zbieractwo')
         n.add(f3, text='Planer')
         n.add(f4, text='Rynek')
         n.add(f5, text='Ustawienia')        
-        self.content_frame.rowconfigure(0, weight=1)
-        self.content_frame.columnconfigure(0, weight=1)
+        n.add(f6, text='Powiadomienia')
 
         # f1 -> 'Farma'
         templates = ttk.Notebook(f1)
@@ -1208,7 +1436,7 @@ class MainWindow:
         self.elements_state.append([[self.min_wall_level_input, self.max_wall_level_input_A], 'wall_ignore', self.entries_content['A']])               
 
         self.attacks = ttk.Label(A, text='Wysyłka ataków')
-        self.attacks.grid(row=6, column=0, columnspan=2, pady=(20, 10), padx=5, sticky='W')        
+        self.attacks.grid(row=6, column=0, columnspan=2, pady=(20, 15), padx=5, sticky='W')        
 
         self.entries_content['A']['max_attacks'] = tk.StringVar()
         self.max_attacks_A = ttk.Checkbutton(A, text='Maksymalna ilość', 
@@ -1224,6 +1452,16 @@ class MainWindow:
         self.attacks_number_input_A = ttk.Entry(A, width=5, textvariable=self.entries_content['A']['attacks_number'], justify='center')
         self.attacks_number_input_A.grid(row=8, column=1, pady=(5, 10), padx=(5, 25), sticky='E')
         self.elements_state.append([self.attacks_number_input_A, 'max_attacks', self.entries_content['A']])
+        
+        ttk.Label(A, text='Pozostałe ustawienia').grid(row=9, column=0, padx=5, pady=(20, 15), sticky='W')
+
+        self.farm_sleep_time_label = ttk.Label(A, text='Powtarzaj ataki w odstępach [min]')
+        self.farm_sleep_time_label.grid(row=10, column=0, padx=(25, 5), pady=(0, 5), sticky='W')
+
+        self.entries_content['farm_sleep_time'] = tk.StringVar()
+        self.farm_sleep_time = ttk.Entry(A, textvariable=self.entries_content['farm_sleep_time'], width=5, justify='center')
+        self.farm_sleep_time.grid(row=10, column=1, padx=(5, 25), pady=(0, 5), sticky='E')
+        
         #endregion
         
         # Szablon B
@@ -1268,7 +1506,7 @@ class MainWindow:
         self.elements_state.append([[self.min_wall_level_input_B, self.max_wall_level_input_B], 'wall_ignore', self.entries_content['B']])               
 
         self.attacks = ttk.Label(B, text='Wysyłka ataków')
-        self.attacks.grid(row=6, column=0, columnspan=2, pady=(20, 10), padx=5, sticky='W')        
+        self.attacks.grid(row=6, column=0, columnspan=2, pady=(20, 15), padx=5, sticky='W')        
 
         self.entries_content['B']['max_attacks'] = tk.StringVar()
         self.max_attacks_B = ttk.Checkbutton(B, text='Maksymalna ilość', 
@@ -1284,6 +1522,15 @@ class MainWindow:
         self.attacks_number_input_B = ttk.Entry(B, width=5, textvariable=self.entries_content['B']['attacks_number'], justify='center')
         self.attacks_number_input_B.grid(row=8, column=1, pady=(5, 10), padx=(5, 25), sticky='E')
         self.elements_state.append([self.attacks_number_input_B, 'max_attacks', self.entries_content['B']])
+
+        ttk.Label(B, text='Pozostałe ustawienia').grid(row=9, column=0, padx=5, pady=(20, 15), sticky='W')
+
+        self.farm_sleep_time_label = ttk.Label(B, text='Powtarzaj ataki w odstępach [min]')
+        self.farm_sleep_time_label.grid(row=10, column=0, padx=(25, 5), pady=(0, 5), sticky='W')
+
+        self.farm_sleep_time = ttk.Entry(B, textvariable=self.entries_content['farm_sleep_time'], width=5, justify='center')
+        self.farm_sleep_time.grid(row=10, column=1, padx=(5, 25), pady=(0, 5), sticky='E')
+
         #endregion        
         
         # Szablon C
@@ -1328,7 +1575,7 @@ class MainWindow:
         self.elements_state.append([[self.min_wall_level_input_C, self.max_wall_level_input_C], 'wall_ignore', self.entries_content['C']])               
 
         self.attacks = ttk.Label(C, text='Wysyłka ataków')
-        self.attacks.grid(row=6, column=0, pady=(20, 10), padx=5, sticky='W')        
+        self.attacks.grid(row=6, column=0, pady=(20, 15), padx=5, sticky='W')        
 
         self.entries_content['C']['max_attacks'] = tk.StringVar()
         self.max_attacks_C = ttk.Checkbutton(C, text='Maksymalna ilość', 
@@ -1344,149 +1591,20 @@ class MainWindow:
         self.attacks_number_input_C = ttk.Entry(C, width=5, textvariable=self.entries_content['C']['attacks_number'], justify='center')
         self.attacks_number_input_C.grid(row=8, column=1, pady=(5, 10), padx=(5, 25), sticky='E')
         self.elements_state.append([self.attacks_number_input_C, 'max_attacks', self.entries_content['C']])
+        
+        ttk.Label(C, text='Pozostałe ustawienia').grid(row=9, column=0, padx=5, pady=(20, 15), sticky='W')
+
+        self.farm_sleep_time_label = ttk.Label(C, text='Powtarzaj ataki w odstępach [min]')
+        self.farm_sleep_time_label.grid(row=10, column=0, padx=(25, 5), pady=(0, 5), sticky='W')
+
+        self.farm_sleep_time = ttk.Entry(C, textvariable=self.entries_content['farm_sleep_time'], width=5, justify='center')
+        self.farm_sleep_time.grid(row=10, column=1, padx=(5, 25), pady=(0, 5), sticky='E')
+
         #endregion
 
         # f2 -> 'Zbieractwo'
-        #region
-        f2.columnconfigure(0, weight=1)
-        
-        self.entries_content['gathering'] = {}
-        self.entries_content['gathering_troops'] = {'spear': {'left_in_village': tk.StringVar()},
-                                                    'sword': {'left_in_village': tk.StringVar()}, 
-                                                    'axe': {'left_in_village': tk.StringVar()}, 
-                                                    'archer': {'left_in_village': tk.StringVar()}, 
-                                                    'light': {'left_in_village': tk.StringVar()}, 
-                                                    'marcher': {'left_in_village': tk.StringVar()}, 
-                                                    'heavy': {'left_in_village': tk.StringVar()}, 
-                                                    'knight': {'left_in_village': tk.StringVar()}}
 
-        self.entries_content['gathering']['active'] = tk.StringVar()
-        self.active_gathering = ttk.Checkbutton(f2, text='Aktywuj zbieractwo', 
-                                    variable=self.entries_content['gathering']['active'], 
-                                    onvalue=True, offvalue=False,
-                                    command=lambda: MyFunc.change_state(*self.elements_state[9]))
-        self.active_gathering.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        self.elements_state.append([f2, 'active', self.entries_content['gathering'], True, self.active_gathering])
-        
-        ttk.Separator(f2, orient='horizontal').grid(row=1, column=0, columnspan=2, sticky=('W', 'E'))
-
-        ttk.Label(f2, text='Ustawienia').grid(row=5, columnspan=2, padx=5, pady=(20, 15), sticky='W')     
-
-        ttk.Label(f2 , text='Grupa zbieractwa').grid(row=6, column=0, padx=(25, 5), pady=5, sticky='W')        
-
-        ttk.Combobox(f2)
-
-        self.entries_content['gathering_group'] = tk.StringVar()
-        if 'groups' not in settings:
-            settings['groups'] = None
-        self.gathering_group = ttk.Combobox(f2, textvariable=self.entries_content['gathering_group'], justify='center', width=16)
-        self.gathering_group.grid(row=6, column=1, padx=(5, 25), pady=5, sticky='E')
-        self.gathering_group.set('Wybierz grupę')
-        self.gathering_group['values'] = settings['groups']
-
-        self.gathering_max_resources = ttk.Label(f2, text='Maks surowców do zebrania')
-        self.gathering_max_resources.grid(row=7, column=0, padx=(25, 5), pady=(10, 5), sticky='W')
-
-        self.entries_content['gathering_max_resources'] = tk.StringVar()
-        self.gathering_max_resources_input = ttk.Entry(f2, textvariable=self.entries_content['gathering_max_resources'], justify='center', width=18)
-        self.gathering_max_resources_input.grid(row=7, column=1, padx=(5, 25), pady=(10, 5), sticky='E')
-
-        ttk.Label(f2, text='Dozwolone jednostki do wysłania').grid(row=8, columnspan=2, padx=5, pady=(20, 15), sticky='W')
-
-        self.entries_content['gathering_troops']['spear']['use'] = tk.StringVar()
-        self.spear_photo = tk.PhotoImage(file='icons//spear.png')
-        self.gathering_spear = ttk.Checkbutton(f2, text='Pikinier', image=self.spear_photo, compound='left', 
-                                    variable=self.entries_content['gathering_troops']['spear']['use'], 
-                                    onvalue=True, offvalue=False)
-        self.gathering_spear.grid(row=9, column=0, padx=(25, 5), pady=5, sticky='W')
-
-        self.entries_content['gathering_troops']['light']['use'] = tk.StringVar()
-        self.light_photo = tk.PhotoImage(file='icons//light.png')
-        self.gathering_light = ttk.Checkbutton(f2, text='Lekka kawaleria', image=self.light_photo, compound='left', 
-                                    variable=self.entries_content['gathering_troops']['light']['use'], 
-                                    onvalue=True, offvalue=False)
-        self.gathering_light.grid(row=9, column=1, padx=(5, 25), pady=5, sticky='W')
-
-        self.entries_content['gathering_troops']['sword']['use'] = tk.StringVar()
-        self.sword_photo = tk.PhotoImage(file='icons//sword.png')
-        self.gathering_sword = ttk.Checkbutton(f2, text='Miecznik', image=self.sword_photo, compound='left', 
-                                    variable=self.entries_content['gathering_troops']['sword']['use'], 
-                                    onvalue=True, offvalue=False)
-        self.gathering_sword.grid(row=10, column=0, padx=(25, 5), pady=5, sticky='W')
-
-        self.entries_content['gathering_troops']['marcher']['use'] = tk.StringVar()
-        self.marcher_photo = tk.PhotoImage(file='icons//marcher.png')
-        self.gathering_marcher = ttk.Checkbutton(f2, text='Łucznik konny', image=self.marcher_photo, compound='left', 
-                                    variable=self.entries_content['gathering_troops']['marcher']['use'], 
-                                    onvalue=True, offvalue=False)
-        self.gathering_marcher.grid(row=10, column=1, padx=(5, 25), pady=5, sticky='W')
-
-        self.entries_content['gathering_troops']['axe']['use'] = tk.StringVar()
-        self.axe_photo = tk.PhotoImage(file='icons//axe.png')
-        self.gathering_axe = ttk.Checkbutton(f2, text='Topornik', image=self.axe_photo, compound='left', 
-                                    variable=self.entries_content['gathering_troops']['axe']['use'], 
-                                    onvalue=True, offvalue=False)
-        self.gathering_axe.grid(row=11, column=0, padx=(25, 5), pady=5, sticky='W')
-
-        self.entries_content['gathering_troops']['heavy']['use'] = tk.StringVar()
-        self.heavy_photo = tk.PhotoImage(file='icons//heavy.png')
-        self.gathering_heavy = ttk.Checkbutton(f2, text='Ciężki kawalerzysta', image=self.heavy_photo, compound='left', 
-                                    variable=self.entries_content['gathering_troops']['heavy']['use'], 
-                                    onvalue=True, offvalue=False)
-        self.gathering_heavy.grid(row=11, column=1, padx=(5, 25), pady=5, sticky='W')
-
-        self.entries_content['gathering_troops']['archer']['use'] = tk.StringVar()
-        self.archer_photo = tk.PhotoImage(file='icons//archer.png')
-        self.gathering_archer = ttk.Checkbutton(f2, text='Łucznik', image=self.archer_photo, compound='left', 
-                                    variable=self.entries_content['gathering_troops']['archer']['use'], 
-                                    onvalue=True, offvalue=False)
-        self.gathering_archer.grid(row=12, column=0, padx=(25, 5), pady=(5, 10), sticky='W')
-
-        self.entries_content['gathering_troops']['knight']['use'] = tk.StringVar()
-        self.knight_photo = tk.PhotoImage(file='icons//knight.png')
-        self.gathering_knight = ttk.Checkbutton(f2, text='Rycerz', image=self.knight_photo, compound='left', 
-                                    variable=self.entries_content['gathering_troops']['knight']['use'], 
-                                    onvalue=True, offvalue=False)
-        self.gathering_knight.grid(row=12, column=1, padx=(5, 25), pady=(5, 10), sticky='W')
-
-        ttk.Label(f2, text='Poziomy zbieractwa do pominięcia').grid(row=13, columnspan=2, padx=5, pady=(20, 15), sticky='W')
-
-        f2_1 = ttk.Frame(f2)
-        f2_1.grid(row=14, column=0, columnspan=2)
-
-        self.entries_content['gathering']['ommit'] = {}
-
-        self.entries_content['gathering']['ommit']['first_level_gathering'] = tk.StringVar()
-        self.ommit_first_level_gathering = ttk.Checkbutton(f2_1, text='Pierwszy', 
-                                    variable=self.entries_content['gathering']['ommit']['first_level_gathering'], 
-                                    onvalue=True, offvalue=False)
-        self.ommit_first_level_gathering.grid(row=14, column=0, padx=(25, 5), pady=(5, 10))
-
-        self.entries_content['gathering']['ommit']['second_level_gathering'] = tk.StringVar()
-        self.ommit_second_level_gathering = ttk.Checkbutton(f2_1, text='Drugi', 
-                                    variable=self.entries_content['gathering']['ommit']['second_level_gathering'], 
-                                    onvalue=True, offvalue=False)
-        self.ommit_second_level_gathering.grid(row=14, column=1, padx=10, pady=(5, 10))
-
-        self.entries_content['gathering']['ommit']['thrid_level_gathering'] = tk.StringVar()
-        self.ommit_thrid_level_gathering = ttk.Checkbutton(f2_1, text='Trzeci', 
-                                    variable=self.entries_content['gathering']['ommit']['thrid_level_gathering'], 
-                                    onvalue=True, offvalue=False)
-        self.ommit_thrid_level_gathering.grid(row=14, column=2, padx=10, pady=(5, 10))
-
-        self.entries_content['gathering']['ommit']['fourth_level_gathering'] = tk.StringVar()
-        self.ommit_fourth_level_gathering = ttk.Checkbutton(f2_1, text='Czwarty', 
-                                    variable=self.entries_content['gathering']['ommit']['fourth_level_gathering'], 
-                                    onvalue=True, offvalue=False)
-        self.ommit_fourth_level_gathering.grid(row=14, column=3, padx=(5, 25), pady=(5, 10))
-
-        self.entries_content['gathering']['stop_if_incoming_attacks'] = tk.StringVar()
-        self.stop_if_incoming_attacks = ttk.Checkbutton(f2, text='Wstrzymaj wysyłkę wojsk gdy wykryto nadchodzące ataki', 
-                                    variable=self.entries_content['gathering']['stop_if_incoming_attacks'], 
-                                    onvalue=True, offvalue=False)
-        self.stop_if_incoming_attacks.grid(row=15, column=0, columnspan=2, padx=25, pady=(10, 5))
-
-        #endregion
+        self.gathering = NotebookGathering(parent=f2, entries_content=self.entries_content, elements_state=self.elements_state)       
 
         # f3 -> 'Planer'
 
@@ -1497,37 +1615,36 @@ class MainWindow:
         f4.columnconfigure(0, weight=1)
         
         self.entries_content['market'] = {'wood': {}, 'stone': {}, 'iron': {}}
+        market = self.entries_content['market']
 
-        self.entries_content['premium_exchange'] = tk.StringVar()
+        market['premium_exchange'] = tk.StringVar()
         self.active_premium_exchange = ttk.Checkbutton(f4, text='Aktywuj giełde premium', 
-                                    variable=self.entries_content['premium_exchange'], 
+                                    variable=market['premium_exchange'], 
                                     onvalue=True, offvalue=False,
                                     command=lambda: MyFunc.change_state(*self.elements_state[10]))
         self.active_premium_exchange.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        self.elements_state.append([f4, 'premium_exchange', self.entries_content, True, self.active_premium_exchange])
+        self.elements_state.append([f4, 'premium_exchange', market, True, self.active_premium_exchange])
         
         ttk.Separator(f4, orient='horizontal').grid(row=1, column=0, columnspan=2, sticky=('W', 'E'))
-
-        # Label(f4, text='Ustawienia').grid(row=2, columnspan=2, padx=5, pady=(20, 15), sticky='W')  
 
         ttk.Label(f4 , text='Maksymalny kurs sprzedaży').grid(row=3, column=0, padx=5, pady=(20, 15), sticky='W')
 
         self.wood_photo = tk.PhotoImage(file='icons//wood.png')
         ttk.Label(f4, text='Drewno', image=self.wood_photo, compound='left').grid(row=4, column=0, padx=(25, 5), pady=5, sticky='W')
-        self.entries_content['market']['wood']['max_exchange_rate'] = tk.StringVar()
-        self.max_wood_exchange_rate = ttk.Entry(f4, textvariable=self.entries_content['market']['wood']['max_exchange_rate'], justify='center', width=6)
+        market['wood']['max_exchange_rate'] = tk.StringVar()
+        self.max_wood_exchange_rate = ttk.Entry(f4, textvariable=market['wood']['max_exchange_rate'], justify='center', width=6)
         self.max_wood_exchange_rate.grid(row=4, column=1, padx=(5, 25), pady=(10, 5), sticky='E')        
 
         self.stone_photo = tk.PhotoImage(file='icons//stone.png')
         ttk.Label(f4, text='Cegła', image=self.stone_photo, compound='left').grid(row=5, column=0, padx=(25, 5), pady=5, sticky='W')
-        self.entries_content['market']['stone']['max_exchange_rate'] = tk.StringVar()
-        self.max_stone_exchange_rate = ttk.Entry(f4, textvariable=self.entries_content['market']['stone']['max_exchange_rate'], justify='center', width=6)
+        market['stone']['max_exchange_rate'] = tk.StringVar()
+        self.max_stone_exchange_rate = ttk.Entry(f4, textvariable=market['stone']['max_exchange_rate'], justify='center', width=6)
         self.max_stone_exchange_rate.grid(row=5, column=1, padx=(5, 25), pady=(10, 5), sticky='E')  
 
         self.iron_photo = tk.PhotoImage(file='icons//iron.png')
         ttk.Label(f4, text='Żelazo', image=self.iron_photo, compound='left').grid(row=6, column=0, padx=(25, 5), pady=5, sticky='W')
-        self.entries_content['market']['iron']['max_exchange_rate'] = tk.StringVar()
-        self.max_iron_exchange_rate = ttk.Entry(f4, textvariable=self.entries_content['market']['iron']['max_exchange_rate'], justify='center', width=6)
+        market['iron']['max_exchange_rate'] = tk.StringVar()
+        self.max_iron_exchange_rate = ttk.Entry(f4, textvariable=market['iron']['max_exchange_rate'], justify='center', width=6)
         self.max_iron_exchange_rate.grid(row=6, column=1, padx=(5, 25), pady=(10, 5), sticky='E')
 
         def show_label_and_text_widget() -> None:
@@ -1545,10 +1662,10 @@ class MainWindow:
                         'Wioski powinny być oddzielone spacją, tabulatorem lub enterem.')
                     return
                 if self.villages_to_ommit_text.get('1.0', '1.5') == 'Wklej':
-                    self.entries_content['market_exclude_villages'].set('')
+                    market['market_exclude_villages'].set('')
                 else:
-                    self.entries_content['market_exclude_villages'].set(self.villages_to_ommit_text.get('1.0', 'end'))
-                    settings['market_exclude_villages'] = self.villages_to_ommit_text.get('1.0', 'end')
+                    market['market_exclude_villages'].set(self.villages_to_ommit_text.get('1.0', 'end'))
+                    settings['market']['market_exclude_villages'] = self.villages_to_ommit_text.get('1.0', 'end')
                 self.villages_to_ommit_text.grid_forget()
                 self.confirm_button.grid_forget()
 
@@ -1569,8 +1686,8 @@ class MainWindow:
 
             self.villages_to_ommit_text = tk.Text(f4, height=6, width=50, wrap='word')
             self.villages_to_ommit_text.grid(row=8, column=0, columnspan=2, padx=5, pady=10)
-            if settings['market_exclude_villages'] and settings['market_exclude_villages'] != '0':
-                self.villages_to_ommit_text.insert('1.0', settings['market_exclude_villages'])
+            if settings['market']['market_exclude_villages'] and settings['market']['market_exclude_villages'] != '0':
+                self.villages_to_ommit_text.insert('1.0', settings['market']['market_exclude_villages'])
             else:
                 self.villages_to_ommit_text.insert('1.0', 'Wklej wioski w formacie XXX|YYY które chcesz aby były pomijane. Wioski powinny być oddzielone spacją, tabulatorem lub enterem.')
 
@@ -1579,7 +1696,7 @@ class MainWindow:
 
             self.villages_to_ommit_text.bind('<Button-1>', clear_text_widget)
 
-        self.entries_content['market_exclude_villages'] = tk.StringVar()
+        market['market_exclude_villages'] = tk.StringVar()
         self.add_village_exceptions_button = ttk.Button(f4, text='Dodaj wykluczenia', command=show_label_and_text_widget)
         self.add_village_exceptions_button.grid(row=7, column=0, columnspan=2, padx=5, pady=(30,5))    
         
@@ -1587,58 +1704,73 @@ class MainWindow:
         #endregion
 
         # f5 -> 'Ustawienia'
+        #region
         f5.columnconfigure(0, weight=1)
         f5.columnconfigure(1, weight=1)
+
+        f5_settings = self.entries_content
 
         self.world_number = ttk.Label(f5, text='Numer świata')
         self.world_number.grid(row=0, column=0, padx=5, pady=(10, 5), sticky='E')
 
-        self.entries_content['world_number'] = tk.StringVar()
-        self.world_number_trace = self.entries_content['world_number'].trace_add('write', self.world_number_change)
-        self.world_number_input = ttk.Entry(f5, textvariable=self.entries_content['world_number'], width=3, justify='center')
+        f5_settings['world_number'] = tk.StringVar()
+        self.world_number_trace = f5_settings['world_number'].trace_add('write', self.world_number_change)
+        self.world_number_input = ttk.Entry(f5, textvariable=f5_settings['world_number'], width=3, justify='center')
         self.world_number_input.grid(row=0, column=1, padx=5, pady=(10, 5), sticky='W')
 
-        self.entries_content['farm_group'] = tk.StringVar()
-        self.farm_group = ttk.Combobox(f5, textvariable=self.entries_content['farm_group'])
+        f5_settings['farm_group'] = tk.StringVar()
+        self.farm_group = ttk.Combobox(f5, textvariable=f5_settings['farm_group'])
         self.farm_group.grid(row=3, column=0, padx=5, pady=5, sticky='E')
         self.farm_group.set('Wybierz grupę')
         self.farm_group['values'] = settings['groups']
+        for key in self.farm_group.keys():
+            print(key)
+            print(self.farm_group[key])
+            print('--------------------------------------------')
 
         self.update_groups = ttk.Button(f5, text='update', command=lambda: threading.Thread(target=self.check_groups, name='checking_groups', daemon=True).start())
         self.update_groups.grid(row=3, column=1, padx=5, pady=5, sticky='W')
 
-        self.farm_sleep_time_label = ttk.Label(f5, text='Czas przed kolejnym wysłaniem farmy [min]')
-        self.farm_sleep_time_label.grid(row=4, column=0, padx=5, pady=5, sticky='E')
-
-        self.entries_content['farm_sleep_time'] = tk.StringVar()
-        self.farm_sleep_time = ttk.Entry(f5, textvariable=self.entries_content['farm_sleep_time'], width=5, justify='center')
-        self.farm_sleep_time.grid(row=4, column=1, padx=5, pady=5, sticky='W')
-
-        self.entries_content['account_premium'] = tk.StringVar()
+        f5_settings['account_premium'] = tk.StringVar()
         self.account_premium = ttk.Checkbutton(f5, text='Konto premium', 
-                                    variable=self.entries_content['account_premium'], 
+                                    variable=f5_settings['account_premium'], 
                                     onvalue=True, offvalue=False)
         self.account_premium.grid(row=6, column=0, columnspan=2, padx=5, pady=20)
+        #endregion
 
-        self.entries_content['check_incoming_attacks'] = tk.StringVar()
-        self.check_incoming_attacks = ttk.Checkbutton(f5, text='Etykiety nadchodzących ataków', 
-                                    variable=self.entries_content['check_incoming_attacks'], 
+        # f6 -> 'Powiadomienia'
+        #region
+
+        f6.columnconfigure(0, weight=1)
+        f6.columnconfigure(1, weight=1)
+
+        self.entries_content['notifications'] = {}
+        notifications = self.entries_content['notifications']
+
+        notifications['check_incoming_attacks'] = tk.StringVar()
+        self.check_incoming_attacks = ttk.Checkbutton(f6, text='Etykiety nadchodzących ataków', 
+                                    variable=notifications['check_incoming_attacks'], 
                                     onvalue=True, offvalue=False)
-        self.check_incoming_attacks.grid(row=7, column=0, columnspan=2, padx=5, pady=10)
+        self.check_incoming_attacks.grid(row=7, column=0, columnspan=2, padx=5, pady=(20, 10))
 
-        self.check_incoming_attacks_label = ttk.Label(f5, text='Twórz etykiety ataków co [min]')
+        self.check_incoming_attacks_label = ttk.Label(f6, text='Twórz etykiety ataków co [min]')
         self.check_incoming_attacks_label.grid(row=8, column=0, padx=5, pady=5, sticky='E')
 
-        self.entries_content['check_incoming_attacks_sleep_time'] = tk.StringVar()
-        self.check_incoming_attacks_sleep_time = ttk.Entry(f5, textvariable=self.entries_content['check_incoming_attacks_sleep_time'], width=5, justify='center')
+        notifications['check_incoming_attacks_sleep_time'] = tk.StringVar()
+        self.check_incoming_attacks_sleep_time = ttk.Entry(f6, textvariable=notifications['check_incoming_attacks_sleep_time'], width=5, justify='center')
         self.check_incoming_attacks_sleep_time.grid(row=8, column=1, padx=5, pady=5, sticky='W')
 
-        self.entries_content['email_notifications'] = tk.StringVar()
-        self.email_notifications = ttk.Checkbutton(f5, text='Powiadomienia email o idących grubasach', 
-                                    variable=self.entries_content['email_notifications'], 
+        notifications['email_notifications'] = tk.StringVar()
+        self.email_notifications = ttk.Checkbutton(f6, text='Powiadomienia email o idących grubasach', 
+                                    variable=notifications['email_notifications'], 
                                     onvalue=True, offvalue=False)
         self.email_notifications.grid(row=9, column=0, columnspan=2, padx=5, pady=10)
 
+        ttk.Label(f6, text='Wyślij powiadomienia na adres').grid(row=10, column=0, padx=5, pady=10, sticky='E')
+        notifications['email_address'] = tk.StringVar()
+        self.email_notifications_entry = ttk.Entry(f6, textvariable=notifications['email_address'])
+        self.email_notifications_entry.grid(row=10, column=1, padx=5, pady=10, sticky='W')
+        #endregion
 
         # content_frame
         self.save_button = ttk.Button(self.content_frame, text='Zapisz', command=lambda: MyFunc.save_entry_to_settings(self.entries_content))
@@ -1708,9 +1840,9 @@ class MainWindow:
     def check_groups(self):
 
         self.farm_group.set('updating...')
-        self.gathering_group.set('updating...')
+        self.gathering.gathering_group.set('updating...')
         MyFunc.save_entry_to_settings(self.entries_content)
-        bot_functions.check_groups(driver, settings, MyFunc.run_driver, *[self.farm_group, self.gathering_group])
+        bot_functions.check_groups(driver, settings, MyFunc.run_driver, *[self.farm_group, self.gathering.gathering_group])
 
     def hide(self):
         self.master.attributes('-alpha', 0.0)
@@ -1726,10 +1858,14 @@ class MainWindow:
 
         if self.entries_content['farm_group'].get() == 'Wybierz grupę':
             MyFunc.custom_error(self, 'Nie wybrano grupy wiosek do farmienia.')
+            self.running = False
+            self.run_button.config(text='Uruchom')
             return
 
         if self.entries_content['gathering_group'].get() == 'Wybierz grupę':
             MyFunc.custom_error(self, 'Nie wybrano grupy wiosek do zbieractwa.')
+            self.running = False
+            self.run_button.config(text='Uruchom')
             return
 
         settings_by_worlds = {}
@@ -1755,10 +1891,10 @@ class MainWindow:
             if int(_settings['gathering']['active']):
                 self.to_do.append({'func': 'gathering', 'start_time': time.time(), 'world_number': _settings['world_number']})
 
-            if int(_settings['check_incoming_attacks']):
+            if int(_settings['notifications']['check_incoming_attacks']):
                 self.to_do.append({'func': 'check_incoming_attacks', 'start_time': time.time(), 'world_number': _settings['world_number']})
         
-            if int(_settings['premium_exchange']):
+            if int(_settings['market']['premium_exchange']):
                 self.to_do.append({'func': 'premium_exchange', 'start_time': time.time(), 'world_number': _settings['world_number']})
 
             # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
@@ -1790,15 +1926,15 @@ class MainWindow:
                             case 'gathering':
                                 incoming_attacks = False
                                 if int(_settings['gathering']['stop_if_incoming_attacks']):
-                                    incoming_attacks = bot_functions.attacks_labels(driver)
+                                    incoming_attacks = bot_functions.attacks_labels(driver, _settings)
                                 if not int(_settings['gathering']['stop_if_incoming_attacks']) or (int(_settings['gathering']['stop_if_incoming_attacks']) and not incoming_attacks):
                                     list_of_dicts = bot_functions.gathering_resources(driver, _settings, **self.to_do[0])
                                     for _dict in list_of_dicts:
                                         self.to_do.append(_dict)
 
                             case 'check_incoming_attacks':
-                                bot_functions.attacks_labels(driver, int(_settings['email_notifications']))
-                                self.to_do[0]['start_time'] = time.time() + int(_settings['check_incoming_attacks_sleep_time']) * 60
+                                bot_functions.attacks_labels(driver, _settings, int(_settings['notifications']['email_notifications']))
+                                self.to_do[0]['start_time'] = time.time() + int(_settings['notifications']['check_incoming_attacks_sleep_time']) * 60
                                 self.to_do.append(self.to_do[0])
 
                             case 'premium_exchange':
@@ -2112,17 +2248,23 @@ class JobsToDoWindow:
         self.master.title('Tribal Wars 24/7')        
         self.master.overrideredirect(True)
         self.master.attributes('-topmost', 1)
+        self.master.rowconfigure(0, weight=1)
+        self.master.columnconfigure(0, weight=1)
 
         # main_frame -> custom_bar, content_frame
         self.main_frame = ttk.Frame(self.master, borderwidth=1, relief='groove')
         self.main_frame.grid(row=0, column=0, sticky=('N', 'S', 'E', 'W'))
+        self.main_frame.columnconfigure(0, weight=1)
+        self.main_frame.rowconfigure(1, weight=1)
 
         self.custom_bar = ttk.Frame(self.main_frame)
-        self.custom_bar.grid(row=0, column=0, sticky=('N', 'S', 'E', 'W'))
+        self.custom_bar.grid(row=0, column=0, sticky=('E', 'W'))
         self.custom_bar.columnconfigure(3, weight=1)
 
         self.content_frame = ttk.Frame(self.main_frame)
         self.content_frame.grid(row=1, column=0, sticky=('N', 'S', 'E', 'W'))
+        self.content_frame.columnconfigure(0, weight=1)
+        self.content_frame.rowconfigure(0, weight=1)
 
         # custom_bar
         self.title_label = ttk.Label(self.custom_bar, text='Lista zadań')
@@ -2168,45 +2310,12 @@ class JobsToDoWindow:
     def print_jobs(self):   
 
         self.scrollable_window = ScrollableFrame(parent=self.content_frame)
-        
-        # def on_configure(event):
-        #     # Update scrollregion after starting 'mainloop'
-        #     # when all widgets are in canvas.
-        #     self.canvas.configure(scrollregion=self.canvas.bbox('all'))
-
-        # def _bound_to_mousewheel(self, event):
-        #     self.canvas.bind_all("<MouseWheel>", lambda event: _on_mousewheel(self, event))
-
-        # def _unbound_to_mousewheel(self, event):
-        #     self.canvas.unbind_all("<MouseWheel>")
-
-        # def _on_mousewheel(self, event):
-        #     self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-
-        # # --- Create self.canvas with scrollbar ---
-
-        # self.canvas = tk.Canvas(self.content_frame)
-        # self.canvas.grid(row=0, column=0, sticky='nsew')
-
-        # self.scrollbar = ttk.Scrollbar(self.content_frame, command=self.canvas.yview)
-        # self.scrollbar.grid(row=0, column=1, sticky='ns')
-
-        # self.canvas.configure(yscrollcommand = self.scrollbar.set)
-        # self.canvas.bind('<Enter>', lambda event: _bound_to_mousewheel(self, event))
-        # self.canvas.bind('<Leave>', lambda event: _unbound_to_mousewheel(self, event))
-
-        # # Update scrollregion after starting 'mainloop'
-        # # when all widgets are in self.canvas.
-        # self.canvas.bind('<Configure>', on_configure)
-
-        # # --- Put frame in self.canvas ---
-
-        # self.frame = ttk.Frame(self.canvas)
-        # self.canvas.create_window((0, 0), window=self.frame)
-
-        # --- Add widgets in self.frame ---      
         self.add_widgets_to_frame()
-    
+
+        self.scrollable_window.frame.update_idletasks()
+        reqwidth = self.scrollable_window.frame.winfo_reqwidth()
+        self.master.geometry(f'{reqwidth+15}x250')
+
     def add_widgets_to_frame(self) -> None:
         """Add widgets to self.frame in self.canvas"""
         
@@ -2235,18 +2344,6 @@ class JobsToDoWindow:
                     ttk.Label(self.scrollable_window.frame, text=label_text).grid(row=row_index, column=col_index+1, padx=10, pady=5)                    
                 else:
                     ttk.Label(self.scrollable_window.frame, text=label_text).grid(row=row_index, column=col_index+1, padx=(10, 25), pady=(5, 10))                    
-
-        # Update canvas size depend on frame requested size
-        # self.scrollable_window.frame.update()
-        # if self.scrollable_window.frame.winfo_reqheight() <= 250:
-        #     self.canvas['height'] = self.scrollable_window.frame.winfo_reqheight()
-        # else:
-        #     self.canvas['height'] = 250
-        # self.canvas['width'] = self.scrollable_window.frame.winfo_reqwidth()
-
-        # self.canvas.yview_moveto(0)
-
-        self.scrollable_window.update_canvas(max_height=250)
 
     def update_widgets_in_frame(self) -> None:
         """Clear and than create new widgets in frame"""

@@ -23,7 +23,7 @@ import email_notifications
 logging.basicConfig(filename='log.txt', level=logging.ERROR)
 
 
-def attacks_labels(driver: webdriver, notifications: bool=False) -> bool:
+def attacks_labels(driver: webdriver, settings: dict[str], notifications: bool=False) -> bool:
     """Etykiety ataków"""
    
     if not driver.find_element_by_id('incomings_amount').text:
@@ -60,10 +60,13 @@ def attacks_labels(driver: webdriver, notifications: bool=False) -> bool:
             reach_time_list = [reach_time.text for reach_time in driver.find_elements_by_xpath('//*[@id="incomings_table"]/tbody/tr/td[6]')]
             attacks_reach_time = ''.join(f'{index+1}. {_}\n' for index, _ in enumerate(reach_time_list))
                     
-            email_notifications.send_email('***REMOVED***', 'Wykryto grubasy', f'Wykryto grubasy o godzinie {time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())}\n\n'
-                                                                                       f'Liczba nadchodzących grubasów: {number_of_attacks}\n\n'
-                                                                                       f'Godziny wejść:\n'
-                                                                                       f'{attacks_reach_time}')
+            email_notifications.send_email(
+                email_recepients=settings['notifications']['email_address'], 
+                email_subject='Wykryto grubasy', 
+                email_body=f'Wykryto grubasy o godzinie {time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())}\n\n'
+                           f'Liczba nadchodzących grubasów: {number_of_attacks}\n\n'
+                           f'Godziny wejść:\n'
+                           f'{attacks_reach_time}')
 
             current_time = time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())
 
@@ -364,6 +367,8 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
         for troop_name, troop_number in zip(troops_name, troops_number):
             if int(settings['gathering_troops'][troop_name]['use']) and int(troop_number[1:-1]) > 0:
                 available_troops[troop_name] = int(troop_number[1:-1]) - int(settings['gathering_troops'][troop_name]['left_in_village'])
+                if available_troops[troop_name] > int(settings['gathering_troops'][troop_name]['send_max']):
+                    available_troops[troop_name] = int(settings['gathering_troops'][troop_name]['send_max'])
 
         # Odblokowane i dostępne poziomy zbieractwa
         troops_to_send = {1: {'capacity': 1}, 2: {'capacity': 0.4}, 3: {'capacity': 0.2}, 4: {'capacity': 4/30}}
@@ -706,7 +711,7 @@ def premium_exchange(driver: webdriver, settings: dict) -> None:
         if driver.find_elements_by_xpath('//*[@id="village_switch_left"]'):
             coords = driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text
             coords = re.search(r'\d{3}\|\d{3}', coords).group()
-            if coords in settings['market_exclude_villages']:
+            if coords in settings['market']['market_exclude_villages']:
                 driver.find_element_by_id('ds_body').send_keys('d')
             if starting_village == driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text:
                 return
