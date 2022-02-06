@@ -26,7 +26,7 @@ logging.basicConfig(filename='log.txt', level=logging.ERROR)
 def attacks_labels(driver: webdriver, settings: dict[str], notifications: bool=False) -> bool:
     """Etykiety ataków"""
    
-    if not driver.find_element_by_id('incomings_amount').text:
+    if not int(driver.execute_script('return window.game_data.player.incomings')):
         return False
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'incomings_cell'))).click()  # Otwarcie karty z nadchodzącymi atakami
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/div[1]/*[@data-group-type="all"]'))).click()  # Zmiana grupy na wszystkie
@@ -102,8 +102,8 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
         close_group.click()
         WebDriverWait(driver, 2, 0.033).until(EC.presence_of_element_located((By.XPATH, '//*[@id="close_groups"][@style="display: none;"]')))
 
-    # Początkowa wioska - format '(439|430) K44'
-    starting_village = driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text
+    # Początkowa wioska - unikalne id wioski'
+    starting_village = driver.execute_script('return window.game_data.village.id;')
 
     while True:
 
@@ -145,7 +145,7 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
 
         if skip['A'] and skip['B']:
             ActionChains(driver).send_keys('d').perform()
-            if starting_village == driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text:
+            if starting_village == driver.execute_script('return window.game_data.village.id;'):
                 break
             continue
 
@@ -208,7 +208,7 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
 
         # Przełącz wioskę i sprawdź czy nie jest to wioska startowa
         ActionChains(driver).send_keys('d').perform()
-        if starting_village == driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text:
+        if starting_village == driver.execute_script('return window.game_data.village.id;'):
             break
 
 
@@ -333,15 +333,17 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
             WebDriverWait(driver, 2, 0.033).until(EC.presence_of_element_located((By.XPATH, '//*[@id="close_groups"][@style="display: none;"]')))
 
         # Przejście do ekranu zbieractwa na placu
-        url_scavenego = driver.find_element_by_xpath('//*[@id="menu_row2_village"]/a').get_attribute('href')
-        url_scavenego = url_scavenego.replace('overview', 'place&mode=scavenge')
-        driver.get(url_scavenego)
+        current_village_id = driver.execute_script('return window.game_data.village.id')
+        url = driver.current_url
+        base_url = url[:url.rfind('/')]
+        url = base_url + f'/game.php?village={current_village_id}&screen=place&mode=scavenge'
+        driver.get(url)
 
         # temp od usunięcia po dodatniu wszystkiego w bot_main.py i GUI
         # settings['gathering_troops']['light']['left_in_village'] = 300
 
         # Początkowa wioska
-        starting_village = driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text
+        starting_village = driver.execute_script('return window.game_data.village.id;')
     else:
         driver.get(kwargs['url_to_gathering'])
 
@@ -465,8 +467,10 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
                         break
             journey_time = [int(_) for _ in max([ele.text for ele in doc]).split(':')]
             journey_time = journey_time[0] * 3600 + journey_time[1] * 60 + journey_time[2]
+            base_url = driver.current_url[:driver.current_url.rfind('/')]
+            current_village_id = driver.execute_script('return window.game_data.village.id;')
             return [{'func': 'gathering',
-                     'url_to_gathering': driver.current_url, 
+                     'url_to_gathering': base_url + f'/game.php?village={current_village_id}&screen=place&mode=scavenge', 
                      'start_time': time.time() + journey_time + 2, 
                      'world_number': settings['world_number']}]
 
@@ -478,18 +482,20 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
         except:
             # Pomija wioski z zablokowanym zbieractwem            
             driver.find_element_by_id('ds_body').send_keys('d')
-            if starting_village == driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text:
+            current_village_id = driver.execute_script('return window.game_data.village.id;')
+            if starting_village == current_village_id:
                 return list_of_dicts
             continue
         journey_time = journey_time[0] * 3600 + journey_time[1] * 60 + journey_time[2]
         list_of_dicts.append({'func': 'gathering',
-                              'url_to_gathering': driver.current_url, 
+                              'url_to_gathering': base_url + f'/game.php?village={current_village_id}&screen=place&mode=scavenge', 
                               'start_time': time.time() + journey_time + 2, 
                               'world_number': settings['world_number']})
 
         # Przełącz wioskę i sprawdź czy nie jest to wioska startowa jeśli tak zwróć listę słowników z czasem i linkiem do poszczególnych wiosek
         driver.find_element_by_id('ds_body').send_keys('d')
-        if starting_village == driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text:
+        current_village_id = driver.execute_script('return window.game_data.village.id;')
+        if starting_village == current_village_id:
             return list_of_dicts
 
 
@@ -694,128 +700,133 @@ def player_villages(driver: webdriver) -> dict:
 def premium_exchange(driver: webdriver, settings: dict) -> None:
     """Umożliwia automatyczną sprzedaż lub zakup surwców za punkty premium"""
     
+    current_village_id = int(driver.execute_script('return window.game_data.village.id'))
     url = driver.current_url
-    if 'intro' in url or 'php?screen' in url:  # Jeśli na stronie startowej zaraz po zalogowaniu
-        url = driver.find_element_by_xpath('//*[@id="menu_row2_village"]/a')
-        url = url.get_attribute('href')
-        url = url[:url.find('&screen=')+8] + 'market&mode=exchange'
-        driver.get(url)
-    else:
-        url = url[:url.find('&screen=')+8] + 'market&mode=exchange'
-        driver.get(url)
+    url = url[:url.rfind('/')]
+    player_profile_url = url + f'/game.php?village={current_village_id}&screen=info_player'
+    html_response = driver.execute_script(f'''
+        var request = new XMLHttpRequest();
+        request.open("GET", "{player_profile_url}", false);
+        request.send(null);   
+        return request.responseText;''')
+    doc = lxml.html.fromstring(html_response)
+    doc = doc.xpath('//table[@id="villages_list"]/tbody/tr')
+    villages = {}
+    for row in doc:
+        village_id = row.xpath('td/table/tr/td/span')[0].get('data-id')
+        village_url = url + f'/game.php?village={village_id}&screen=market&mode=exchange'
+        village_coords = row.xpath('td')[-2].text
+        x, y = village_coords.split('|')
+        continent = y[0] + x[0]
+        if continent not in villages:
+            villages[continent] = []
+        villages[continent].append({'village_url': village_url, 'village_coords': village_coords})
 
-    starting_village = driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text
+    for continent, village_list in villages.items():       
+        saved_market_history = False
+        for village in village_list:
+            village_url, village_coords = village.values()
 
-    while True:
-
-        if driver.find_elements_by_xpath('//*[@id="village_switch_left"]'):
-            coords = driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text
-            coords = re.search(r'\d{3}\|\d{3}', coords).group()
-            if coords in settings['market']['market_exclude_villages']:
-                driver.find_element_by_id('ds_body').send_keys('d')
-            if starting_village == driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text:
-                return
-
-        chat = driver.find_element_by_xpath('//*[@id="chat-wrapper"]')
-        driver.execute_script("arguments[0].innerHTML = '';", chat)
-
-        resources_doc = lxml.html.fromstring(driver.find_element_by_xpath('//*[@id="header_info"]/tbody/tr/td[4]/table/tbody/tr[1]/td/table/tbody/tr').get_attribute('innerHTML'))
-        resources_name = ('wood', 'stone', 'iron')
-        resources_available = {}
-        for resource in resources_name:
-            resources_available[resource] = int(resources_doc.get_element_by_id(resource).text)
-
-        exchange_doc = lxml.html.fromstring(driver.find_element_by_xpath('//*[@id="premium_exchange_form"]/table/tbody').get_attribute('innerHTML'))
-        exchange_resources = {resource_name: {'current_resource_rate': 0, 'max_exchange_resource_can_receive': 0} for resource_name in resources_name}
-        for resource in resources_name:
-            resource_capacity = exchange_doc.get_element_by_id(f'premium_exchange_capacity_{resource}').text
-            resource_stock = exchange_doc.get_element_by_id(f'premium_exchange_stock_{resource}').text
-            exchange_resources[resource]['max_exchange_resource_can_receive'] = int(resource_capacity) - int(resource_stock)
-            resource_rate = int(driver.find_element_by_xpath(f'//*[@id="premium_exchange_rate_{resource}"]/div[1]').text)
-            exchange_resources[resource]['current_resource_rate'] = int(resource_rate)
-        if all(not exchange_resources[resource_name]['max_exchange_resource_can_receive'] for resource_name in exchange_resources):
-            return
-        SUM_EXCHANGE_RATE = sum(resource['current_resource_rate'] for resource in exchange_resources.values())    
-        
-        market_history_file = open(f'market_history_{settings["world_number"]}.txt', 'a')
-        market_history_file.write(f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())} ')
-        market_history_file.writelines(f'{resource_name} {value["current_resource_rate"]} ' for resource_name, value in exchange_resources.items())            
-        market_history_file.write('\n')
-        market_history_file.close()
-
-        STARTING_TRANSPORT_CAPACITY = int(driver.find_element_by_xpath('//*[@id="market_merchant_max_transport"]').text)
-        transport_capacity = STARTING_TRANSPORT_CAPACITY
-        if not transport_capacity:
-            if driver.find_elements_by_xpath('//*[@id="village_switch_left"]'):
-                driver.find_element_by_id('ds_body').send_keys('d')
-                if starting_village == driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text:
-                    return
+            if village_coords in settings['market']['market_exclude_villages']:
                 continue
-            else:
-                return
-        
-        exchange_resources = dict(sorted(exchange_resources.items(), key=lambda item: item[1]['current_resource_rate']))
 
-        min_exchange_rate = min(resource['current_resource_rate'] for resource in exchange_resources.values())
-        max_exchange_rate = max(resource['current_resource_rate'] for resource in exchange_resources.values())
-        for resource_name in exchange_resources:
-            max_resource_to_sell = exchange_resources[resource_name]['max_exchange_resource_can_receive']
-            exchange_rate = exchange_resources[resource_name]['current_resource_rate']
+            driver.get(village_url)
 
-            if max_resource_to_sell and transport_capacity>=1000 and transport_capacity>exchange_rate:
-                resource_to_sell = min((max_resource_to_sell, transport_capacity, resources_available[resource_name]))
+            chat = driver.find_element_by_xpath('//*[@id="chat-wrapper"]')
+            driver.execute_script("arguments[0].innerHTML = '';", chat)
 
-                current_exchange_rate = int(driver.find_element_by_xpath(f'//*[@id="premium_exchange_rate_{resource_name}"]/div[1]').text)       
-                if (current_exchange_rate > int(settings['market'][resource_name]['max_exchange_rate'])  # Pomiń jeśli kurs jest powyżej ustalonej wartości
-                        or current_exchange_rate >= resources_available[resource_name]):  # Pomiń jeśli kurs jest wyższy od dostępnych surowców
-                    continue
+            resources_doc = lxml.html.fromstring(driver.find_element_by_xpath('//*[@id="header_info"]/tbody/tr/td[4]/table/tbody/tr[1]/td/table/tbody/tr').get_attribute('innerHTML'))
+            resources_name = ('wood', 'stone', 'iron')
+            resources_available = {}
+            for resource in resources_name:
+                resources_available[resource] = int(resources_doc.get_element_by_id(resource).text)
 
-                if exchange_rate == min_exchange_rate:
-                    if resource_to_sell > round(max_exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY):
-                        resource_to_sell = round(max_exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY)
-                elif exchange_rate == max_exchange_rate:
-                    if resource_to_sell > round(min_exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY):                    
-                        resource_to_sell = round(min_exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY)
-                else:
-                    if resource_to_sell > round(exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY):
-                        resource_to_sell = round(exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY)
-                resource_to_sell -= current_exchange_rate
-                if resource_to_sell < 1:
-                    resource_to_sell = 1
+            exchange_doc = lxml.html.fromstring(driver.find_element_by_xpath('//*[@id="premium_exchange_form"]/table/tbody').get_attribute('innerHTML'))
+            exchange_resources = {resource_name: {'current_resource_rate': 0, 'max_exchange_resource_can_receive': 0} for resource_name in resources_name}
+            for resource in resources_name:
+                resource_capacity = exchange_doc.get_element_by_id(f'premium_exchange_capacity_{resource}').text
+                resource_stock = exchange_doc.get_element_by_id(f'premium_exchange_stock_{resource}').text
+                exchange_resources[resource]['max_exchange_resource_can_receive'] = int(resource_capacity) - int(resource_stock)
+                resource_rate = driver.find_element_by_xpath(f'//*[@id="premium_exchange_rate_{resource}"]/div[1]').text
+                exchange_resources[resource]['current_resource_rate'] = int(resource_rate)
+            
+            if not saved_market_history:          
+                market_history_file = open(f'market_history_{settings["world_number"]}.txt', 'a')
+                market_history_file.write(f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())} ')
+                market_history_file.writelines(f'{resource_name} {value["current_resource_rate"]} ' for resource_name, value in exchange_resources.items()) 
+                market_history_file.write(f'K{continent}')           
+                market_history_file.write('\n')
+                market_history_file.close()              
+                saved_market_history = True
 
-                input = driver.find_element_by_xpath(f'//*[@id="premium_exchange_sell_{resource_name}"]/div[1]/input')
-                input.send_keys(f'{resource_to_sell}')
-                input.send_keys(Keys.ENTER)
+            if all(not exchange_resources[resource_name]['max_exchange_resource_can_receive'] for resource_name in exchange_resources):
+                break
+            if all(exchange_resources[resource_name]['current_resource_rate'] > int(settings['market'][resource_name]['max_exchange_rate']) 
+                    for resource_name in exchange_resources):
+                        break
 
-                try:
-                    final_resource_amount_to_sell = WebDriverWait(driver, 5, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]')))
-                except TimeoutException:
-                    driver.find_element_by_xpath('//*[@id="premium_exchange_form"]/input').click()
-                    final_resource_amount_to_sell = WebDriverWait(driver, 5, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]')))
-                final_resource_amount_to_sell = final_resource_amount_to_sell.text
-                final_resource_amount_to_sell = int(re.search(r'\d+', final_resource_amount_to_sell).group())
+            SUM_EXCHANGE_RATE = sum(resource['current_resource_rate'] for resource in exchange_resources.values())   
 
-                if final_resource_amount_to_sell > resources_available[resource_name]:
-                    current_exchange_rate = driver.find_element_by_xpath('//*[@id="confirmation-msg"]/div/p[2]').text
-                    current_exchange_rate = ceil(final_resource_amount_to_sell/int(re.search(r'\d+', current_exchange_rate).group()))
-                    
-                    driver.find_element_by_xpath('//*[@id="premium_exchange"]/div/div/div[2]/button[2]').click()
-                    
-                    input.clear()
-                    input.send_keys(f'{resources_available[resource_name]-current_exchange_rate}')
+            STARTING_TRANSPORT_CAPACITY = int(driver.find_element_by_xpath('//*[@id="market_merchant_max_transport"]').text)
+            transport_capacity = STARTING_TRANSPORT_CAPACITY
+            if not transport_capacity:
+                continue
+            
+            exchange_resources = dict(sorted(exchange_resources.items(), key=lambda item: item[1]['current_resource_rate']))
+
+            min_exchange_rate = min(resource['current_resource_rate'] for resource in exchange_resources.values())
+            max_exchange_rate = max(resource['current_resource_rate'] for resource in exchange_resources.values())
+            for resource_name in exchange_resources:
+                max_resource_to_sell = exchange_resources[resource_name]['max_exchange_resource_can_receive']
+                exchange_rate = exchange_resources[resource_name]['current_resource_rate']
+
+                if max_resource_to_sell and transport_capacity>=1000 and transport_capacity>exchange_rate:
+                    resource_to_sell = min((max_resource_to_sell, transport_capacity, resources_available[resource_name]))
+
+                    current_exchange_rate = int(driver.find_element_by_xpath(f'//*[@id="premium_exchange_rate_{resource_name}"]/div[1]').text)       
+                    if (current_exchange_rate > int(settings['market'][resource_name]['max_exchange_rate'])  # Pomiń jeśli kurs jest powyżej ustalonej wartości
+                            or current_exchange_rate >= resources_available[resource_name]):  # Pomiń jeśli kurs jest wyższy od dostępnych surowców
+                        continue
+
+                    if exchange_rate == min_exchange_rate:
+                        if resource_to_sell > round(max_exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY):
+                            resource_to_sell = round(max_exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY)
+                    elif exchange_rate == max_exchange_rate:
+                        if resource_to_sell > round(min_exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY):                    
+                            resource_to_sell = round(min_exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY)
+                    else:
+                        if resource_to_sell > round(exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY):
+                            resource_to_sell = round(exchange_rate/SUM_EXCHANGE_RATE*STARTING_TRANSPORT_CAPACITY)
+                    resource_to_sell -= current_exchange_rate
+                    if resource_to_sell < 1:
+                        resource_to_sell = 1
+
+                    input = driver.find_element_by_xpath(f'//*[@id="premium_exchange_sell_{resource_name}"]/div[1]/input')
+                    input.send_keys(f'{resource_to_sell}')
                     input.send_keys(Keys.ENTER)
 
-                transport_capacity -= ceil((final_resource_amount_to_sell/1000)*1000)
+                    try:
+                        final_resource_amount_to_sell = WebDriverWait(driver, 5, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]')))
+                    except TimeoutException:
+                        driver.find_element_by_xpath('//*[@id="premium_exchange_form"]/input').click()
+                        final_resource_amount_to_sell = WebDriverWait(driver, 5, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]')))
+                    final_resource_amount_to_sell = final_resource_amount_to_sell.text
+                    final_resource_amount_to_sell = int(re.search(r'\d+', final_resource_amount_to_sell).group())
 
-                WebDriverWait(driver, 5, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="premium_exchange"]/div/div/div[2]/button[1]'))).click()
-                time.sleep(4)
-        
-        if driver.find_elements_by_xpath('//*[@id="village_switch_left"]'):
-            driver.find_element_by_id('ds_body').send_keys('d')
-            if starting_village == driver.find_element_by_xpath('//*[@id="menu_row2"]/td/b').text:
-                return
-        else:
-            return
+                    if final_resource_amount_to_sell > resources_available[resource_name]:
+                        current_exchange_rate = driver.find_element_by_xpath('//*[@id="confirmation-msg"]/div/p[2]').text
+                        current_exchange_rate = ceil(final_resource_amount_to_sell/int(re.search(r'\d+', current_exchange_rate).group()))
+                        
+                        driver.find_element_by_xpath('//*[@id="premium_exchange"]/div/div/div[2]/button[2]').click()
+                        
+                        input.clear()
+                        input.send_keys(f'{resources_available[resource_name]-current_exchange_rate}')
+                        input.send_keys(Keys.ENTER)
+
+                    WebDriverWait(driver, 5, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="premium_exchange"]/div/div/div[2]/button[1]'))).click()
+                    time.sleep(5)
+                    
+                    transport_capacity = int(driver.find_element(By.ID, 'market_merchant_max_transport').text)
 
 
 def send_back_support(driver: webdriver) -> None:
@@ -871,7 +882,7 @@ def send_troops(driver: webdriver, settings: dict) -> int:
                     '''Choose all units and than unclick all unnecessary'''
 
                     slowest_troop_speed = troops_dict[send_info['slowest_troop']]
-                    for troop_name, troop_speed in troops_dict.items():
+                    for troop_name, troop_speed in list(troops_dict.items()):
                         if troop_speed > slowest_troop_speed:
                             del troops_dict[troop_name]
 
@@ -886,48 +897,122 @@ def send_troops(driver: webdriver, settings: dict) -> int:
                             if troop_name not in troops_dict:
                                 troop_button_id = troop.xpath('a')[1].get('id')
                                 driver.find_element(By.ID, troop_button_id).click()
+                
+                troops_off = {
+                    'axe': 18,
+                    'light': 10,
+                    'marcher': 10,
+                    'ram': 30,
+                    'catapult': 30,
+                    'knight': 10,
+                    'snob': 35
+                }
 
-                # Choose troops to send
-                match send_info['army_type']:
-                    
-                    case 'only_off':
-                        troops_off = {
-                            'axe': 18,
-                            'light': 10,
-                            'marcher': 10,
-                            'ram': 30,
-                            'catapult': 30,
-                            'knight': 10,
-                            'snob': 35
-                        }
-                        choose_all_units_with_exceptions(troops_dict=troops_off)
+                troops_deff = {
+                    'spear': 18,
+                    'sword': 22,
+                    'archer': 18,
+                    'spy': 9,
+                    'heavy': 11,
+                    'catapult': 30,
+                    'knight': 10,
+                    'snob': 35
+                }
+
+                if send_info['send_snob']=='send_snob' and int(send_info['snob_amount'])>1:
+
+                    match send_info['army_type']:
                         
-                    case 'only_deff':
-                        troops_deff = {
-                            'spear': 18,
-                            'sword': 22,
-                            'archer': 18,
-                            'spy': 9,
-                            'heavy': 11,
-                        }
-                        choose_all_units_with_exceptions(troops_dict=troops_deff)
+                        case 'only_off':                            
+                            all_troops = troops_off.keys()
+                            
+                        case 'only_deff':                            
+                            all_troops = troops_deff.keys()
+
+                        case _:
+                            all_troops = (
+                                'spear', 
+                                'sword', 
+                                'axe', 
+                                'archer',
+                                'spy', 
+                                'light', 
+                                'marcher', 
+                                'heavy',
+                                'ram', 
+                                'catapult',
+                                'knight', 
+                                'snob'
+                                )
+                    
+                    for troop in all_troops:
+                        if int(settings['world_config']['archer']) == 0:
+                            if troop in ('archer', 'marcher'): continue  
+                        if troop == 'snob': continue                              
+                        input_field = driver.find_element(By.ID, f'unit_input_{troop}')
+                        troop_number = int(input_field.get_attribute('data-all-count'))
+                        if troop_number == 0: continue
+                        match troop:
+                            case 'ram' | 'catapult' | 'knight':
+                                pass
+                            case _:
+                                troop_number = round(troop_number/100*int(send_info['first_snob_army_size']))
+                        input_field.send_keys(troop_number)
+
+                else:
+                # Choose all troops to send with exceptions
+                    match send_info['army_type']:
+                        
+                        case 'only_off':
+                            
+                            choose_all_units_with_exceptions(troops_dict=troops_off)
+                            
+                        case 'only_deff':
+                            
+                            choose_all_units_with_exceptions(troops_dict=troops_deff)
 
                 if send_info['send_snob'] == 'send_snob':
                     if send_info['snob_amount'] and send_info['snob_amount']!='0':
                         snob_input = driver.find_element(By.ID, 'unit_input_snob')
                         snob_input.clear()
                         snob_input.send_keys('1')
+                        send_info['snob_amount'] = int(send_info['snob_amount'])-1
 
             case 'send_fake':
                 # Choose troops to send
-
-                pass
+                java_script = f'return Math.floor(window.game_data.village.points*{settings["world_config"]["fake_limit"]}/100)'
+                min_population = driver.execute_script(java_script)
+                current_population = 0
+                for troop_name, template_data in send_info['fake_template'].items():
+                    troop_input = driver.find_element(By.ID, f'unit_input_{troop_name}')
+                    available_troop_number = int(troop_input.get_attribute('data-all-count'))
+                    if (available_troop_number >= int(template_data['min_value']) and 
+                        available_troop_number <= int(template_data['max_value'])):
+                        if available_troop_number*template_data['population'] >= min_population-current_population:
+                            troop_number = ceil((min_population-current_population) / template_data['population'])
+                            current_population = min_population
+                        else:
+                            troop_number = available_troop_number
+                            current_population += available_troop_number*template_data['population']
+                    elif available_troop_number >= int(template_data['max_value']):
+                        if int(template_data['max_value'])*template_data['population'] >= min_population-current_population:
+                            troop_number = ceil((min_population-current_population) / template_data['population'])
+                            current_population = min_population
+                        else:
+                            troop_number = int(template_data['max_value'])
+                            current_population += int(template_data['max_value'])*template_data['population']
+                    else:
+                        return len(list_to_send), attacks_list_to_repeat
+                    troop_input.send_keys(troop_number)
+                    if current_population >= min_population:
+                        break                   
+                
             case 'send_my_template':
                 # Choose troops to send
-                for troop_name, troop_value in send_info['troops'].items():
-                    if troop_value:
+                for troop_name, troop_number in send_info['troops'].items():
+                    if troop_number:
                         troop_input = driver.find_element(By.ID, f'unit_input_{troop_name}')
-                        troop_input.send_keys(troop_value)
+                        troop_input.send_keys(troop_number)
 
                 if send_info['repeat_attack'] and int(send_info['repeat_attack']):
                     if send_info['repeat_attack_number']:                        
@@ -953,6 +1038,11 @@ def send_troops(driver: webdriver, settings: dict) -> int:
         
         # Click command_type button (attack or support)
         driver.find_element(By.ID, send_info['command']).click()    
+
+        if send_info['template_type'] == 'send_all':
+            if 'snob_amount' in send_info:
+                for _ in range(send_info['snob_amount']):
+                    driver.find_element(By.XPATH, '//*[@id="troop_confirm_train"]').click()
 
     # Sort all added attacks in scheduler
     if attacks_list_to_repeat:
