@@ -10,7 +10,7 @@ import logging
 import lxml.html
 import requests
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -28,7 +28,9 @@ def attacks_labels(driver: webdriver, settings: dict[str], notifications: bool=F
    
     if not int(driver.execute_script('return window.game_data.player.incomings')):
         return False
-    WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'incomings_cell'))).click()  # Otwarcie karty z nadchodzącymi atakami
+    incomings = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, 'incomings_cell')))  # Otwarcie karty z nadchodzącymi atakami
+    driver.execute_script('return arguments[0].scrollIntoView({block: "center"});', incomings)
+    incomings.click()
     WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/div[1]/*[@data-group-type="all"]'))).click()  # Zmiana grupy na wszystkie
     manage_filters = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a')))  # Zwraca element z filtrem ataków
     if driver.find_element_by_xpath('//*[@id="paged_view_content"]/div[2]').get_attribute('style').find('display: none') != -1:
@@ -102,8 +104,9 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
         close_group.click()
         WebDriverWait(driver, 2, 0.033).until(EC.presence_of_element_located((By.XPATH, '//*[@id="close_groups"][@style="display: none;"]')))
 
-    # Początkowa wioska - unikalne id wioski'
-    starting_village = driver.execute_script('return window.game_data.village.id;')
+    # Lista wykorzystanych wiosek - unikalne id wioski'
+    used_villages = []
+    used_villages.append(driver.execute_script('return window.game_data.village.id;'))
 
     while True:
 
@@ -145,8 +148,9 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
 
         if skip['A'] and skip['B']:
             ActionChains(driver).send_keys('d').perform()
-            if starting_village == driver.execute_script('return window.game_data.village.id;'):
+            if driver.execute_script('return window.game_data.village.id;') in used_villages:
                 break
+            used_villages.append(driver.execute_script('return window.game_data.village.id;'))
             continue
 
         # Lista poziomów murów
@@ -208,8 +212,9 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
 
         # Przełącz wioskę i sprawdź czy nie jest to wioska startowa
         ActionChains(driver).send_keys('d').perform()
-        if starting_village == driver.execute_script('return window.game_data.village.id;'):
+        if driver.execute_script('return window.game_data.village.id;') in used_villages:
             break
+        used_villages.append(driver.execute_script('return window.game_data.village.id;'))
 
 
 def check_groups(driver: webdriver, settings: dict[str], run_driver, *args) -> None:
@@ -347,6 +352,8 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
     else:
         driver.get(kwargs['url_to_gathering'])
 
+    footer_height = driver.find_element(By.ID, 'footer').size['height']
+
     # Core całej funkcji, kończy gdy przejdzie przez wszystkie wioski
     while True:
 
@@ -421,7 +428,9 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
                     try:
                         _input.click()
                     except:
-                        driver.execute_script('return arguments[0].scrollIntoView(false);', _input)
+                        driver.execute_script('return arguments[0].scrollIntoView(true);', _input)
+                        top_bar_height = driver.find_element(By.XPATH, '//*[@id="ds_body"]/div[1]').size['height']
+                        driver.execute_script(f'scrollBy(0, -{top_bar_height})')
                         _input.click()
                     _input.clear()
                     if reduce_ratio != 1:
@@ -445,9 +454,10 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
             if army_sum < 10:
                 break
             start = WebDriverWait(driver, 3, 0.01).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="scavenge_screen"]/div/div[2]/div[{key}]/div[3]/div/div[2]/a[1]')))
-            driver.execute_script('return arguments[0].scrollIntoView({block: "center"});', start)
+            driver.execute_script('return arguments[0].scrollIntoView(false);', start)
+            driver.execute_script(f'scrollBy(0, {footer_height});')
             start.click()
-            WebDriverWait(driver, 2, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="scavenge_screen"]/div/div[2]/div[{key}]/div[3]/div/ul/li[4]/span[@class="return-countdown"]')))
+            WebDriverWait(driver, 3, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="scavenge_screen"]/div/div[2]/div[{key}]/div[3]/div/ul/li[4]/span[@class="return-countdown"]')))
 
         # tymczasowo w celu zlokalizowania problemu
         # if 'url_to_gathering' in kwargs:
@@ -805,10 +815,12 @@ def premium_exchange(driver: webdriver, settings: dict) -> None:
                     input.send_keys(f'{resource_to_sell}')
                     input.send_keys(Keys.ENTER)
 
-                    try:
+                    try:                                                                                                                # //*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]
                         final_resource_amount_to_sell = WebDriverWait(driver, 5, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]')))
                     except TimeoutException:
                         driver.find_element_by_xpath('//*[@id="premium_exchange_form"]/input').click()
+                        final_resource_amount_to_sell = WebDriverWait(driver, 5, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]')))
+                    except StaleElementReferenceException:
                         final_resource_amount_to_sell = WebDriverWait(driver, 5, 0.025).until(EC.element_to_be_clickable((By.XPATH, f'//*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]')))
                     final_resource_amount_to_sell = final_resource_amount_to_sell.text
                     final_resource_amount_to_sell = int(re.search(r'\d+', final_resource_amount_to_sell).group())
