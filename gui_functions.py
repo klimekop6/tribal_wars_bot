@@ -148,16 +148,17 @@ def custom_error(message: str, auto_hide: bool = False, parent=None) -> None:
         ok_button = ttk.Button(master, text="ok", command=master.destroy)
         ok_button.grid(row=2, column=0, pady=(5, 8))
 
-        message_label.bind("<Button-1>", lambda event: get_pos(event, "message_label"))
+        # message_label.bind("<Button-1>", lambda event: get_pos(event, "message_label"))
         ok_button.focus_force()
         ok_button.bind("<Return>", lambda event: master.destroy())
+        center(master, parent=parent)
+        ok_button.wait_window(master)
 
     if auto_hide:
         message_label = ttk.Label(master, text=message)
         message_label.grid(row=1, column=0, padx=10, pady=8)
         master.after(ms=2000, func=lambda: master.destroy())
-
-    center(master, parent=parent)
+        center(master, parent=parent)
 
 
 def fill_entry_from_settings(entries: dict, settings: dict) -> None:
@@ -235,6 +236,15 @@ def first_app_lunch(settings: dict) -> None:
             None, "runas", sys.executable, __file__, None, 1
         )
         sys.exit()
+
+
+def forget_row(widget_name, row_number: int = 0, rows_beetwen: tuple = None) -> None:
+    for label in widget_name.grid_slaves():
+        if rows_beetwen:
+            if rows_beetwen[0] < int(label.grid_info()["row"]) < rows_beetwen[1]:
+                label.grid_forget()
+        elif int(label.grid_info()["row"]) == row_number:
+            label.grid_forget()
 
 
 def get_pos(self, event, *args) -> None:
@@ -350,5 +360,5 @@ def save_entry_to_settings(entries: dict, settings: dict) -> None:
     if not os.path.isdir("settings"):
         os.mkdir("settings")
 
-    with open(f'settings/{settings["world_number"]}.json', "w") as settings_json_file:
+    with open(f'settings/{settings["server_world"]}.json', "w") as settings_json_file:
         json.dump(settings, settings_json_file)

@@ -161,7 +161,7 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
     ).click()
 
     # Sprawdza czy znajduję się w prawidłowej grupie jeśli nie to przechodzi do prawidłowej -> tylko dla posiadaczy konta premium
-    if int(settings["account_premium"]):
+    if driver.execute_script("return premium"):
         driver.find_element_by_id("open_groups").click()
         current_group = (
             WebDriverWait(driver, 10, 0.033)
@@ -336,12 +336,6 @@ def auto_farm(driver: webdriver, settings: dict[str]) -> None:
 def check_groups(driver: webdriver, settings: dict[str], run_driver, *args) -> None:
     """Sprawdza dostępne grupy i zapisuje je w settings.json"""
 
-    if not int(settings["account_premium"]):
-        for combobox in args:
-            combobox["values"] = ["Grupy niedostępne"]
-            combobox.set("Grupy niedostępne")
-        return
-
     tmp_driver = False
     if not driver:
         driver = run_driver(settings=settings)
@@ -349,9 +343,24 @@ def check_groups(driver: webdriver, settings: dict[str], run_driver, *args) -> N
         tmp_driver = True
 
     logged_in = True
-    if f'pl{settings["world_number"]}.plemiona.pl' not in driver.current_url:
+    if f"{settings['server_world']}.{settings['game_url']}" not in driver.current_url:
         logged_in = False
-        driver.get("https://www.plemiona.pl/page/play/pl" + settings["world_number"])
+        driver.get(
+            f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
+        )
+
+    if not driver.execute_script("return premium"):
+        if tmp_driver:
+            driver.quit()
+
+        if not logged_in:
+            driver.get("chrome://newtab")
+
+        for combobox in args:
+            combobox["values"] = ["Grupy niedostępne"]
+            combobox.set("Grupy niedostępne")
+
+        return
 
     driver.find_element_by_id("open_groups").click()
     groups = (
@@ -508,7 +517,7 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
         list_of_dicts = []
 
         # Przejście do prawidłowej grupy -> tylko dla posiadaczy konta premium
-        if int(settings["account_premium"]):
+        if driver.execute_script("return premium"):
             driver.find_element_by_id("open_groups").click()
             current_group = (
                 WebDriverWait(driver, 10, 0.033)
@@ -801,7 +810,7 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
                     "url_to_gathering": base_url
                     + f"/game.php?village={current_village_id}&screen=place&mode=scavenge",
                     "start_time": time.time() + journey_time + 2,
-                    "world_number": settings["world_number"],
+                    "world_number": settings["server_world"],
                 }
             ]
 
@@ -830,7 +839,7 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
                 "url_to_gathering": base_url
                 + f"/game.php?village={current_village_id}&screen=place&mode=scavenge",
                 "start_time": time.time() + journey_time + 2,
-                "world_number": settings["world_number"],
+                "world_number": settings["server_world"],
             }
         )
 
@@ -851,7 +860,9 @@ def get_villages_id(settings: dict[str], update: bool = False) -> dict:
     def update_file() -> None:
         """Create or update file with villages and their id's"""
 
-        url = f'http://pl{settings["world_number"]}.plemiona.pl/map/village.txt'
+        url = (
+            f"http://{settings['server_world']}.{settings['game_url']}/map/village.txt"
+        )
         response = requests.get(url)
         response = response.text
         response = response.splitlines()
@@ -908,14 +919,16 @@ def log_error(driver: webdriver, msg: str = "") -> None:
 def log_in(driver: webdriver, settings: dict) -> bool:
     """Logowanie"""
 
-    driver.get("https://www.plemiona.pl/page/play/pl" + settings["world_number"])
+    driver.get(
+        f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
+    )
 
     # Czy prawidłowo wczytano i zalogowano się na stronie
-    if f'pl{settings["world_number"]}.plemiona.pl' in driver.current_url:
+    if f"{settings['server_world']}.{settings['game_url']}" in driver.current_url:
         return True
 
     # Ręczne logowanie na stronie plemion
-    elif "https://www.plemiona.pl/" == driver.current_url:
+    elif f"https://www.{settings['game_url']}/" == driver.current_url:
 
         username = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[name="username"]'))
@@ -946,9 +959,12 @@ def log_in(driver: webdriver, settings: dict) -> bool:
         for sleep_time in (5, 15, 60, 120, 300):
             time.sleep(sleep_time)
             driver.get(
-                "https://www.plemiona.pl/page/play/pl" + settings["world_number"]
+                f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
             )
-            if f'pl{settings["world_number"]}.plemiona.pl' in driver.current_url:
+            if (
+                f"{settings['server_world']}.{settings['game_url']}"
+                in driver.current_url
+            ):
                 return True
 
     log_error(driver)
@@ -1718,7 +1734,7 @@ def send_troops(driver: webdriver, settings: dict) -> int:
                                     "start_time": send_info["send_time"]
                                     + 2 * send_info["travel_time"]
                                     + 1,
-                                    "world_number": settings["world_number"],
+                                    "world_number": settings["server_world"],
                                 }
                             )
                             # Add the same attack to scheduler with changed send_time etc.
@@ -1786,9 +1802,20 @@ def send_troops(driver: webdriver, settings: dict) -> int:
             else:
                 sec = ms / 1000
             while True:
-                if current_time.text[-8:] == arrival_time:
+                current_arrival_time = current_time.text[-8:]
+                if current_arrival_time == arrival_time:
                     if sec:
                         time.sleep(sec)
+                    if len(list_to_send) == 1:
+                        send_button.click()
+                    else:
+                        threading.Thread(
+                            target=lambda: click_without_wait(send_button),
+                            name="fast_click",
+                            daemon=True,
+                        ).start()
+                    break
+                elif current_arrival_time > arrival_time:
                     if len(list_to_send) == 1:
                         send_button.click()
                     else:
