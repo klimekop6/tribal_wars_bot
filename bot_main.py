@@ -17,19 +17,10 @@ import xmltodict
 
 import bot_functions
 from database_connection import DataBaseConnection
-from gui_functions import (
-    center,
-    change_state,
-    change_state_on_settings_load,
-    custom_error,
-    fill_entry_from_settings,
-    first_app_lunch,
-    forget_row,
-    get_pos,
-    load_settings,
-    run_driver,
-    save_entry_to_settings,
-)
+from gui_functions import (center, change_state, change_state_on_settings_load,
+                           custom_error, fill_entry_from_settings,
+                           first_app_lunch, forget_row, get_pos, load_settings,
+                           run_driver, save_entry_to_settings)
 from log_in_window import LogInWindow
 from my_widgets import ScrollableFrame, TopLevel
 
@@ -2103,22 +2094,9 @@ class MainWindow:
 
         f5_settings = self.entries_content
 
-        ttk.Label(f5, text="Serwer").grid(
-            row=0, column=0, padx=5, pady=(10, 5), sticky="E"
+        ttk.Label(f5, text="Wybierz serwer i numer świata").grid(
+            row=0, column=0, padx=5, pady=(15, 5), sticky="W"
         )
-
-        def on_select_url(event):
-            print("fire event")
-            game_url = f5_settings["game_url"].get()
-            settings["game_url"] = game_url
-            print(settings["game_url"])
-            country_code = game_url[game_url.rfind(".") + 1 :]
-            settings["country_code"] = country_code
-            print(settings["country_code"])
-            world_number = f5_settings["world_number"].get()
-            if world_number and world_number != "0":
-                settings["server_world"] = f"{country_code}{world_number}"
-                print(settings["server_world"])
 
         f5_settings["game_url"] = tk.StringVar()
         self.game_url = ttk.Combobox(
@@ -2128,7 +2106,7 @@ class MainWindow:
             justify="center",
             width=20,
         )
-        self.game_url.grid(row=1, column=0, padx=5, pady=10, sticky="E")
+        self.game_url.grid(row=0, column=1, padx=5, pady=(15, 5))
         self.game_url.set("Wybierz serwer")
         self.game_url["values"] = [
             "die-staemme.de",
@@ -2158,19 +2136,15 @@ class MainWindow:
             "tribalwars.asia",
             "tribalwars.us",
         ]
-        self.game_url.bind("<<ComboboxSelected>>", on_select_url)
-
-        self.world_number = ttk.Label(f5, text="Numer świata")
-        self.world_number.grid(row=0, column=1, padx=5, pady=(10, 5), sticky="W")
 
         f5_settings["world_number"] = tk.StringVar()
         self.world_number_trace = f5_settings["world_number"].trace_add(
             "write", lambda *_: self.world_number_change(settings=settings)
         )
         self.world_number_input = ttk.Entry(
-            f5, textvariable=f5_settings["world_number"], width=3, justify="center"
+            f5, textvariable=f5_settings["world_number"], width=5, justify="center"
         )
-        self.world_number_input.grid(row=1, column=1, padx=5, pady=10, sticky="W")
+        self.world_number_input.grid(row=0, column=2, padx=5, pady=(15, 5), sticky="E")
 
         # ttk.Button(f5, text="Zmień aktualny").grid(
         #     row=2, column=0, padx=5, pady=5, sticky="E"
@@ -2179,8 +2153,32 @@ class MainWindow:
         #     row=2, column=1, padx=5, pady=5, sticky="W"
         # )
 
+        ttk.Label(f5, text="Dostępne grupy wiosek").grid(
+            row=2, column=0, padx=(5, 0), pady=(10), sticky="W"
+        )
+        self.villages_groups = ttk.Combobox(
+            f5,
+            state="readonly",
+            justify="center",
+        )
+        self.villages_groups.grid(row=2, column=1, padx=(0), pady=(10))
+        self.villages_groups.set("Dostępne grupy")
+        self.villages_groups["values"] = settings["groups"]
+
+        # self.refresh_photo = tk.PhotoImage(file="icons//refresh.png")
+        ttk.Button(
+            f5,
+            image=self.refresh_photo,
+            bootstyle="primary.Link.TButton",
+            command=lambda: threading.Thread(
+                target=lambda: self.check_groups(settings=settings),
+                name="checking_groups",
+                daemon=True,
+            ).start(),
+        ).grid(row=2, column=2, padx=5, pady=(10), sticky="E")
+
         self.acc_expire_time = ttk.Label(f5, text="acc_expire_time")
-        self.acc_expire_time.grid(row=10, columnspan=2, padx=5, pady=5, sticky="S")
+        self.acc_expire_time.grid(row=10, columnspan=3, padx=5, pady=5, sticky="S")
 
         # endregion
 
@@ -2192,23 +2190,38 @@ class MainWindow:
         self.entries_content["notifications"] = {}
         notifications = self.entries_content["notifications"]
 
+        ttk.Label(f6, text="Etykiety ataków").grid(
+            row=0, column=0, padx=5, pady=20, sticky="W"
+        )
+
         notifications["check_incoming_attacks"] = tk.StringVar()
+
+        def change_entry(value, widget) -> None:
+            if int(value.get()):
+                widget.config(state="normal")
+            else:
+                widget.config(state="disabled")
+
         self.check_incoming_attacks = ttk.Checkbutton(
             f6,
             text="Etykiety nadchodzących ataków",
             variable=notifications["check_incoming_attacks"],
             onvalue=True,
             offvalue=False,
+            command=lambda: change_entry(
+                value=notifications["check_incoming_attacks"],
+                widget=self.check_incoming_attacks_sleep_time,
+            ),
         )
         self.check_incoming_attacks.grid(
-            row=7, column=0, columnspan=2, padx=5, pady=(20, 10)
+            row=7, column=0, columnspan=2, padx=(25, 5), pady=(0, 10), sticky="W"
         )
 
         self.check_incoming_attacks_label = ttk.Label(
             f6, text="Twórz etykiety ataków co [min]"
         )
         self.check_incoming_attacks_label.grid(
-            row=8, column=0, padx=5, pady=5, sticky="E"
+            row=8, column=0, padx=(25, 5), pady=5, sticky="W"
         )
 
         notifications["check_incoming_attacks_sleep_time"] = tk.StringVar()
@@ -2219,7 +2232,11 @@ class MainWindow:
             justify="center",
         )
         self.check_incoming_attacks_sleep_time.grid(
-            row=8, column=1, padx=5, pady=5, sticky="W"
+            row=8, column=1, padx=(5, 25), pady=5, sticky="E"
+        )
+
+        ttk.Label(f6, text="Powiadomienia").grid(
+            row=9, column=0, padx=5, pady=(20, 10), sticky="W"
         )
 
         notifications["email_notifications"] = tk.StringVar()
@@ -2229,18 +2246,51 @@ class MainWindow:
             variable=notifications["email_notifications"],
             onvalue=True,
             offvalue=False,
+            command=lambda: change_entry(
+                value=notifications["email_notifications"],
+                widget=self.email_notifications_entry,
+            ),
         )
-        self.email_notifications.grid(row=9, column=0, columnspan=2, padx=5, pady=10)
+        self.email_notifications.grid(
+            row=10, column=0, columnspan=2, padx=(25, 5), pady=10, sticky="W"
+        )
 
-        ttk.Label(f6, text="Wyślij powiadomienia na adres").grid(
-            row=10, column=0, padx=5, pady=10, sticky="E"
+        ttk.Label(f6, text="Wyślij powiadomienia na adres:").grid(
+            row=11, column=0, padx=(25, 5), pady=10, sticky="W"
         )
         notifications["email_address"] = tk.StringVar()
         self.email_notifications_entry = ttk.Entry(
-            f6, textvariable=notifications["email_address"]
+            f6, textvariable=notifications["email_address"], justify="center"
         )
         self.email_notifications_entry.grid(
-            row=10, column=1, padx=5, pady=10, sticky="W"
+            row=11, column=1, padx=(5, 25), pady=10, sticky="E"
+        )
+
+        notifications["sms_notifications"] = tk.StringVar()
+        self.sms_notifications = ttk.Checkbutton(
+            f6,
+            text="Powiadomienia sms o idących grubasach",
+            variable=notifications["sms_notifications"],
+            onvalue=True,
+            offvalue=False,
+            command=lambda: change_entry(
+                value=notifications["sms_notifications"],
+                widget=self.sms_notifications_entry,
+            ),
+        )
+        self.sms_notifications.grid(
+            row=12, column=0, columnspan=2, padx=(25, 5), pady=10, sticky="W"
+        )
+
+        ttk.Label(f6, text="Wyślij powiadomienia na numer:").grid(
+            row=13, column=0, padx=(25, 5), pady=10, sticky="W"
+        )
+        notifications["phone_number"] = tk.StringVar()
+        self.sms_notifications_entry = ttk.Entry(
+            f6, textvariable=notifications["phone_number"], justify="center"
+        )
+        self.sms_notifications_entry.grid(
+            row=13, column=1, padx=(5, 25), pady=10, sticky="E"
         )
         # endregion
 
@@ -2276,10 +2326,6 @@ class MainWindow:
 
     def add_new_world_settings(self, settings: dict):
         def get_world_config() -> None:
-            print(
-                f"https://{settings['server_world']}.{settings['game_url']}"
-                f"/interface.php?func=get_config"
-            )
             response = requests.get(
                 f"https://{settings['server_world']}.{settings['game_url']}"
                 f"/interface.php?func=get_config"
@@ -2295,13 +2341,17 @@ class MainWindow:
                 "end_hour": world_config["config"]["night"]["end_hour"],
             }
 
+        def set_additional_settings(
+            game_url: str, country_code: str, server_world: str
+        ) -> None:
+            settings["game_url"] = game_url
+            settings["country_code"] = country_code
+            settings["server_world"] = server_world
+
         world_number = self.entries_content["world_number"].get()
-        game_url = settings["game_url"]
-        print(game_url)
-        country_code = settings["country_code"].upper()
-        print(country_code)
-        settings["server_world"] = f"{settings['country_code']}{world_number}"
-        print(settings["server_world"])
+        game_url = self.entries_content["game_url"].get()
+        country_code = game_url[game_url.rfind(".") + 1 :]
+        server_world = f"{country_code}{world_number}"
 
         if not os.path.isdir("settings"):
             os.mkdir("settings")
@@ -2311,9 +2361,18 @@ class MainWindow:
         if any(world_number in settings_name for settings_name in settings_list):
             custom_error("Ustawienia tego świata już istnieją!")
         elif len(settings_list) == 0:
-            self.entries_content["world_in_title"].set(f"{country_code}{world_number}")
+            self.entries_content["world_in_title"].set(
+                f"{country_code.upper()}{world_number}"
+            )
+            set_additional_settings(
+                game_url=game_url, country_code=country_code, server_world=server_world
+            )
             get_world_config()
+            save_entry_to_settings(entries=self.entries_content, settings=settings)
         else:
+            self.entries_content["world_number"].set(value=settings["world_number"])
+            self.entries_content["game_url"].set(value=settings["game_url"])
+            save_entry_to_settings(entries=self.entries_content, settings=settings)
             # Ustawia domyślne wartości elementów GUI (entries_content)
             for key in self.entries_content:
                 if isinstance(self.entries_content[key], dict):
@@ -2337,9 +2396,14 @@ class MainWindow:
                     self.entries_content[key].set(value="")
             self.entries_content["world_number"].set(value=world_number)
             self.entries_content["game_url"].set(value=game_url)
+            set_additional_settings(
+                game_url=game_url, country_code=country_code, server_world=server_world
+            )
             get_world_config()
+            self.entries_content["world_in_title"].set(
+                f"{country_code.upper()}{world_number}"
+            )
             save_entry_to_settings(entries=self.entries_content, settings=settings)
-            self.entries_content["world_in_title"].set(f"{country_code}{world_number}")
 
     def check_groups(self, settings: dict):
 
@@ -2470,7 +2534,7 @@ class MainWindow:
                 f"settings//{settings_file_name}"
             )
 
-        for world_number in settings_by_worlds:
+        for world_number in settings_by_worlds:  # world_number = de199, pl173 etc.
             _settings = settings_by_worlds[world_number]
 
             if (
@@ -2482,7 +2546,7 @@ class MainWindow:
                     {
                         "func": "auto_farm",
                         "start_time": time.time(),
-                        "world_number": _settings["world_number"],
+                        "server_world": _settings["server_world"],
                     }
                 )
 
@@ -2491,7 +2555,7 @@ class MainWindow:
                     {
                         "func": "gathering",
                         "start_time": time.time(),
-                        "world_number": _settings["world_number"],
+                        "server_world": _settings["server_world"],
                     }
                 )
 
@@ -2500,7 +2564,7 @@ class MainWindow:
                     {
                         "func": "check_incoming_attacks",
                         "start_time": time.time(),
-                        "world_number": _settings["world_number"],
+                        "server_world": _settings["server_world"],
                     }
                 )
 
@@ -2509,7 +2573,7 @@ class MainWindow:
                     {
                         "func": "premium_exchange",
                         "start_time": time.time(),
-                        "world_number": _settings["world_number"],
+                        "server_world": _settings["server_world"],
                     }
                 )
 
@@ -2527,14 +2591,14 @@ class MainWindow:
                         {
                             "func": "send_troops",
                             "start_time": send_info["send_time"] - 8,
-                            "world_number": _settings["world_number"],
+                            "server_world": _settings["server_world"],
                         }
                     )
 
         while self.running:
             try:
                 if self.to_do[0]["start_time"] < time.time():
-                    _settings = settings_by_worlds[self.to_do[0]["world_number"]]
+                    _settings = settings_by_worlds[self.to_do[0]["server_world"]]
                     try:
                         if not logged:
                             logged = bot_functions.log_in(self.driver, _settings)
@@ -2662,7 +2726,7 @@ class MainWindow:
                     # Zamyka stronę plemion jeśli do następnej czynności pozostało więcej niż 5min
                     if (
                         self.to_do[0]["start_time"] > time.time() + 300
-                        or _settings["world_number"] != self.to_do[0]["world_number"]
+                        or _settings["server_world"] != self.to_do[0]["server_world"]
                     ):
                         self.driver.get("chrome://newtab")
                         logged = False
@@ -2698,11 +2762,11 @@ class MainWindow:
 
         self.time.set("")
         for settings_file_name in os.listdir("settings"):
-            world_number = settings_file_name[: settings_file_name.find(".")]
+            server_world = settings_file_name[: settings_file_name.find(".")]
             # Dla wszystkich zapisanych oprócz aktualnie aktywnego
-            if settings["world_number"] != world_number:
+            if settings["server_world"] != server_world:
                 _settings = load_settings(f"settings//{settings_file_name}")
-                for scheduled_attack in settings_by_worlds[world_number]["scheduler"][
+                for scheduled_attack in settings_by_worlds[server_world]["scheduler"][
                     "ready_schedule"
                 ]:
                     if any(
@@ -2716,10 +2780,10 @@ class MainWindow:
                         _settings["scheduler"]["ready_schedule"].append(
                             scheduled_attack
                         )
-                with open(f"settings/{world_number}.json", "w") as settings_json_file:
+                with open(f"settings/{server_world}.json", "w") as settings_json_file:
                     json.dump(_settings, settings_json_file)
             else:
-                for scheduled_attack in settings_by_worlds[world_number]["scheduler"][
+                for scheduled_attack in settings_by_worlds[server_world]["scheduler"][
                     "ready_schedule"
                 ]:
                     if any(
@@ -2749,6 +2813,12 @@ class MainWindow:
         def change_world(settings_file_name: str, world_in_title: str) -> None:
             nonlocal settings
 
+            if (
+                re.search(r"\d+", settings_file_name).group()
+                == self.entries_content["world_number"].get()
+            ):
+                self.world_chooser_window.destroy()
+                return
             self.entries_content["world_number"].trace_remove(
                 "write", self.world_number_trace
             )
@@ -2756,7 +2826,8 @@ class MainWindow:
             if os.path.exists(f"settings/{settings_file_name}.json"):
                 # Save current settings before changing to other
                 save_entry_to_settings(entries=self.entries_content, settings=settings)
-                settings = load_settings(f"settings/{settings_file_name}.json")
+                settings.clear()
+                settings.update(load_settings(f"settings/{settings_file_name}.json"))
                 # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
                 if settings["scheduler"]["ready_schedule"]:
                     current_time = time.time()
@@ -2804,7 +2875,7 @@ class MainWindow:
 
         for index, settings_file_name in enumerate(os.listdir("settings")):
             settings_file_name = settings_file_name[: settings_file_name.find(".")]
-            country_code = re.search(r"\D*", settings_file_name).group()
+            country_code = re.search(r"\D+", settings_file_name).group()
             world_in_title = settings_file_name.replace(
                 country_code, country_code.upper()
             )
@@ -2902,7 +2973,7 @@ class JobsToDoWindow:
             ttk.Label(self.scrollable_window.frame, text=f"{row_index}.").grid(
                 row=row_index, column=0, padx=(25, 10), pady=5
             )
-            for col_index, col in enumerate(("world_number", "func", "start_time")):
+            for col_index, col in enumerate(("server_world", "func", "start_time")):
                 match col:
                     case "func":
                         for search_for, change_to in self.translate_tuples:

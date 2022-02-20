@@ -36,6 +36,19 @@ def center(window, parent=None) -> None:
         )
 
 
+def invoke_checkbuttons(parent) -> None:
+    def call_widget(parent) -> None:
+        for child in parent.winfo_children():
+            wtype = child.winfo_class()
+            if wtype == "TCheckbutton":
+                child.invoke()
+                child.invoke()
+            else:
+                call_widget(parent=child)
+
+    call_widget(parent=parent)
+
+
 def change_state(parent, value, entries_content, reverse=False, *ommit) -> None:
     def disableChildren(parent):
         if not parent.winfo_children():

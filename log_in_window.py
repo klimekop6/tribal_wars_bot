@@ -4,7 +4,7 @@ import uuid
 import ttkbootstrap as ttk
 
 from database_connection import DataBaseConnection
-from gui_functions import center, custom_error, get_pos, if_paid
+from gui_functions import center, custom_error, get_pos, if_paid, invoke_checkbuttons
 from register_window import RegisterWindow
 
 
@@ -46,6 +46,7 @@ class LogInWindow:
                 settings["logged"] = True
                 main_window.master.deiconify()
                 center(main_window.master)
+                invoke_checkbuttons(parent=main_window.master)
                 main_window.master.attributes("-alpha", 1.0)
                 self.update_running_status(settings=settings, main_window=main_window)
                 return
@@ -173,6 +174,7 @@ class LogInWindow:
 
             center(window=main_window.master, parent=self.master)
             self.master.destroy()
+            invoke_checkbuttons(parent=main_window.master)
             main_window.master.deiconify()
             main_window.master.attributes("-alpha", 1.0)
             self.update_running_status(settings=settings, main_window=main_window)

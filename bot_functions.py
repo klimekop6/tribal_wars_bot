@@ -810,7 +810,7 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
                     "url_to_gathering": base_url
                     + f"/game.php?village={current_village_id}&screen=place&mode=scavenge",
                     "start_time": time.time() + journey_time + 2,
-                    "world_number": settings["server_world"],
+                    "server_world": settings["server_world"],
                 }
             ]
 
@@ -839,7 +839,7 @@ def gathering_resources(driver: webdriver, settings: dict[str], **kwargs) -> lis
                 "url_to_gathering": base_url
                 + f"/game.php?village={current_village_id}&screen=place&mode=scavenge",
                 "start_time": time.time() + journey_time + 2,
-                "world_number": settings["server_world"],
+                "server_world": settings["server_world"],
             }
         )
 
@@ -872,10 +872,10 @@ def get_villages_id(settings: dict[str], update: bool = False) -> dict:
             villages[x + "|" + y] = id
 
         try:
-            world_villages_file = open(f'villages{settings["world_number"]}.txt', "w")
+            world_villages_file = open(f'villages{settings["server_world"]}.txt', "w")
         except:
             logging.error(
-                f'There was a problem with villages{settings["world_number"]}.txt'
+                f'There was a problem with villages{settings["server_world"]}.txt'
             )
         else:
             for village_coords, village_id in villages.items():
@@ -888,10 +888,10 @@ def get_villages_id(settings: dict[str], update: bool = False) -> dict:
 
     villages = {}
     try:
-        world_villages_file = open(f'villages{settings["world_number"]}.txt')
+        world_villages_file = open(f'villages{settings["server_world"]}.txt')
     except FileNotFoundError:
         update_file()
-        world_villages_file = open(f'villages{settings["world_number"]}.txt')
+        world_villages_file = open(f'villages{settings["server_world"]}.txt')
     else:
         for row in world_villages_file:
             village_coords, village_id = row.split(",")
@@ -1284,7 +1284,7 @@ def premium_exchange(driver: webdriver, settings: dict) -> None:
 
             if not saved_market_history:
                 market_history_file = open(
-                    f'market_history_{settings["world_number"]}.txt', "a"
+                    f'market_history_{settings["server_world"]}.txt', "a"
                 )
                 market_history_file.write(
                     f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())} '
@@ -1734,7 +1734,7 @@ def send_troops(driver: webdriver, settings: dict) -> int:
                                     "start_time": send_info["send_time"]
                                     + 2 * send_info["travel_time"]
                                     + 1,
-                                    "world_number": settings["server_world"],
+                                    "server_world": settings["server_world"],
                                 }
                             )
                             # Add the same attack to scheduler with changed send_time etc.
