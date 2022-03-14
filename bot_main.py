@@ -5,22 +5,38 @@ import os
 import random
 import re
 import subprocess
+import sys
 import threading
 import time
 import tkinter as tk
 from functools import partial
+from lib2to3.pgen2 import driver
 from math import sqrt
 
 import requests
 import ttkbootstrap as ttk
 import xmltodict
+from pyupdater.client import Client
+from selenium import webdriver
 
 import bot_functions
+from client_config import ClientConfig
 from database_connection import DataBaseConnection
-from gui_functions import (center, change_state, change_state_on_settings_load,
-                           custom_error, fill_entry_from_settings,
-                           first_app_lunch, forget_row, get_pos, load_settings,
-                           run_driver, save_entry_to_settings)
+from decorators import log_missed_erros
+from gui_functions import (
+    center,
+    change_state,
+    custom_error,
+    fill_entry_from_settings,
+    first_app_lunch,
+    forget_row,
+    get_pos,
+    if_paid,
+    invoke_checkbuttons,
+    load_settings,
+    run_driver,
+    save_entry_to_settings,
+)
 from log_in_window import LogInWindow
 from my_widgets import ScrollableFrame, TopLevel
 
@@ -30,9 +46,7 @@ logging.basicConfig(filename="log.txt", level=logging.WARNING)
 class NotebookSchedul:
     """Content and functions to put in notebook frame f3 named 'Planer'."""
 
-    def __init__(
-        self, parent: tk.Widget, entries_content: dict, settings: dict
-    ) -> None:
+    def __init__(self, parent: tk.Frame, entries_content: dict, settings: dict) -> None:
 
         self.parent = parent
         self.entries_content = entries_content
@@ -497,7 +511,7 @@ class NotebookSchedul:
         # Update canvas size depend on frame requested size
         self.scroll_able.update_canvas(max_height=500)
 
-    def available_templates(self, settings) -> None:
+    def available_templates(self, settings: dict) -> None:
         def delete_template(row_number, template_name):
             del settings["scheduler"]["fake_templates"][template_name]
             forget_row(self.scroll_able.frame, row_number)
@@ -538,7 +552,7 @@ class NotebookSchedul:
                 """Create or update file with villages and their id's"""
 
                 if update:
-                    file_name = f'villages{settings["world_number"]}.txt'
+                    file_name = f'villages{settings["server_world"]}.txt'
                     creation_time = os.path.getmtime(file_name)
                     if time.time() - creation_time < 3600:
                         return
@@ -554,11 +568,11 @@ class NotebookSchedul:
 
                 try:
                     world_villages_file = open(
-                        f'villages{settings["world_number"]}.txt', "w"
+                        f'villages{settings["server_world"]}.txt', "w"
                     )
                 except:
                     logging.error(
-                        f'There was a problem with villages{settings["world_number"]}.txt'
+                        f'There was a problem with villages{settings["server_world"]}.txt'
                     )
                 else:
                     for village_coords, village_id in villages.items():
@@ -571,10 +585,10 @@ class NotebookSchedul:
 
             villages = {}
             try:
-                world_villages_file = open(f'villages{settings["world_number"]}.txt')
+                world_villages_file = open(f'villages{settings["server_world"]}.txt')
             except FileNotFoundError:
                 update_world_villages_file()
-                world_villages_file = open(f'villages{settings["world_number"]}.txt')
+                world_villages_file = open(f'villages{settings["server_world"]}.txt')
             finally:
                 for row in world_villages_file:
                     village_coords, village_id = row.split(",")
@@ -749,7 +763,7 @@ class NotebookSchedul:
             message="Dodano do planera!", auto_hide=True, parent=self.scroll_able.canvas
         )
 
-    def create_template(self, settings) -> None:
+    def create_template(self, settings: dict) -> None:
         """As named it creates fake template to use"""
 
         def add_to_template() -> None:
@@ -902,7 +916,7 @@ class NotebookSchedul:
         center(template_window, self.parent)
         template_window.attributes("-alpha", 1.0)
 
-    def redraw_availabe_templates(self, settings) -> None:
+    def redraw_availabe_templates(self, settings: dict) -> None:
         forget_row(self.scroll_able.frame, rows_beetwen=(19, 40))
         self.available_templates(settings=settings)
         self.scroll_able.frame.update_idletasks()
@@ -916,7 +930,7 @@ class NotebookGathering:
 
     def __init__(
         self,
-        parent: tk.Widget,
+        parent: tk.Frame,
         entries_content: dict,
         settings: dict,
         elements_state: list,
@@ -1231,12 +1245,6 @@ class NotebookGathering:
         f2_1.grid(row=14, column=0, columnspan=2)
 
         self.entries_content["gathering"]["ommit"] = {}
-        # def config_checkbutton_style(gathering_level: str):
-        #     if int(self.entries_content['gathering']['ommit'][f'{gathering_level}_level_gathering'].get()):
-        #         self.__getattribute__(f'ommit_{gathering_level}_level_gathering').config(bootstyle='primary')
-        #     else:
-        #         self.__getattribute__(f'ommit_{gathering_level}_level_gathering').config(style='my.TCheckbutton')
-
         self.entries_content["gathering"]["ommit"][
             "first_level_gathering"
         ] = tk.StringVar()
@@ -1297,12 +1305,6 @@ class NotebookGathering:
             row=14, column=3, padx=(5, 25), pady=(5, 10)
         )
 
-        # def config_checkbutton_style_v2():
-        #     if int(self.entries_content['gathering']['stop_if_incoming_attacks'].get()):
-        #         self.stop_if_incoming_attacks.config(bootstyle='primary')
-        #     else:
-        #         self.stop_if_incoming_attacks.config(style='my.TCheckbutton')
-
         self.entries_content["gathering"]["stop_if_incoming_attacks"] = tk.StringVar()
         self.stop_if_incoming_attacks = ttk.Checkbutton(
             self.scroll_able.frame,
@@ -1321,9 +1323,9 @@ class MainWindow:
     entries_content = {}
     elements_state = []
 
-    def __init__(self, driver, settings: dict[str]) -> None:
+    def __init__(self, root, driver: webdriver.Chrome, settings: dict[str]) -> None:
         self.driver = driver
-        self.master = tk.Tk()
+        self.master: tk.Tk = root
         self.master.geometry("480x720")
         self.master.attributes("-alpha", 0.0)
         self.master.iconbitmap(default="icons//ikona.ico")
@@ -1354,12 +1356,18 @@ class MainWindow:
         self.title_label.grid(row=0, column=1, padx=(5, 0), sticky="W")
 
         self.time = tk.StringVar()
-        self.title_timer = ttk.Label(self.custom_bar, textvariable=self.time)
-        self.title_timer.grid(row=0, column=2, padx=5)
+        self.title_timer = ttk.Button(
+            self.custom_bar,
+            textvariable=self.time,
+            bootstyle="primary.Link.TButton",
+            takefocus=False,
+        )
 
         self.entries_content["world_in_title"] = tk.StringVar(value=" ")
-        self.title_world = ttk.Label(
-            self.custom_bar, textvariable=self.entries_content["world_in_title"]
+        self.title_world = ttk.Button(
+            self.custom_bar,
+            textvariable=self.entries_content["world_in_title"],
+            bootstyle="primary.Link.TButton",
         )
         self.title_world.grid(row=0, column=3, padx=(5, 0), sticky="E")
 
@@ -1379,13 +1387,13 @@ class MainWindow:
 
         def on_exit() -> None:
             save_entry_to_settings(entries=self.entries_content, settings=settings)
-            if driver:
-                subprocess.run("taskkill /IM chromedriver.exe /F")
+            if self.driver:
+                subprocess.run("taskkill /IM chromedriver.exe /F /T")
             self.master.destroy()
             with DataBaseConnection() as cursor:
                 cursor.execute(
-                    f"UPDATE Konta_Plemiona SET CurrentlyRunning=0"
-                    f"WHERE UserName='{settings['user_name']}'"
+                    f"UPDATE konta_plemiona SET currently_running=0"
+                    f"WHERE user_name='{settings['user_name']}'"
                 )
 
         self.exit_button = ttk.Button(
@@ -2024,7 +2032,8 @@ class MainWindow:
                     self.villages_to_ommit_text.insert(
                         "1.0",
                         "Wklej wioski w formacie XXX|YYY które chcesz aby były pomijane. "
-                        "Wioski powinny być oddzielone spacją, tabulatorem lub enterem.",
+                        "Wioski powinny być oddzielone spacją, tabulatorem lub enterem. "
+                        "Możesz także podać cały kontynet np. k45 lub K45",
                     )
                     return
                 if self.villages_to_ommit_text.get("1.0", "1.5") == "Wklej":
@@ -2066,7 +2075,9 @@ class MainWindow:
             else:
                 self.villages_to_ommit_text.insert(
                     "1.0",
-                    "Wklej wioski w formacie XXX|YYY które chcesz aby były pomijane. Wioski powinny być oddzielone spacją, tabulatorem lub enterem.",
+                    "Wklej wioski w formacie XXX|YYY które chcesz aby były pomijane. "
+                    "Wioski powinny być oddzielone spacją, tabulatorem lub enterem. "
+                    "Możesz także podać cały kontynet np. k45 lub K45",
                 )
 
             self.confirm_button = ttk.Button(
@@ -2090,7 +2101,7 @@ class MainWindow:
         # region
         f5.columnconfigure(0, weight=1)
         f5.columnconfigure(1, weight=1)
-        f5.rowconfigure(10, weight=1)
+        f5.rowconfigure(5, weight=1)
 
         f5_settings = self.entries_content
 
@@ -2146,13 +2157,6 @@ class MainWindow:
         )
         self.world_number_input.grid(row=0, column=2, padx=5, pady=(15, 5), sticky="E")
 
-        # ttk.Button(f5, text="Zmień aktualny").grid(
-        #     row=2, column=0, padx=5, pady=5, sticky="E"
-        # )
-        # ttk.Button(f5, text="Dodaj nowy").grid(
-        #     row=2, column=1, padx=5, pady=5, sticky="W"
-        # )
-
         ttk.Label(f5, text="Dostępne grupy wiosek").grid(
             row=2, column=0, padx=(5, 0), pady=(10), sticky="W"
         )
@@ -2165,7 +2169,7 @@ class MainWindow:
         self.villages_groups.set("Dostępne grupy")
         self.villages_groups["values"] = settings["groups"]
 
-        # self.refresh_photo = tk.PhotoImage(file="icons//refresh.png")
+        # Aktualizacja dostępnych grup
         ttk.Button(
             f5,
             image=self.refresh_photo,
@@ -2177,8 +2181,32 @@ class MainWindow:
             ).start(),
         ).grid(row=2, column=2, padx=5, pady=(10), sticky="E")
 
+        # Wybijanie monet
+        # self.entries_content["mine_coin"] = tk.StringVar()
+        # self.check_mine_coin = ttk.Checkbutton(
+        #     f5,
+        #     text="Wybijanie monet",
+        #     variable=self.entries_content["mine_coin"],
+        #     onvalue=True,
+        #     offvalue=False,
+        # )
+        # self.check_mine_coin.grid(row=3, columnspan=3, padx=5, pady=5)
+
+        ttk.Label(f5, text="Informacje o koncie").grid(
+            row=5, column=0, columnspan=3, padx=5, pady=5, sticky="S"
+        )
+
+        self.verified_email_label = ttk.Label(f5, text="")
+        self.verified_email_label.grid(row=9, columnspan=3, padx=5, pady=5, sticky="S")
+
         self.acc_expire_time = ttk.Label(f5, text="acc_expire_time")
         self.acc_expire_time.grid(row=10, columnspan=3, padx=5, pady=5, sticky="S")
+
+        ttk.Button(
+            f5,
+            text="Przedłuż ważność konta",
+            command=lambda: PaymentWindow(parent=self.master),
+        ).grid(row=11, column=0, columnspan=3, padx=5, pady=5)
 
         # endregion
 
@@ -2313,14 +2341,11 @@ class MainWindow:
         self.run_button = ttk.Button(
             self.content_frame, text="Uruchom", command=start_stop_bot_running
         )
-        self.run_button.grid(row=3, column=0, padx=5, pady=5, sticky=("W", "E"))
+        self.run_button.grid(row=3, column=0, padx=5, pady=(0, 5), sticky=("W", "E"))
 
         # Other things
         fill_entry_from_settings(entries=self.entries_content, settings=settings)
         save_entry_to_settings(entries=self.entries_content, settings=settings)
-
-        for list in self.elements_state:
-            change_state_on_settings_load(*list)
 
         self.master.withdraw()
 
@@ -2347,6 +2372,8 @@ class MainWindow:
             settings["game_url"] = game_url
             settings["country_code"] = country_code
             settings["server_world"] = server_world
+            settings["groups"] = ["wszystkie"]
+            settings["scheduler"]["ready_schedule"].clear()
 
         world_number = self.entries_content["world_number"].get()
         game_url = self.entries_content["game_url"].get()
@@ -2373,36 +2400,42 @@ class MainWindow:
             self.entries_content["world_number"].set(value=settings["world_number"])
             self.entries_content["game_url"].set(value=settings["game_url"])
             save_entry_to_settings(entries=self.entries_content, settings=settings)
+
             # Ustawia domyślne wartości elementów GUI (entries_content)
-            for key in self.entries_content:
-                if isinstance(self.entries_content[key], dict):
-                    for key_ in self.entries_content[key]:
-                        if isinstance(self.entries_content[key][key_], dict):
-                            for _key_ in self.entries_content[key][key_]:
-                                if isinstance(
-                                    self.entries_content[key][key_][_key_], dict
-                                ):
-                                    for __key__ in self.entries_content[key][key_][
-                                        _key_
-                                    ]:
-                                        self.entries_content[key][key_][_key_][
-                                            __key__
-                                        ].set(value="")
-                                else:
-                                    self.entries_content[key][key_][_key_].set(value="")
-                        else:
-                            self.entries_content[key][key_].set(value="")
-                else:
-                    self.entries_content[key].set(value="")
+            def default_entry_values(entries: dict | tk.StringVar) -> None:
+                for key in entries:
+                    if isinstance(entries[key], dict):
+                        default_entry_values(entries=entries[key])
+                    else:
+                        entries[key].set(value="0")
+
+            default_entry_values(entries=self.entries_content)
+
             self.entries_content["world_number"].set(value=world_number)
             self.entries_content["game_url"].set(value=game_url)
+            self.entries_content["notifications"]["email_address"].set(
+                value=self.user_data["email"]
+            )
             set_additional_settings(
                 game_url=game_url, country_code=country_code, server_world=server_world
             )
-            get_world_config()
+
+            # Set combobox deafult values
+            for combobox in (
+                self.farm_group_A,
+                self.farm_group_B,
+                self.farm_group_C,
+                self.gathering.gathering_group,
+                self.villages_groups,
+            ):
+                combobox["values"] = ["wszystkie"]
+                combobox.set("wszystkie")
+
             self.entries_content["world_in_title"].set(
                 f"{country_code.upper()}{world_number}"
             )
+            invoke_checkbuttons(parent=self.master)
+            get_world_config()
             save_entry_to_settings(entries=self.entries_content, settings=settings)
 
     def check_groups(self, settings: dict):
@@ -2411,6 +2444,7 @@ class MainWindow:
         self.farm_group_B.set("updating...")
         self.farm_group_C.set("updating...")
         self.gathering.gathering_group.set("updating...")
+        self.villages_groups.set("updating...")
         save_entry_to_settings(entries=self.entries_content, settings=settings)
         bot_functions.check_groups(
             self.driver,
@@ -2421,6 +2455,7 @@ class MainWindow:
                 self.farm_group_B,
                 self.farm_group_C,
                 self.gathering.gathering_group,
+                self.villages_groups,
             ],
         )
 
@@ -2435,10 +2470,12 @@ class MainWindow:
 
         self.minimize_button.bind("<Map>", show)
 
-    def run(self, settings):
+    @log_missed_erros
+    def run(self, settings: dict):
         """Uruchamia całego bota"""
 
-        if not self.verified_email:
+        # E-mail verification
+        if not self.user_data["verified_email"]:
             if hasattr(self, "verify_window"):
                 if self.verify_window.winfo_exists():
                     self.verify_window.destroy()
@@ -2455,33 +2492,37 @@ class MainWindow:
             verification_code_entry.grid(row=0, column=1, padx=(0, 25), pady=10)
 
             def verify_email():
-                if verification_code_entry.get() == self.verification_code:
+                if verification_code_entry.get() == self.user_data["verification_code"]:
                     with DataBaseConnection() as cursor:
                         cursor.execute(
-                            f"UPDATE Konta_Plemiona SET VerifiedEmail=1"
-                            f"WHERE UserName='{settings['user_name']}'"
+                            f"UPDATE konta_plemiona SET verified_email=1"
+                            f"WHERE user_name='{settings['user_name']}'"
                         )
-                    self.verified_email = True
+                    self.user_data["verified_email"] = True
+                    self.verified_email_label.config(
+                        text="Zweryfikowany adres e-mail: Tak"
+                    )
                     custom_error(
                         message="Adres e-mail został zweryfikowany",
                         parent=self.verify_window,
                     )
                     self.verify_window.destroy()
-                else:
-                    ttk.Label(
-                        content_frame, text="Nieprawidłowy kod", bootstyle="danger"
-                    ).grid(
-                        row=1,
-                        column=0,
-                        columnspan=2,
-                        padx=5,
-                        pady=(0, 5),
-                    )
-                    verification_code_entry.configure(bootstyle="danger")
-                    verification_code_entry.bind(
-                        "<FocusIn>",
-                        lambda _: verification_code_entry.config(bootstyle="default"),
-                    )
+                    return
+
+                ttk.Label(
+                    content_frame, text="Nieprawidłowy kod", bootstyle="danger"
+                ).grid(
+                    row=1,
+                    column=0,
+                    columnspan=2,
+                    padx=5,
+                    pady=(0, 5),
+                )
+                verification_code_entry.configure(bootstyle="danger")
+                verification_code_entry.bind(
+                    "<FocusIn>",
+                    lambda _: verification_code_entry.config(bootstyle="default"),
+                )
 
             verify_button = ttk.Button(
                 content_frame, text="Weryfikuj", command=verify_email
@@ -2497,6 +2538,16 @@ class MainWindow:
             self.verify_window.attributes("-alpha", 1.0)
             # verify_button.wait_window(self.verify_window)
 
+            self.running = False
+            self.run_button.config(text="Uruchom")
+            return
+
+        # Check if_paid
+        if not if_paid(str(self.user_data["active_until"])):
+            custom_error(
+                message="Ważność konta wygasła. Przejdź do ustawień i wybierz wykup dostęp.",
+                parent=self.master,
+            )
             self.running = False
             self.run_button.config(text="Uruchom")
             return
@@ -2525,6 +2576,7 @@ class MainWindow:
         logged = False
 
         save_entry_to_settings(entries=self.entries_content, settings=settings)
+
         if not self.driver:
             self.driver = run_driver(settings=settings)
 
@@ -2534,9 +2586,11 @@ class MainWindow:
                 f"settings//{settings_file_name}"
             )
 
+        # Add functions into to_do list
         for world_number in settings_by_worlds:  # world_number = de199, pl173 etc.
             _settings = settings_by_worlds[world_number]
-
+            _settings["temp"] = {"to_do": self.to_do}
+            # Add farm
             if (
                 int(_settings["A"]["active"])
                 | int(_settings["B"]["active"])
@@ -2549,7 +2603,7 @@ class MainWindow:
                         "server_world": _settings["server_world"],
                     }
                 )
-
+            # Add gathering
             if int(_settings["gathering"]["active"]):
                 self.to_do.append(
                     {
@@ -2558,7 +2612,7 @@ class MainWindow:
                         "server_world": _settings["server_world"],
                     }
                 )
-
+            # Add check incoming attacks
             if int(_settings["notifications"]["check_incoming_attacks"]):
                 self.to_do.append(
                     {
@@ -2567,7 +2621,7 @@ class MainWindow:
                         "server_world": _settings["server_world"],
                     }
                 )
-
+            # Premium exchange
             if int(_settings["market"]["premium_exchange"]):
                 self.to_do.append(
                     {
@@ -2576,7 +2630,15 @@ class MainWindow:
                         "server_world": _settings["server_world"],
                     }
                 )
-
+            # Mine coins
+            if "mine_coin" in settings and int(_settings["mine_coin"]):
+                self.to_do.append(
+                    {
+                        "func": "mine_coin",
+                        "start_time": time.time(),
+                        "server_world": _settings["server_world"],
+                    }
+                )
             # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
             if _settings["scheduler"]["ready_schedule"]:
                 current_time = time.time()
@@ -2595,172 +2657,186 @@ class MainWindow:
                         }
                     )
 
+        if not len(self.to_do):
+            self.running = False
+            custom_error(message="Brak zadań do wykonania", parent=self.master)
+            return
+
+        # Grid and set timer in custombar
+        self.title_timer.grid(row=0, column=2, padx=5)
+        self.time.set("Running..")
+
+        # Główna pętla
         while self.running:
-            try:
-                if self.to_do[0]["start_time"] < time.time():
-                    _settings = settings_by_worlds[self.to_do[0]["server_world"]]
-                    try:
-                        if not logged:
-                            logged = bot_functions.log_in(self.driver, _settings)
+            if not len(self.to_do):
+                self.running = False
+                custom_error(
+                    message="Wszystkie zadania zostały wykonane", parent=self.master
+                )
+                break
 
-                        match self.to_do[0]["func"]:
-
-                            case "auto_farm":
-                                bot_functions.auto_farm(self.driver, _settings)
-                                self.to_do[0]["start_time"] = (
-                                    time.time() + int(_settings["farm_sleep_time"]) * 60
-                                )
-                                self.to_do.append(self.to_do[0])
-
-                            case "gathering":
-                                incoming_attacks = False
-                                if int(
-                                    _settings["gathering"]["stop_if_incoming_attacks"]
-                                ):
-                                    incoming_attacks = bot_functions.attacks_labels(
-                                        self.driver, _settings
-                                    )
-                                if not int(
-                                    _settings["gathering"]["stop_if_incoming_attacks"]
-                                ) or (
-                                    int(
-                                        _settings["gathering"][
-                                            "stop_if_incoming_attacks"
-                                        ]
-                                    )
-                                    and not incoming_attacks
-                                ):
-                                    list_of_dicts = bot_functions.gathering_resources(
-                                        self.driver, _settings, **self.to_do[0]
-                                    )
-                                    for _dict in list_of_dicts:
-                                        self.to_do.append(_dict)
-
-                            case "check_incoming_attacks":
-                                bot_functions.attacks_labels(
-                                    self.driver,
-                                    _settings,
-                                    int(
-                                        _settings["notifications"][
-                                            "email_notifications"
-                                        ]
-                                    ),
-                                )
-                                self.to_do[0]["start_time"] = (
-                                    time.time()
-                                    + int(
-                                        _settings["notifications"][
-                                            "check_incoming_attacks_sleep_time"
-                                        ]
-                                    )
-                                    * 60
-                                )
-                                self.to_do.append(self.to_do[0])
-
-                            case "premium_exchange":
-                                bot_functions.premium_exchange(self.driver, _settings)
-                                self.to_do[0]["start_time"] = time.time() + int(
-                                    settings["market"]["check_every"]
-                                ) * random.uniform(50, 70)
-                                self.to_do.append(self.to_do[0])
-
-                            case "send_troops":
-                                (
-                                    send_number_times,
-                                    attacks_to_repeat,
-                                ) = bot_functions.send_troops(self.driver, _settings)
-
-                                # Clean from _settings and self.to_do
-                                del _settings["scheduler"]["ready_schedule"][
-                                    0:send_number_times
-                                ]
-
-                                if send_number_times > 1:
-                                    index_to_del = []
-                                    for index, row_data in enumerate(self.to_do):
-                                        if row_data["func"] == "send_troops":
-                                            index_to_del.append(index)
-                                            if len(index_to_del) == send_number_times:
-                                                break
-                                    for index in sorted(index_to_del, reverse=True)[
-                                        :-1
-                                    ]:
-                                        del self.to_do[index]
-                                for attack in attacks_to_repeat:
-                                    self.to_do.append(attack)
-
-                            case "build":
-                                pass
-
-                        del self.to_do[0]
-                        # Aktualizacja listy zadań jeśli okno zadań jest aktualnie wyświetlone
+            # Jeżeli zostało trochę czasu do wykonania najbliższego zadania
+            # Uruchamia timer w oknie głównym i oknie zadań (jeśli istnieje)
+            if self.to_do[0]["start_time"] > time.time():
+                try:
+                    # Timer -> odliczanie czasu do najbliższego zadania
+                    for _ in range(
+                        int(self.to_do[0]["start_time"] - time.time()), 0, -1
+                    ):
+                        if not self.running:
+                            break
                         if hasattr(self, "jobs_info"):
                             if hasattr(self.jobs_info, "master"):
                                 if self.jobs_info.master.winfo_exists():
-                                    self.jobs_info.print_jobs()
-                        self.to_do.sort(key=lambda sort_by: sort_by["start_time"])
-
-                    except BaseException:
-                        html = self.driver.page_source
-                        if (
-                            html.find("chat-disconnected") != -1
-                            or "session_expired" in self.driver.current_url
-                        ):
-                            logged = bot_functions.log_in(self.driver, _settings)
-                            if logged:
-                                continue
-                            else:
-                                self.driver.quit()
-                                self.driver = run_driver(settings=_settings)
-                                logged = bot_functions.log_in(self.driver, _settings)
-                                continue
-
-                        if bot_functions.unwanted_page_content(self.driver, html):
-                            continue
-                        else:
-                            self.driver.quit()
-                            self.driver = run_driver(settings=_settings)
-                            logged = bot_functions.log_in(self.driver, _settings)
-                            continue
-
-                    # Zamyka stronę plemion jeśli do następnej czynności pozostało więcej niż 5min
-                    if (
-                        self.to_do[0]["start_time"] > time.time() + 300
-                        or _settings["server_world"] != self.to_do[0]["server_world"]
-                    ):
-                        self.driver.get("chrome://newtab")
-                        logged = False
-
-                # Uruchamia timer w oknie głównym i oknie zadań (jeśli istnieje)
-                for _ in range(int(self.to_do[0]["start_time"] - time.time()), 0, -1):
+                                    self.jobs_info.time.set(
+                                        f"{datetime.timedelta(seconds=_)}"
+                                    )
+                        self.time.set(f"{datetime.timedelta(seconds=_)}")
+                        time.sleep(1)
                     if not self.running:
                         break
                     if hasattr(self, "jobs_info"):
                         if hasattr(self.jobs_info, "master"):
                             if self.jobs_info.master.winfo_exists():
-                                self.jobs_info.time.set(
-                                    f"{datetime.timedelta(seconds=_)}"
-                                )
-                    self.time.set(f"{datetime.timedelta(seconds=_)}")
-                    time.sleep(1)
-                if not self.running:
-                    break
+                                self.jobs_info.time.set("Running..")
+                    self.time.set("Running..")
+                except BaseException:
+                    bot_functions.log_error(self.driver)
+
+            _settings = settings_by_worlds[self.to_do[0]["server_world"]]
+
+            # Deleguję zadania na podstawie dopasowań self.to_do[0]["func"]
+            try:
+                if not logged:
+                    logged = bot_functions.log_in(self.driver, _settings)
+
+                match self.to_do[0]["func"]:
+
+                    case "auto_farm":
+                        bot_functions.auto_farm(self.driver, _settings)
+                        self.to_do[0]["start_time"] = time.time() + int(
+                            _settings["farm_sleep_time"]
+                        ) * random.uniform(55, 65)
+                        self.to_do.append(self.to_do[0])
+
+                    case "gathering":
+                        incoming_attacks = False
+                        if int(_settings["gathering"]["stop_if_incoming_attacks"]):
+                            incoming_attacks = bot_functions.attacks_labels(
+                                self.driver, _settings
+                            )
+                        if not int(
+                            _settings["gathering"]["stop_if_incoming_attacks"]
+                        ) or (
+                            int(_settings["gathering"]["stop_if_incoming_attacks"])
+                            and not incoming_attacks
+                        ):
+                            list_of_dicts = bot_functions.gathering_resources(
+                                self.driver, _settings, **self.to_do[0]
+                            )
+                            for _dict in list_of_dicts:
+                                self.to_do.append(_dict)
+
+                    case "check_incoming_attacks":
+                        bot_functions.attacks_labels(
+                            self.driver,
+                            _settings,
+                            int(_settings["notifications"]["email_notifications"]),
+                        )
+                        self.to_do[0]["start_time"] = (
+                            time.time()
+                            + int(
+                                _settings["notifications"][
+                                    "check_incoming_attacks_sleep_time"
+                                ]
+                            )
+                            * 60
+                        )
+                        self.to_do.append(self.to_do[0])
+
+                    case "premium_exchange":
+                        bot_functions.premium_exchange(self.driver, _settings)
+                        self.to_do[0]["start_time"] = time.time() + int(
+                            _settings["market"]["check_every"]
+                        ) * random.uniform(50, 70)
+                        self.to_do.append(self.to_do[0])
+
+                    case "send_troops":
+                        (
+                            send_number_times,
+                            attacks_to_repeat,
+                        ) = bot_functions.send_troops(self.driver, _settings)
+
+                        # Clean from _settings and self.to_do
+                        del _settings["scheduler"]["ready_schedule"][
+                            0:send_number_times
+                        ]
+
+                        if send_number_times > 1:
+                            index_to_del = []
+                            for index, row_data in enumerate(self.to_do):
+                                if row_data["func"] == "send_troops":
+                                    index_to_del.append(index)
+                                    if len(index_to_del) == send_number_times:
+                                        break
+                            for index in sorted(index_to_del, reverse=True)[:-1]:
+                                del self.to_do[index]
+                        for attack in attacks_to_repeat:
+                            self.to_do.append(attack)
+
+                    case "mine_coin":
+                        bot_functions.mine_coin(driver=self.driver)
+                        self.to_do[0]["start_time"] = time.time() + 5 * random.uniform(
+                            50, 70
+                        )
+                        self.to_do.append(self.to_do[0])
+
+                del self.to_do[0]
+                self.to_do.sort(key=lambda sort_by: sort_by["start_time"])
+                # Aktualizacja listy zadań jeśli okno zadań jest aktualnie wyświetlone
                 if hasattr(self, "jobs_info"):
                     if hasattr(self.jobs_info, "master"):
                         if self.jobs_info.master.winfo_exists():
-                            self.jobs_info.time.set("Running..")
-                self.time.set("Running..")
-
-            except IndexError:
-                if not len(self.to_do):
-                    self.running = False
-                else:
-                    bot_functions.log_error(self.driver)
+                            self.jobs_info.print_jobs(self)
 
             except BaseException:
-                bot_functions.log_error(self.driver)
+                html = self.driver.page_source
 
+                # If disconected/sesion expired
+                if (
+                    html.find("chat-disconnected") != -1
+                    or "session_expired" in self.driver.current_url
+                ):
+                    logged = bot_functions.log_in(self.driver, _settings)
+                    if logged:
+                        continue
+
+                    self.driver.quit()
+                    self.driver = run_driver(settings=_settings)
+                    logged = bot_functions.log_in(self.driver, _settings)
+                    continue
+
+                # Deal with known things like popups, captcha etc.
+                if bot_functions.unwanted_page_content(self.driver, _settings, html):
+                    continue
+
+                # Unknown error
+                self.driver.quit()
+                self.driver = run_driver(settings=settings)
+                logged = bot_functions.log_in(self.driver, _settings)
+                continue
+
+            # Zamyka stronę plemion jeśli do następnej czynności pozostało więcej niż 5min
+            if len(self.to_do) and (
+                self.to_do[0]["start_time"] > time.time() + 300
+                or _settings["server_world"] != self.to_do[0]["server_world"]
+            ):
+                self.driver.get("chrome://newtab")
+                logged = False
+
+        # Zapis ustawień gdy bot zostanie ręcznie zatrzymany
         self.time.set("")
+        self.title_timer.grid_remove()
         for settings_file_name in os.listdir("settings"):
             server_world = settings_file_name[: settings_file_name.find(".")]
             # Dla wszystkich zapisanych oprócz aktualnie aktywnego
@@ -2801,14 +2877,15 @@ class MainWindow:
                 if self.jobs_info.master.winfo_exists():
                     self.jobs_info.master.deiconify()
                     center(self.jobs_info.master, self.master)
-                else:
-                    self.jobs_info = JobsToDoWindow()
-                return
+                    return
 
         self.jobs_info = JobsToDoWindow(main_window=self)
 
-    def show_world_chooser_window(self, event, settings) -> None:
+    def show_world_chooser_window(self, event, settings: dict) -> None:
         """Show new window with available worlds settings to choose"""
+
+        def add_world() -> None:
+            pass
 
         def change_world(settings_file_name: str, world_in_title: str) -> None:
             nonlocal settings
@@ -2836,13 +2913,16 @@ class MainWindow:
                         for value in settings["scheduler"]["ready_schedule"]
                         if value["send_time"] > current_time
                     ]
+
                 # Odświeża okno planera
                 self.schedule.redraw_availabe_templates(settings=settings)
+
                 fill_entry_from_settings(
                     entries=self.entries_content, settings=settings
                 )
-                for list in self.elements_state:
-                    change_state_on_settings_load(*list)
+
+                invoke_checkbuttons(parent=self.master)
+
                 self.entries_content["world_in_title"].set(f"{world_in_title}")
                 self.world_chooser_window.destroy()
 
@@ -2873,7 +2953,12 @@ class MainWindow:
         self.world_chooser_window.overrideredirect(True)
         self.world_chooser_window.attributes("-topmost", 1)
 
-        for index, settings_file_name in enumerate(os.listdir("settings")):
+        if not hasattr(self, "plus"):
+            photo = tk.PhotoImage(file="icons//plus.png")
+            self.plus = photo.subsample(2, 2)
+
+        file_list = os.listdir("settings")
+        for index, settings_file_name in enumerate(file_list):
             settings_file_name = settings_file_name[: settings_file_name.find(".")]
             country_code = re.search(r"\D+", settings_file_name).group()
             world_in_title = settings_file_name.replace(
@@ -2881,10 +2966,17 @@ class MainWindow:
             )
             ttk.Button(
                 self.world_chooser_window,
-                bootstyle="secondary-outline",
+                bootstyle="primary.Link.TButton",
                 text=f"{world_in_title}",
                 command=partial(change_world, settings_file_name, world_in_title),
             ).grid(row=index, column=0)
+
+        ttk.Button(
+            self.world_chooser_window,
+            image=self.plus,
+            bootstyle="primary.Link.TButton",
+            command=add_world,
+        ).grid(row=len(file_list), column=0, sticky=ttk.NSEW)
 
         self.world_chooser_window.bind("<Leave>", on_leave)
         center(self.world_chooser_window, self.title_world)
@@ -2915,9 +3007,11 @@ class JobsToDoWindow:
         ("auto_farm", "farmienie"),
         ("check_incoming_attacks", "etykiety ataków"),
         ("premium_exchange", "giełda premium"),
+        ("send_troops", "planer"),
+        ("mine_coin", "wybijanie monet"),
     )
 
-    def __init__(self, main_window) -> None:
+    def __init__(self, main_window: MainWindow) -> None:
         self.master = TopLevel(title_text="Lista zadań")
 
         self.content_frame = self.master.content_frame
@@ -2942,7 +3036,7 @@ class JobsToDoWindow:
 
         self.minimize_button.bind("<Map>", show)
 
-    def print_jobs(self, main_window):
+    def print_jobs(self, main_window: MainWindow):
 
         self.scrollable_window = ScrollableFrame(parent=self.master.content_frame)
         self.add_widgets_to_frame(main_window)
@@ -2951,7 +3045,7 @@ class JobsToDoWindow:
         reqwidth = self.scrollable_window.frame.winfo_reqwidth()
         self.master.geometry(f"{reqwidth+15}x250")
 
-    def add_widgets_to_frame(self, main_window) -> None:
+    def add_widgets_to_frame(self, main_window: MainWindow) -> None:
         """Add widgets to self.frame in self.canvas"""
 
         # Table description -> column names
@@ -3002,26 +3096,154 @@ class JobsToDoWindow:
         self.add_widgets_to_frame()
 
 
+class PaymentWindow:
+    def __init__(self, parent) -> None:
+        master = TopLevel(title_text="TribalWarsBot - płatności", master=parent)
+        content_frame = master.content_frame
+        ttk.Label(master=content_frame, text="Witaj").grid(
+            row=0, column=0, padx=5, pady=5
+        )
+        ttk.Text
+        ttk.Label(
+            master=content_frame,
+            text="""
+    Jeśli tak jak ja jesteś fanem gry w plemiona ale oprócz wyników w grze cenisz także swój czas osobisty to dobrze trafiłeś.  
+
+    Realny zysk:
+     - świętne wyniki farmy i zbieractwa
+     - etykiety ataków w dzień i w nocy 24/h
+     - masa pp z automatycznej sprzedaży surki na giełdzie premium 
+     - zaplanujesz z wyprzedzeniem ataki/wsparcia/kliny/skany
+     - powiadomienia email/sms o wykryciu ndachodzącej szlachty
+     - koniec z wstawaniem po nocach
+     - oszczędzisz nawet kilkadziesiąt godzin miesięcznie
+     - wesprzesz rozwój aplikacji i jej kolejnych nadchodzących funkcji
+
+    Dostępne pakiety:
+     - 30zł za jeden miesiąc
+     - 55zł za dwa miesiące
+     - 80zł za trzy miesiące
+
+    Dostępne metody płatności:
+     - blik na numer: 604 065 940
+     - przelew na numer: 83 1240 6117 1111 0010 7122 6836
+
+    W tytule blika/przelewu należy podać login konta używanego w aplikacji
+
+    Aktywacji dokonuję przeważnie 2-3 razy dziennie. 
+    W przypadku blika czas oczekiwania może wynieść maksymalnie kilka godzin
+    W przypadku przelewu czas oczekiwania może być dłuższy. Wynika to z różnych godzin księgowania przelewów
+    Przelewy nie przychodzą także w weekendy i dni ustawowo wolne od pracy.   
+    W celu przyspieszenia aktywacji wystarczy wysłać potwierdzenie przelewu na adres e-mail k.spec@tuta.io
+    Na tej podstawie mogę dokonać aktywacji niezwłocznie po odczytaniu wiadomości
+    """,
+        ).grid(row=1, column=0, padx=5, pady=5)
+        center(window=master, parent=parent)
+        master.attributes("-alpha", 1.0)
+
+
+def check_for_updates() -> None:
+    def print_status_info(info):
+        total = info.get("total")
+        downloaded = info.get("downloaded")
+        status = info.get("status")
+        print(downloaded, total, status)
+
+    APP_NAME = "tribal_wars"
+    APP_VERSION = "0.0.68"
+
+    client = Client(ClientConfig())
+    client.refresh()
+
+    app_update = client.update_check(APP_NAME, APP_VERSION)
+
+    if app_update is not None:
+        master = tk.Tk()
+        master.withdraw()
+
+        ttk.Style(theme="darkly")
+        custom_error(message=f"Dostępna jest nowa aktualizacja!")
+
+        client.add_progress_hook(print_status_info)
+        app_update.download()
+        if app_update.is_downloaded():
+            app_update.extract_restart()
+
+
 def main() -> None:
     driver = None
     settings = load_settings()
 
     if settings["first_lunch"]:
-        first_app_lunch()
+        first_app_lunch(settings=settings)
 
-    main_window = MainWindow(driver=driver, settings=settings)
+    root = tk.Tk()
+    root.withdraw()
+
     style = ttk.Style(theme="darkly")
-    style.configure("my.TCheckbutton", foreground="#666666")
+
+    # custom_error(
+    #     message="Zaloguj się na otwartej stronie plemion.\n"
+    #     'Pole "zapamiętaj mnie" powinno być zaznaczone.'
+    # )
+
+    # custom_error(message="Konto utraciło swoją ważność")
+
+    # root.mainloop()
+
+    main_window = MainWindow(root=root, driver=driver, settings=settings)
+    LogInWindow(main_window=main_window, settings=settings)
+
+    style.configure("primary.Link.TButton", foreground="white")
     style.map(
         "primary.Link.TButton",
-        background=[("active", "gray18")],
-        bordercolor=[("active", "")],
+        background=[("active", "gray24")],
+        bordercolor=[("active", "gray50"), ("pressed", "gray50"), ("focus", "")],
+        foreground=[("active", "white")],
+        focuscolor=[("pressed", ""), ("focus", ""), ("active", "gray50")],
+        shiftrelief=[("pressed", "")],
     )
-    LogInWindow(main_window=main_window, settings=settings)
+
+    # region
+    # for _ in ("border", "focus", "padding", "label"):
+    #     print("\n========================================")
+    #     print(_)
+    #     print("========================================")
+    #     print()
+    #     for state in (
+    #         "active",
+    #         # "disabled",
+    #         "focus",
+    #         "pressed",
+    #         # "selected",
+    #         # "background",
+    #         # "readonly",
+    #         "alternate",
+    #         "invalid",
+    #     ):
+    #         print("----------------------------------------")
+    #         print(state)
+    #         print("----------------------------------------")
+    #         print()
+    #         for key in style.element_options(f"primary.Link.TButton.{_}"):
+    #             if not style.lookup(
+    #                 "primary.Link.TButton", f"{key}", state=[f"{state}"]
+    #             ):
+    #                 continue
+    #             print(f"{key}, {state}")
+    #             print(
+    #                 style.lookup("primary.Link.TButton", f"{key}", state=[f"{state}"])
+    #             )
+    #             print("----------------------")
+
+    # print(style.layout("primary.Link.TButton"))
+    # endregion
 
     main_window.master.mainloop()
 
 
 if __name__ == "__main__":
 
+    if hasattr(sys, "frozen"):
+        check_for_updates()
     main()

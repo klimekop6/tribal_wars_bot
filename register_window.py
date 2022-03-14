@@ -44,7 +44,7 @@ class RegisterWindow:
         def login_validation(event=None):
             with DataBaseConnection() as cursor:
                 cursor.execute(
-                    "SELECT * FROM Konta_Plemiona WHERE UserName='"
+                    "SELECT * FROM konta_plemiona WHERE user_name='"
                     + self.login.get()
                     + "'"
                 )
@@ -123,7 +123,7 @@ class RegisterWindow:
                 return False
             with DataBaseConnection() as cursor:
                 cursor.execute(
-                    "SELECT * FROM Konta_Plemiona WHERE Email='"
+                    "SELECT * FROM konta_plemiona WHERE email='"
                     + self.email.get()
                     + "'"
                 )
@@ -192,7 +192,7 @@ class RegisterWindow:
         def recomended_by_validation(event=None):
             with DataBaseConnection() as cursor:
                 cursor.execute(
-                    "SELECT * FROM Konta_Plemiona WHERE UserName='"
+                    "SELECT * FROM konta_plemiona WHERE user_name='"
                     + self.recommended_by.get()
                     + "'"
                 )
@@ -252,15 +252,15 @@ class RegisterWindow:
                 )
                 verification_code = randint(100000, 999999)
                 cursor.execute(
-                    f"""INSERT INTO Konta_Plemiona(
-                            UserName,
-                            Password,
-                            Email,
-                            AddressMAC,
-                            CurrentlyRunning,
-                            InvitedBy,
-                            VerifiedEmail,
-                            VerificationCode) 
+                    f"""INSERT INTO konta_plemiona(
+                            user_name,
+                            password,
+                            email,
+                            address_mac,
+                            currently_running,
+                            invited_by,
+                            verified_email,
+                            verification_code) 
                         VALUES (
                             '{self.login.get()}',
                             '{self.password.get()}',

@@ -16,7 +16,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 logging.basicConfig(filename="log.txt", level=logging.WARNING)
 
 
-def center(window, parent=None) -> None:
+def center(window: tk.Toplevel, parent: tk.Toplevel = None) -> None:
     """Place window in the center of a screen or parent widget"""
 
     window.update_idletasks()
@@ -34,19 +34,6 @@ def center(window, parent=None) -> None:
             f"+{int(window.winfo_screenwidth()/2 - window.winfo_reqwidth()/2)}"
             f"+{int(window.winfo_screenheight()/2 - window.winfo_reqheight()/2)}"
         )
-
-
-def invoke_checkbuttons(parent) -> None:
-    def call_widget(parent) -> None:
-        for child in parent.winfo_children():
-            wtype = child.winfo_class()
-            if wtype == "TCheckbutton":
-                child.invoke()
-                child.invoke()
-            else:
-                call_widget(parent=child)
-
-    call_widget(parent=parent)
 
 
 def change_state(parent, value, entries_content, reverse=False, *ommit) -> None:
@@ -110,7 +97,7 @@ def change_state(parent, value, entries_content, reverse=False, *ommit) -> None:
 
 
 def change_state_on_settings_load(
-    parent, name, entries_content, reverse=False, *ommit
+    parent, name, entries_content: dict, reverse=False, *ommit
 ) -> None:
     if name in entries_content:
         if not entries_content[name].get():
@@ -128,15 +115,17 @@ def change_state_on_settings_load(
 def chrome_profile_path(settings: dict) -> None:
     """Wyszukuję i zapisuje w ustawieniach aplikacji aktualną ścierzkę do profilu użytkownika przeglądarki chrome"""
 
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager(cache_valid_range=31).install())
-    )
-    driver.get("chrome://version")
-    path = driver.find_element_by_xpath('//*[@id="profile_path"]').text
-    driver.quit()
-    path = path[: path.find("Temp\\")] + "Google\\Chrome\\User Data"
+    # driver = webdriver.Chrome(
+    #     service=Service(ChromeDriverManager(cache_valid_range=31).install())
+    # )
+    # driver.get("chrome://version")
+    # path = driver.find_element_by_xpath('//*[@id="profile_path"]').text
+    # driver.quit()
+    # path = path[: path.find("Temp\\")] + "Google\\Chrome\\User Data"
+    path = os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\User Data\TribalWars")
     settings["path"] = path
     settings["first_lunch"] = False
+    settings["first_logon"] = True
     settings["last_opened_daily_bonus"] = time.strftime("%d.%m.%Y", time.localtime())
 
     with open("settings.json", "w") as settings_json_file:
@@ -150,84 +139,60 @@ def current_time() -> str:
 def custom_error(message: str, auto_hide: bool = False, parent=None) -> None:
 
     master = tk.Toplevel(borderwidth=1, relief="groove")
+    master.attributes("-alpha", 0.0)
     master.overrideredirect(True)
     master.attributes("-topmost", 1)
     master.bell()
 
-    if not auto_hide:
-        message_label = ttk.Label(master, text=message)
-        message_label.grid(row=1, column=0, padx=5, pady=5)
+    message = message.splitlines()
 
-        ok_button = ttk.Button(master, text="ok", command=master.destroy)
-        ok_button.grid(row=2, column=0, pady=(5, 8))
+    if not auto_hide:
+        if len(message) == 1:
+            message_label = ttk.Label(master, text=message[0])
+            message_label.grid(row=0, column=0, padx=5, pady=5)
+
+            ok_button = ttk.Button(master, text="ok", command=master.destroy)
+            ok_button.grid(row=1, column=0, pady=(5, 8))
+        else:
+            for index, text_line in enumerate(message):
+                if index == 0:
+                    message_label = ttk.Label(master, text=text_line)
+                    message_label.grid(row=index, column=0, padx=10, pady=(10, 5))
+                else:
+                    message_label = ttk.Label(master, text=text_line)
+                    message_label.grid(row=index, column=0, padx=10, pady=(0, 5))
+            ok_button = ttk.Button(master, text="ok", command=master.destroy)
+            ok_button.grid(row=len(message), column=0, pady=(5, 10))
 
         # message_label.bind("<Button-1>", lambda event: get_pos(event, "message_label"))
-        ok_button.focus_force()
-        ok_button.bind("<Return>", lambda event: master.destroy())
+        master.focus_force()
+        master.bind("<Return>", lambda event: master.destroy())
         center(master, parent=parent)
+        master.attributes("-alpha", 1.0)
         ok_button.wait_window(master)
 
     if auto_hide:
-        message_label = ttk.Label(master, text=message)
+        message_label = ttk.Label(master, text=message[0])
         message_label.grid(row=1, column=0, padx=10, pady=8)
-        master.after(ms=2000, func=lambda: master.destroy())
         center(master, parent=parent)
+        master.attributes("-alpha", 1.0)
+        master.after(ms=2000, func=lambda: master.destroy())
 
 
 def fill_entry_from_settings(entries: dict, settings: dict) -> None:
-
-    for key in entries:
-        if key in settings:
-            if settings[key]:
-                if isinstance(settings[key], dict):
-                    for key_ in settings[key]:
-                        if key_ not in entries[key]:
-                            continue
-                        if settings[key][key_]:
-                            if isinstance(settings[key][key_], dict):
-                                for _key_ in settings[key][key_]:
-                                    if _key_ not in entries[key][key_]:
-                                        continue
-                                    if settings[key][key_][_key_]:
-                                        if isinstance(settings[key][key_][_key_], dict):
-                                            for __key__ in settings[key][key_][_key_]:
-                                                if (
-                                                    __key__
-                                                    not in entries[key][key_][_key_]
-                                                ):
-                                                    continue
-                                                if settings[key][key_][_key_][__key__]:
-                                                    entries[key][key_][_key_][
-                                                        __key__
-                                                    ].set(
-                                                        settings[key][key_][_key_][
-                                                            __key__
-                                                        ]
-                                                    )
-                                                else:
-                                                    if not entries[key][key_][_key_][
-                                                        __key__
-                                                    ].get():
-                                                        entries[key][key_][_key_][
-                                                            __key__
-                                                        ].set(0)
-                                        else:
-                                            entries[key][key_][_key_].set(
-                                                settings[key][key_][_key_]
-                                            )
-                                    else:
-                                        if not entries[key][key_][_key_].get():
-                                            entries[key][key_][_key_].set(0)
-                            else:
-                                entries[key][key_].set(settings[key][key_])
-                        else:
-                            if not entries[key][key_].get():
-                                entries[key][key_].set(0)
+    def loop_over_entries(entries: dict | tk.StringVar, settings: dict | str):
+        for key in entries:
+            if key in settings:
+                if settings[key]:
+                    if isinstance(entries[key], dict):
+                        loop_over_entries(entries[key], settings[key])
+                    else:
+                        entries[key].set(settings[key])
                 else:
-                    entries[key].set(settings[key])
-            else:
-                if not entries[key].get():
-                    entries[key].set(0)
+                    if not entries[key].get():
+                        entries[key].set(0)
+
+    loop_over_entries(entries=entries, settings=settings)
 
 
 def first_app_lunch(settings: dict) -> None:
@@ -287,6 +252,19 @@ def if_paid(date: str) -> bool:
     return True
 
 
+def invoke_checkbuttons(parent) -> None:
+    def call_widget(parent) -> None:
+        for child in parent.winfo_children():
+            wtype = child.winfo_class()
+            if wtype == "TCheckbutton":
+                child.invoke()
+                child.invoke()
+            else:
+                call_widget(parent=child)
+
+    call_widget(parent=parent)
+
+
 def load_settings(file_path: str = "settings.json") -> dict:
     try:
         f = open(file_path)
@@ -311,15 +289,18 @@ def load_settings(file_path: str = "settings.json") -> dict:
         return settings
 
 
-def run_driver(settings: dict) -> None:
+def run_driver(settings: dict) -> webdriver.Chrome:
     """Uruchamia sterownik i przeglądarkę google chrome"""
 
     try:
         chrome_options = Options()
         chrome_options.add_argument("user-data-dir=" + settings["path"])
-        chrome_options.add_extension(extension="0.60_0.crx")
+        chrome_options.add_argument("start-maximized")
+        chrome_options.add_extension(extension="0.62.crx")
         chrome_options.add_experimental_option("useAutomationExtension", False)
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option(
+            "excludeSwitches", ["enable-automation", "disable-popup-blocking"]
+        )
         while True:
             try:
                 driver = webdriver.Chrome(
@@ -333,36 +314,26 @@ def run_driver(settings: dict) -> None:
                 break
             except:
                 time.sleep(10)
-        driver.maximize_window()
         return driver
     except BaseException as exc:
         logging.error(exc)
 
 
 def save_entry_to_settings(entries: dict, settings: dict) -> None:
-
-    for key, value in entries.items():
-        if isinstance(value, dict):
-            for key_ in value:
+    def loop_over_settings(entries: dict | tk.StringVar, settings: dict | str):
+        for key, value in entries.items():
+            if isinstance(value, dict):
                 if key not in settings:
                     settings[key] = {}
-                if isinstance(value[key_], dict):
-                    for _key_ in value[key_]:
-                        if key_ not in settings[key]:
-                            settings[key][key_] = {}
-                        if isinstance(value[key_][_key_], dict):
-                            for __key__ in value[key_][_key_]:
-                                if _key_ not in settings[key][key_]:
-                                    settings[key][key_][_key_] = {}
-                                settings[key][key_][_key_][__key__] = value[key_][
-                                    _key_
-                                ][__key__].get()
-                        else:
-                            settings[key][key_][_key_] = value[key_][_key_].get()
-                else:
-                    settings[key][key_] = value[key_].get()
-        else:
-            settings[key] = value.get()
+                loop_over_settings(entries=entries[key], settings=settings[key])
+            else:
+                settings[key] = value.get()
+
+    loop_over_settings(entries=entries, settings=settings)
+
+    if "temp" in settings:
+        del settings["temp"]
+    # settings.pop('temp', None)
 
     with open("settings.json", "w") as settings_json_file:
         json.dump(settings, settings_json_file)

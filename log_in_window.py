@@ -4,7 +4,7 @@ import uuid
 import ttkbootstrap as ttk
 
 from database_connection import DataBaseConnection
-from gui_functions import center, custom_error, get_pos, if_paid, invoke_checkbuttons
+from gui_functions import center, custom_error, get_pos, invoke_checkbuttons
 from register_window import RegisterWindow
 
 
@@ -12,43 +12,33 @@ class LogInWindow:
     def __init__(self, main_window, settings: dict) -> None:
         settings["logged"] = False
         if "user_password" in settings:
-            row = None
+            db_answer = None
+            user_data = None
             with DataBaseConnection() as cursor:
                 cursor.execute(
-                    "SELECT * FROM Konta_Plemiona WHERE UserName='"
+                    "SELECT * FROM konta_plemiona WHERE user_name='"
                     + settings["user_name"]
-                    + "' AND Password='"
+                    + "' AND password='"
                     + settings["user_password"]
                     + "'"
                 )
-                row = cursor.fetchone()
-            if not row:
+                db_answer = cursor.fetchone()
+                if db_answer:
+                    user_data = {
+                        key[0]: value
+                        for key, value in zip(cursor.description, db_answer)
+                    }
+            if not db_answer:
                 custom_error(message="Automatyczne logowanie nie powiodło się.")
-            elif not if_paid(str(row[5])):
-                custom_error(message="Ważność konta wygasła.")
-            elif row[6]:
+            # elif not if_paid(str(db_answer[5])):
+            #     custom_error(message="Ważność konta wygasła.")
+            elif db_answer[6]:
                 custom_error(message="Konto jest już obecnie w użyciu.")
             else:
-                email_address = main_window.entries_content["notifications"][
-                    "email_address"
-                ].get()
-                if not email_address or email_address == "0":
-                    main_window.entries_content["notifications"]["email_address"].set(
-                        row[2]
-                    )
-                main_window.verified_email = row[10]
-                if not row[10]:
-                    main_window.verification_code = row[11]
-                settings["account_expire_time"] = str(row[5])
-                main_window.acc_expire_time.config(
-                    text=f'Konto ważne do {settings["account_expire_time"]}'
+                main_window.user_data = user_data
+                self.after_correct_log_in(
+                    main_window=main_window, settings=settings, user_data=user_data
                 )
-                settings["logged"] = True
-                main_window.master.deiconify()
-                center(main_window.master)
-                invoke_checkbuttons(parent=main_window.master)
-                main_window.master.attributes("-alpha", 1.0)
-                self.update_running_status(settings=settings, main_window=main_window)
                 return
 
         self.master = tk.Toplevel(borderwidth=1, relief="groove")
@@ -130,86 +120,113 @@ class LogInWindow:
 
         center(self.master)
 
-    def log_in(self, main_window, settings: dict, event=None):
-        row = None
-        with DataBaseConnection() as cursor:
-            cursor.execute(
-                "SELECT * FROM Konta_Plemiona WHERE UserName='"
-                + self.user_name_input.get()
-                + "' AND Password='"
-                + self.user_password_input.get()
-                + "'"
-            )
-            row = cursor.fetchone()
-        if not row:
-            custom_error(message="Wprowadzono nieprawidłowe dane", parent=self.master)
-            return
-        if not if_paid(str(row[5])):
-            custom_error(message="Ważność konta wygasła", parent=self.master)
-            return
-        if row[6]:
-            custom_error(message="Konto jest już obecnie w użyciu", parent=self.master)
-            return
+    def after_correct_log_in(
+        self, main_window, settings: dict, user_data: dict, parent=None
+    ) -> None:
+        settings["logged"] = True
+
         email_address = main_window.entries_content["notifications"][
             "email_address"
         ].get()
         if not email_address or email_address == "0":
-            print("smth")
             main_window.entries_content["notifications"]["email_address"].set(
-                value=row[2]
+                user_data["email"]
             )
-        main_window.verified_email = row[10]
-        if not row[10]:
-            main_window.verification_code = row[11]
-        settings["account_expire_time"] = str(row[5])
+        main_window.verified_email = user_data["verified_email"]
+        if not user_data["verified_email"]:
+            main_window.verified_email_label.config(
+                text="Zweryfikowany adres e-mail: Nie"
+            )
+        else:
+            main_window.verified_email_label.config(
+                text="Zweryfikowany adres e-mail: Tak"
+            )
+
+        settings["account_expire_time"] = str(user_data["active_until"])
         main_window.acc_expire_time.config(
-            text=f'Konto ważne do {settings["account_expire_time"]}'
+            text=f'Konto ważne do {user_data["active_until"]}'
         )
-        settings["logged"] = True
 
-        if settings["logged"]:
-            settings["user_name"] = self.user_name_input.get()
-            if self.remember_me.get():
-                settings["user_password"] = self.user_password_input.get()
+        invoke_checkbuttons(parent=main_window.master)
+        center(main_window.master, parent=parent)
+        main_window.master.deiconify()
+        main_window.master.attributes("-alpha", 1.0)
+        self.update_db_running_status(settings=settings, main_window=main_window)
 
-            center(window=main_window.master, parent=self.master)
-            self.master.destroy()
-            invoke_checkbuttons(parent=main_window.master)
-            main_window.master.deiconify()
-            main_window.master.attributes("-alpha", 1.0)
-            self.update_running_status(settings=settings, main_window=main_window)
-
-    def register(self, settings: dict):
-        # with DataBaseConnection() as cursor:
-        #     # MAC address check
-        #     MAC_Address = "-".join(
-        #         [
-        #             "{:02x}".format((uuid.getnode() >> ele) & 0xFF)
-        #             for ele in range(0, 8 * 6, 8)
-        #         ][::-1]
-        #     )
-        #     cursor.execute(
-        #         "SELECT * FROM Konta_Plemiona WHERE AddressMAC='" + MAC_Address + "'"
-        #     )
-        #     db_answer = cursor.fetchone()
-        #     if db_answer != None:
-        #         custom_error("Utworzono już konto z tego komputera", parent=self.master)
-        #         return
-        #     else:
-        #         self.master.withdraw()
-        #         self.register_win = RegisterWindow(parent=self.master)
-        self.master.withdraw()
-        self.register_win = RegisterWindow(parent=self.master)
-
-    def update_running_status(self, settings: dict, main_window):
+    def log_in(self, main_window, settings: dict, event=None):
+        db_answer = None
+        user_data = None
         with DataBaseConnection() as cursor:
             cursor.execute(
-                f"UPDATE Konta_Plemiona SET CurrentlyRunning=1"
-                f"WHERE UserName='{settings['user_name']}'"
+                "SELECT * FROM konta_plemiona WHERE user_name='"
+                + self.user_name_input.get()
+                + "' AND password='"
+                + self.user_password_input.get()
+                + "'"
+            )
+            db_answer = cursor.fetchone()
+            if db_answer:
+                user_data = {
+                    key[0]: value for key, value in zip(cursor.description, db_answer)
+                }
+        if not db_answer:
+            custom_error(message="Wprowadzono nieprawidłowe dane", parent=self.master)
+            return
+        # if not if_paid(str(db_answer[5])):
+        #     custom_error(message="Ważność konta wygasła", parent=self.master)
+        #     return
+        if db_answer[6]:
+            custom_error(message="Konto jest już obecnie w użyciu", parent=self.master)
+            return
+
+        settings["user_name"] = self.user_name_input.get()
+        if self.remember_me.get():
+            settings["user_password"] = self.user_password_input.get()
+
+        main_window.user_data = user_data
+
+        self.master.attributes("-alpha", 1.0)
+        self.after_correct_log_in(
+            main_window=main_window,
+            settings=settings,
+            user_data=user_data,
+            parent=self.master,
+        )
+        self.master.destroy()
+
+    def register(self, settings: dict):
+        with DataBaseConnection() as cursor:
+            # MAC address check
+            MAC_Address = "-".join(
+                [
+                    "{:02x}".format((uuid.getnode() >> ele) & 0xFF)
+                    for ele in range(0, 8 * 6, 8)
+                ][::-1]
+            )
+            cursor.execute(
+                "SELECT * FROM konta_plemiona WHERE address_mac='" + MAC_Address + "'"
+            )
+            db_answer = cursor.fetchone()
+            if db_answer != None:
+                custom_error("Utworzono już konto z tego komputera", parent=self.master)
+                return
+            else:
+                self.master.withdraw()
+                self.register_win = RegisterWindow(parent=self.master)
+        # self.master.withdraw()
+        # self.register_win = RegisterWindow(parent=self.master)
+
+    def update_db_running_status(self, settings: dict, main_window):
+        """Inform database about account activity every 10min"""
+
+        with DataBaseConnection() as cursor:
+            cursor.execute(
+                f"UPDATE konta_plemiona SET currently_running=1"
+                f"WHERE user_name='{settings['user_name']}'"
             )
         main_window.master.after(
             ms=595000,
-            func=lambda: self.update_running_status(
+            func=lambda: self.update_db_running_status(
                 settings=settings, main_window=main_window
             ),
         )

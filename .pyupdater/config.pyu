@@ -1,0 +1,255 @@
+{
+  "config_dir": "C:\\Users\\klime\\VS Code\\selenium_chrome\\.pyupdater",
+  "filename": "C:\\Users\\klime\\VS Code\\selenium_chrome\\.pyupdater\\config.pyu",
+  "count": 0,
+  "app_config": {
+    "APP_NAME": "tribal_wars",
+    "CLIENT_CONFIG_PATH": [
+      "client_config.py"
+    ],
+    "COMPANY_NAME": "k.spec",
+    "PLUGIN_CONFIGS": {},
+    "UPDATE_PATCHES": true,
+    "MAX_DOWNLOAD_RETRIES": 3,
+    "HTTP_TIMEOUT": 30,
+    "UPDATE_URLS": [
+      "http://likeapro.ddns.net:55557/FTP/"
+    ],
+    "DATA_DIR": "C:\\Users\\klime\\VS Code\\selenium_chrome"
+  },
+  "keypack": {
+    "client": {
+      "offline_public": "g7wReffvHLYOFYi339dfYAFxIqJrIZfZqRNltfrf7DQ"
+    },
+    "repo": {
+      "app_private": "UJ3jnJU4dI3VKEHxVl9lHF/4NH0b6Z2ChHcePyz2eyc"
+    },
+    "upload": {
+      "app_public": "J09YBfBCfJCec3rdzAVuNGHyx/2A6/rLDrvgjyeNjLo",
+      "signature": "dg1zrOOPQg8BVMEakMU8aM5JME4bbG4R6HJvF+cHNOao54ux38la8MKOp8C7x9/xtBG2NuogtnFTl6dsxasQDg"
+    }
+  },
+  "version_meta": {
+    "updates": {
+      "tribal_wars": {
+        "0.0.5.2.0": {
+          "win": {
+            "file_hash": "fb49bbc200cdfcfb0ebd6a3535c45811bf1cb09e5ad6335a0cb50624b43632ff",
+            "file_size": 26518183,
+            "filename": "tribal_wars-win-0.0.5.zip",
+            "patch_name": "tribal_wars-win-stable-2",
+            "patch_hash": "5d0344d7ae8cb1f9dac5c99193017c41581dc7e835e97d271849e3c52bf8b62c",
+            "patch_size": 1620578
+          }
+        },
+        "0.0.51.2.0": {
+          "win": {
+            "file_hash": "32804cec7ce087b84ef0d5fba75d608a4cd7af8f0bb798fa8ea2dda18d9de8ec",
+            "file_size": 26518320,
+            "filename": "tribal_wars-win-0.0.51.zip",
+            "patch_name": "tribal_wars-win-stable-3",
+            "patch_hash": "28edd760ccb605919bc640af4d8a551fe77405c1a624b78c6db7fa58d66cb8d1",
+            "patch_size": 1504843
+          }
+        },
+        "0.0.52.2.0": {
+          "win": {
+            "file_hash": "db71863c020c32a5f1b88aa1ac35aab0545c93f4740075d5b1143577b40fd516",
+            "file_size": 26518172,
+            "filename": "tribal_wars-win-0.0.52.zip",
+            "patch_name": "tribal_wars-win-stable-4",
+            "patch_hash": "494c4c53d084ec9aedb030e7d363b5d31afa675f56d8bba33298fabbb5ac91cf",
+            "patch_size": 1257918
+          }
+        },
+        "0.0.53.2.0": {
+          "win": {
+            "file_hash": "9ceb2ee57fb6836c8f987d7bd626e78467d271e58ed725f91f628c2a0e4fb6a9",
+            "file_size": 26518170,
+            "filename": "tribal_wars-win-0.0.53.zip",
+            "patch_name": "tribal_wars-win-stable-5",
+            "patch_hash": "d4ee78d55a1902559cfaea0b9bf65026107514977495e2883c57734754c377a4",
+            "patch_size": 1170454
+          }
+        },
+        "0.0.54.2.0": {
+          "win": {
+            "file_hash": "ab42f15a25bbf6b20652c4e469aa06ebce7b08fa809da6e20c0943d014fbdf55",
+            "file_size": 26518700,
+            "filename": "tribal_wars-win-0.0.54.zip",
+            "patch_name": "tribal_wars-win-stable-6",
+            "patch_hash": "b84640dde7df14fa0f2bd9b8c0cefbf9e778213a1ea268bf3d9e6de9fb8108cf",
+            "patch_size": 1644554
+          }
+        },
+        "0.0.55.2.0": {
+          "win": {
+            "file_hash": "eff44d30256c351374a9c5969fe270d1466b8142c4aac7c8e5c3d93c26f3c128",
+            "file_size": 26518710,
+            "filename": "tribal_wars-win-0.0.55.zip",
+            "patch_name": "tribal_wars-win-stable-7",
+            "patch_hash": "73c768f00fa350faa70aa2346012841594c78d0a024660e53bb72d4b3f1d620c",
+            "patch_size": 1303302
+          }
+        },
+        "0.0.56.2.0": {
+          "win": {
+            "file_hash": "be3a8a5751ab13ca9c43e1874d9cc1749c025f15495538f3cd5d47b7d03fcc05",
+            "file_size": 26518816,
+            "filename": "tribal_wars-win-0.0.56.zip",
+            "patch_name": "tribal_wars-win-stable-8",
+            "patch_hash": "7d9f37743d58dfda8d15f9980702b39cb92b38aebb6a33ab32bdeebef6346ea2",
+            "patch_size": 1539403
+          }
+        },
+        "0.0.57.2.0": {
+          "win": {
+            "file_hash": "1c2ba884b851356a494bbb25036223ccbf20e1017374ced09ddbaaf88f348bb1",
+            "file_size": 26571462,
+            "filename": "tribal_wars-win-0.0.57.zip",
+            "patch_name": "tribal_wars-win-stable-9",
+            "patch_hash": "c7fc8c184753d24e67ed0da1dd80ea237714c05cafed4e6bf2b04c3f46c20e09",
+            "patch_size": 1658012
+          }
+        },
+        "0.0.58.2.0": {
+          "win": {
+            "file_hash": "37e3403849971b37886df2bc87e6d772f66eb04c52484438d9249af68e954946",
+            "file_size": 26571610,
+            "filename": "tribal_wars-win-0.0.58.zip",
+            "patch_name": "tribal_wars-win-stable-10",
+            "patch_hash": "d7020502ce9a1b03b2109660ef3f214ce27f40afa2a3d7e3a43acceebe9c1903",
+            "patch_size": 1679855
+          }
+        },
+        "0.0.581.2.0": {
+          "win": {
+            "file_hash": "bcba25b951f3e8cc59419bc77d8294622723abc53039f315d87246f3ed2d7535",
+            "file_size": 26571514,
+            "filename": "tribal_wars-win-0.0.581.zip",
+            "patch_name": "tribal_wars-win-stable-11",
+            "patch_hash": "e1cd72f1524ce3f058f4def1ed076279264d6b08d0e954efc494606f703ed335",
+            "patch_size": 1173613
+          }
+        },
+        "0.0.59.2.0": {
+          "win": {
+            "file_hash": "babda875f1a05a9595b97240036ab96c26dbbe4aa93a4e21a4ef7b6259631e6f",
+            "file_size": 26571576,
+            "filename": "tribal_wars-win-0.0.59.zip",
+            "patch_name": "tribal_wars-win-stable-12",
+            "patch_hash": "3ac4722bdb432add166172db34f0a6311a98a379d75dcbe60a8267424e8a944a",
+            "patch_size": 1368740
+          }
+        },
+        "0.0.6.2.0": {
+          "win": {
+            "file_hash": "07482cce5d42e154ed306ed580fa70bb12d4f55c65eb313682e0f521243856ba",
+            "file_size": 26571016,
+            "filename": "tribal_wars-win-0.0.6.zip",
+            "patch_name": "tribal_wars-win-stable-13",
+            "patch_hash": "07916ea4bd4d4a1dc0c6043b926a9928d4e0270f15c5ca796e016f1efb35ea38",
+            "patch_size": 1865171
+          }
+        },
+        "0.0.60.2.0": {
+          "win": {
+            "file_hash": "8fee93cfbe455b29721164a5bd91363346c808e7cdae72ca05ff9fbcb9c6f07a",
+            "file_size": 26570991,
+            "filename": "tribal_wars-win-0.0.60.zip",
+            "patch_name": "tribal_wars-win-stable-16",
+            "patch_hash": "b2f5af8efb3cf3745ee399d0e4d8586e3c0a249d913766f66797627ec2131186",
+            "patch_size": 992200
+          }
+        },
+        "0.0.61.2.0": {
+          "win": {
+            "file_hash": "99d4ce432317034390ee87fdd168cd4a1cdf430508b8d9fd85bc60337c36b497",
+            "file_size": 26706505,
+            "filename": "tribal_wars-win-0.0.61.zip",
+            "patch_name": "tribal_wars-win-stable-17",
+            "patch_hash": "ec3b8255d7cdd24eef460e2b3b166f0d3cc49e2d0518235a70584ade88287368",
+            "patch_size": 1819003
+          }
+        },
+        "0.0.62.2.0": {
+          "win": {
+            "file_hash": "8538be9317309bfd1daa6b15fad0ab6e142a5875c4bdd7ea43528b0badbdd170",
+            "file_size": 26708480,
+            "filename": "tribal_wars-win-0.0.62.zip",
+            "patch_name": "tribal_wars-win-stable-18",
+            "patch_hash": "96b12815eadbd237c331ef8eb56b4a0931bd966c0214ccf917fd15d1596fd6a5",
+            "patch_size": 1773611
+          }
+        },
+        "0.0.63.2.0": {
+          "win": {
+            "file_hash": "cf2733cfab342697f8f3dc76dc5750c5ba15e5cd3eca571426e8a471cb63e2cb",
+            "file_size": 26656099,
+            "filename": "tribal_wars-win-0.0.63.zip",
+            "patch_name": "tribal_wars-win-stable-19",
+            "patch_hash": "a9f30029b842e01ff75fa77f0ff2c929de4d55fb6ade1742069334eb38ecf9bf",
+            "patch_size": 1909434
+          }
+        },
+        "0.0.64.2.0": {
+          "win": {
+            "file_hash": "8c38d40f4fc59dc9139100ee94c84c272c93bcd22e117276f5c2367724ee7e5f",
+            "file_size": 26656090,
+            "filename": "tribal_wars-win-0.0.64.zip",
+            "patch_name": "tribal_wars-win-stable-20",
+            "patch_hash": "ed20a6139cbf51a08fee2a6a4e7ffcc874ccfb484835dc4928292212f007d612",
+            "patch_size": 1454887
+          }
+        },
+        "0.0.65.2.0": {
+          "win": {
+            "file_hash": "0311a1c4ca47b89e5d531555e8975d6d93a06a71f6f1facd77c3728dc3ec022e",
+            "file_size": 26656432,
+            "filename": "tribal_wars-win-0.0.65.zip",
+            "patch_name": "tribal_wars-win-stable-21",
+            "patch_hash": "f5b78f2cce442f8902bc861c3cfedd56938f24f7fcd41552d9034cd39517580a",
+            "patch_size": 1807450
+          }
+        },
+        "0.0.66.2.0": {
+          "win": {
+            "file_hash": "3f21e1f7ae95eaae59868ee48435953854c8b89d2797480902545573e37e49c9",
+            "file_size": 26710178,
+            "filename": "tribal_wars-win-0.0.66.zip",
+            "patch_name": "tribal_wars-win-stable-22",
+            "patch_hash": "e6e9d75cdd011109dfbbcff1baf05d3d006a587ff0b64d040287f553473852bd",
+            "patch_size": 1545558
+          }
+        },
+        "0.0.67.2.0": {
+          "win": {
+            "file_hash": "40846f6dd5575d93cd5c117a8239850b96ec677f77bdab98854011c92121ea8b",
+            "file_size": 26710227,
+            "filename": "tribal_wars-win-0.0.67.zip",
+            "patch_name": "tribal_wars-win-stable-23",
+            "patch_hash": "bf4dec82b2a43f4eb4c98fed51c7628da018d2779ef92f868ef82fec604f08d6",
+            "patch_size": 1815513
+          }
+        }
+      }
+    },
+    "latest": {
+      "tribal_wars": {
+        "stable": {
+          "win": "0.0.67.2.0"
+        }
+      }
+    }
+  },
+  "py_repo_config": {
+    "patches": {
+      "tribal_wars": 23
+    },
+    "package": {
+      "tribal_wars": {
+        "win": "0.0.67.2.0"
+      }
+    }
+  }
+}

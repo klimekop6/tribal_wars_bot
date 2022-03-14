@@ -101,34 +101,37 @@ class TopLevel(tk.Toplevel):
 class ScrollableFrame:
     """Create scrollable frame on top of canvas"""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: ttk.Frame = None) -> None:
 
         self.parent = parent
 
-        def on_configure(event):
+        def on_configure(event: tk.Event):
             # Update scrollregion after starting 'mainloop'
             # when all widgets are in canvas.
             self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-        def _bound_to_mousewheel(self, event):
-            self.canvas.bind_all(
-                "<MouseWheel>", lambda event: _on_mousewheel(self, event)
-            )
+        def _bound_to_mousewheel(event: tk.Event):
+            self.canvas.bind_all("<MouseWheel>", lambda event: _on_mousewheel(event))
 
-        def _unbound_to_mousewheel(self, event):
+        def _unbound_to_mousewheel(event: tk.Event):
             self.canvas.unbind_all("<MouseWheel>")
 
-        def _on_mousewheel(self, event):
-            self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        def _on_mousewheel(event: tk.Event):
+            # self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            _yview("scroll", int(-1 * (event.delta / 120)), "units")
 
-        def _frame_width(event):
+        def _frame_width(event: tk.Event):
             canvas_width = event.width
             self.canvas.itemconfig(self.canvas_frame, width=canvas_width - 11)
             # self.canvas.config(width=self.frame.winfo_reqwidth())
             # self.canvas.itemconfig(self.canvas_frame, width=self.frame.winfo_reqwidth())
 
-        # --- Create self.canvas with scrollbar ---
+        def _yview(*args):
+            if self.canvas.yview() == (0.0, 1.0):
+                return
+            self.canvas.yview(*args)
 
+        # --- Create self.canvas with scrollbar ---
         self.canvas = tk.Canvas(parent)
         self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
         self.canvas.columnconfigure(0, weight=1)
@@ -139,12 +142,12 @@ class ScrollableFrame:
         self.frame.columnconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
 
-        self.scrollbar = ttk.Scrollbar(self.canvas, command=self.canvas.yview)
+        self.scrollbar = ttk.Scrollbar(self.canvas, command=_yview)
         self.scrollbar.grid(row=0, column=1, sticky=tk.NS)
 
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
-        self.canvas.bind("<Enter>", lambda event: _bound_to_mousewheel(self, event))
-        self.canvas.bind("<Leave>", lambda event: _unbound_to_mousewheel(self, event))
+        self.canvas.bind("<Enter>", lambda event: _bound_to_mousewheel(event))
+        self.canvas.bind("<Leave>", lambda event: _unbound_to_mousewheel(event))
 
         # --- Put frame in self.canvas ---
 
