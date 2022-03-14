@@ -1,3 +1,6 @@
 /dist/
 /build/
 /log.txt
+/pyu-data/
+/settings/
+settings.json
