@@ -1,4 +1,3 @@
-import datetime
 import json
 import logging
 import os
@@ -10,7 +9,6 @@ import threading
 import time
 import tkinter as tk
 from functools import partial
-from lib2to3.pgen2 import driver
 from math import sqrt
 
 import requests
@@ -18,10 +16,12 @@ import ttkbootstrap as ttk
 import xmltodict
 from pyupdater.client import Client
 from selenium import webdriver
+from ttkbootstrap.tableview import Tableview
+from ttkbootstrap.tooltip import ToolTip
 
 import bot_functions
 from client_config import ClientConfig
-from database_connection import DataBaseConnection
+from database_connection import DataBaseConnection, get_user_data
 from decorators import log_missed_erros
 from gui_functions import (
     center,
@@ -31,9 +31,9 @@ from gui_functions import (
     first_app_lunch,
     forget_row,
     get_pos,
-    if_paid,
     invoke_checkbuttons,
     load_settings,
+    paid,
     run_driver,
     save_entry_to_settings,
 )
@@ -66,29 +66,99 @@ class NotebookSchedul:
         self.scroll_able = ScrollableFrame(parent=parent)
 
         ttk.Label(self.scroll_able.frame, text="Data wejścia wojsk").grid(
-            row=0, column=0, columnspan=2, padx=5, pady=(10, 5)
+            row=0, column=0, columnspan=2, padx=5, pady=(15, 5)
         )
+
+        # Date entry settings
+        date_frame = ttk.Frame(self.scroll_able.frame)
+        date_frame.grid(row=1, column=0, columnspan=2, pady=(0, 5), sticky=ttk.EW)
+        date_frame.columnconfigure(0, weight=1)
+        date_frame.columnconfigure(1, weight=1)
+
+        ttk.Label(date_frame, text="Od").grid(row=1, column=0, pady=5)
+        ttk.Label(date_frame, text="Do").grid(row=1, column=1, pady=5)
 
         self.destiny_date = ttk.DateEntry(
-            self.scroll_able.frame, dateformat="%d.%m.%Y %H:%M:%S:%f", firstweekday=0
+            date_frame, dateformat="%d.%m.%Y %H:%M:%S:%f", firstweekday=0
         )
-        self.destiny_date.grid(row=1, column=0, columnspan=2, padx=5, pady=5)
+        self.destiny_date.grid(row=2, column=0, padx=5, pady=5, sticky=ttk.EW)
+        self.date_entry = ttk.StringVar(value=self.destiny_date.entry.get())
+        self.destiny_date.entry.configure(textvariable=self.date_entry)
+        self.destiny_date.entry.configure(justify=ttk.CENTER)
 
+        self.final_destiny_date = ttk.DateEntry(
+            date_frame, dateformat="%d.%m.%Y %H:%M:%S:%f", firstweekday=0
+        )
+        self.final_destiny_date.grid(row=2, column=1, padx=5, pady=5, sticky=ttk.EW)
+        self.final_date_entry = ttk.StringVar(value=self.destiny_date.entry.get())
+        self.final_destiny_date.entry.configure(textvariable=self.final_date_entry)
+        self.final_destiny_date.entry.configure(justify=ttk.CENTER)
+
+        def date_entry_change() -> None:
+            self.date_entry.trace_remove(*self.date_entry.trace_info()[0])
+
+            def inner_call() -> None:
+                self.date_entry.trace_remove(*self.date_entry.trace_info()[0])
+                destiny_date = time.mktime(
+                    time.strptime(self.date_entry.get(), "%d.%m.%Y %H:%M:%S:%f")
+                )
+                final_destiny_date = time.mktime(
+                    time.strptime(self.final_date_entry.get(), "%d.%m.%Y %H:%M:%S:%f")
+                )
+                if destiny_date > final_destiny_date:
+                    self.final_date_entry.trace_remove(
+                        *self.final_date_entry.trace_info()[0]
+                    )
+                    self.final_date_entry.set(self.date_entry.get())
+                    self.final_date_entry.trace_add(
+                        "write", lambda *_: final_date_entry_change()
+                    )
+                self.date_entry.trace_add("write", lambda *_: date_entry_change())
+
+            self.date_entry.trace_add("write", lambda *_: inner_call())
+
+        def final_date_entry_change() -> None:
+            self.final_date_entry.trace_remove(*self.final_date_entry.trace_info()[0])
+
+            def inner_call() -> None:
+                self.final_date_entry.trace_remove(
+                    *self.final_date_entry.trace_info()[0]
+                )
+                destiny_date = time.mktime(
+                    time.strptime(self.date_entry.get(), "%d.%m.%Y %H:%M:%S:%f")
+                )
+                final_destiny_date = time.mktime(
+                    time.strptime(self.final_date_entry.get(), "%d.%m.%Y %H:%M:%S:%f")
+                )
+                if destiny_date > final_destiny_date:
+                    self.date_entry.trace_remove(*self.date_entry.trace_info()[0])
+                    self.date_entry.set(self.final_date_entry.get())
+                    self.date_entry.trace_add("write", lambda *_: date_entry_change())
+                self.final_date_entry.trace_add(
+                    "write", lambda *_: final_date_entry_change()
+                )
+
+            self.final_date_entry.trace_add("write", lambda *_: inner_call())
+
+        self.date_entry.trace_add("write", lambda *_: date_entry_change())
+        self.final_date_entry.trace_add("write", lambda *_: final_date_entry_change())
+
+        # Text widgets
         ttk.Label(self.scroll_able.frame, text="Wioski startowe").grid(
-            row=3, column=0, padx=5, pady=10
+            row=2, column=0, padx=5, pady=10
         )
         ttk.Label(self.scroll_able.frame, text="Wioski docelowe").grid(
-            row=3, column=1, padx=5, pady=10
+            row=2, column=1, padx=5, pady=10
         )
 
         self.villages_to_use = tk.Text(
             self.scroll_able.frame, wrap="word", height=5, width=28
         )
-        self.villages_to_use.grid(row=4, column=0, padx=5, pady=(0, 5))
+        self.villages_to_use.grid(row=3, column=0, padx=5, pady=(0, 5), sticky=ttk.EW)
         self.villages_destiny = tk.Text(
             self.scroll_able.frame, wrap="word", height=5, width=28
         )
-        self.villages_destiny.grid(row=4, column=1, padx=5, pady=(0, 5))
+        self.villages_destiny.grid(row=3, column=1, padx=5, pady=(0, 5), sticky=ttk.EW)
 
         # Rodzaj komendy -> atak lub wsparcie
         ttk.Label(self.scroll_able.frame, text="Rodzaj komendy").grid(
@@ -460,6 +530,8 @@ class NotebookSchedul:
 
         def repeat_attack_checkbutton_command() -> None:
             if int(self.repeat_attack.get()):
+                if not parent.winfo_viewable():
+                    return
                 self.own_template_radiobutton.invoke()
                 self.repeat_attack_number_entry.config(state="normal")
             else:
@@ -598,10 +670,35 @@ class NotebookSchedul:
             return villages
 
         arrival_time = self.destiny_date.entry.get()
+        ms = int(arrival_time[-3:])
+        arrival_time_in_sec = time.mktime(
+            time.strptime(arrival_time, "%d.%m.%Y %H:%M:%S:%f")
+        ) + (ms / 1000)
+        final_arrival_time = self.final_destiny_date.entry.get()
         sends_from = self.villages_to_use.get("1.0", tk.END)
         sends_to = self.villages_destiny.get("1.0", tk.END)
         command_type = self.command_type.get()
         template_type = self.template_type.get()
+        max_time_to_add: float = 0
+        if arrival_time != final_arrival_time:
+            max_time_to_add = time.mktime(
+                time.strptime(final_arrival_time, "%d.%m.%Y %H:%M:%S:%f")
+            ) - time.mktime(time.strptime(arrival_time, "%d.%m.%Y %H:%M:%S:%f"))
+
+        troops_speed = {
+            "spear": 18,
+            "sword": 22,
+            "axe": 18,
+            "archer": 18,
+            "spy": 9,
+            "light": 10,
+            "marcher": 10,
+            "heavy": 11,
+            "ram": 30,
+            "catapult": 30,
+            "knight": 10,
+            "snob": 35,
+        }
 
         match template_type:
             case "send_all":
@@ -614,6 +711,15 @@ class NotebookSchedul:
             case "send_fake":
                 choosed_fake_template = json.loads(
                     self.choosed_fake_template.get().replace("'", '"')
+                )
+                sorted_choosed_fake_template = sorted(
+                    choosed_fake_template.items(),
+                    key=lambda x: x[1]["priority_nubmer"],
+                )
+                army_speed = max(
+                    troops_speed[troop_name]
+                    for troop_name, dict_info in sorted_choosed_fake_template
+                    if int(dict_info["min_value"]) > 0
                 )
 
             case "send_my_template":
@@ -632,7 +738,10 @@ class NotebookSchedul:
         for send_from, send_to in zip(sends_from.split(), sends_to.split()):
             send_info = {}
             send_info["command"] = command_type  # Is it attack or help
-            send_info["template_type"] = template_type  # Is it attack or help
+            send_info[
+                "template_type"
+            ] = template_type  # send_all/send_fake/send_my_template
+
             try:
                 send_info["send_from_village_id"] = villages[send_from][
                     :-1
@@ -658,6 +767,7 @@ class NotebookSchedul:
                 except KeyError:
                     custom_error(message=f"Wioska {send_to} nie istnieje.")
                     continue
+
             send_info["url"] = (
                 f"https://"
                 f'{settings["server_world"]}'
@@ -666,26 +776,6 @@ class NotebookSchedul:
                 f"&screen=place&target="
                 f'{send_info["send_to_village_id"]}'
             )
-            send_info["arrival_time"] = arrival_time
-            distance = sqrt(
-                pow(int(send_from[:3]) - int(send_to[:3]), 2)
-                + pow(int(send_from[4:]) - int(send_to[4:]), 2)
-            )
-
-            troops_speed = {
-                "spear": 18,
-                "sword": 22,
-                "axe": 18,
-                "archer": 18,
-                "spy": 9,
-                "light": 10,
-                "marcher": 10,
-                "heavy": 11,
-                "ram": 30,
-                "catapult": 30,
-                "knight": 10,
-                "snob": 35,
-            }
 
             match template_type:
 
@@ -717,15 +807,6 @@ class NotebookSchedul:
 
                 case "send_fake":
                     send_info["fake_template"] = choosed_fake_template
-                    choosed_fake_template = sorted(
-                        choosed_fake_template.items(),
-                        key=lambda x: x[1]["priority_nubmer"],
-                    )
-                    army_speed = max(
-                        troops_speed[troop_name]
-                        for troop_name, dict_info in choosed_fake_template
-                        if int(dict_info["min_value"]) > 0
-                    )
 
                 case "send_my_template":
                     send_info["troops"] = troops
@@ -735,16 +816,30 @@ class NotebookSchedul:
                     send_info["repeat_attack"] = repeat_attack
                     send_info["repeat_attack_number"] = repeat_attack_number
 
+            distance = sqrt(
+                pow(int(send_from[:3]) - int(send_to[:3]), 2)
+                + pow(int(send_from[4:]) - int(send_to[4:]), 2)
+            )
             travel_time_in_sec = round(
                 army_speed * distance * 60
             )  # Milisekundy są zaokrąglane do pełnych sekund
             send_info["travel_time"] = travel_time_in_sec
-            arrival_time_in_sec = time.mktime(
-                time.strptime(arrival_time, "%d.%m.%Y %H:%M:%S:%f")
-            )
-            send_info["send_time"] = (
-                arrival_time_in_sec - travel_time_in_sec
-            )  # sec since epoch
+
+            if max_time_to_add:
+                extra_time = random.uniform(0, max_time_to_add)
+                final_arrival_time_in_sec = arrival_time_in_sec + extra_time
+                send_info["arrival_time"] = time.strftime(
+                    f"%d.%m.%Y %H:%M:%S:{int(random.uniform(0, 999)):03}",
+                    time.localtime(final_arrival_time_in_sec),
+                )
+                send_info["send_time"] = (
+                    final_arrival_time_in_sec - travel_time_in_sec
+                )  # sec since epoch
+            else:
+                send_info["arrival_time"] = arrival_time
+                send_info["send_time"] = (
+                    arrival_time_in_sec - travel_time_in_sec
+                )  # sec since epoch
 
             send_info_list.append(send_info)
 
@@ -1324,8 +1419,10 @@ class MainWindow:
     elements_state = []
 
     def __init__(self, root, driver: webdriver.Chrome, settings: dict[str]) -> None:
+        self.captcha_counter = ttk.IntVar()
         self.driver = driver
         self.master: tk.Tk = root
+
         self.master.geometry("480x720")
         self.master.attributes("-alpha", 0.0)
         self.master.iconbitmap(default="icons//ikona.ico")
@@ -1386,15 +1483,18 @@ class MainWindow:
         self.exit = self.photo.subsample(8, 8)
 
         def on_exit() -> None:
-            save_entry_to_settings(entries=self.entries_content, settings=settings)
+            self.master.withdraw()
             if self.driver:
                 subprocess.run("taskkill /IM chromedriver.exe /F /T")
-            self.master.destroy()
-            with DataBaseConnection() as cursor:
+            save_entry_to_settings(entries=self.entries_content, settings=settings)
+            with DataBaseConnection(ignore_erros=True) as cursor:
                 cursor.execute(
-                    f"UPDATE konta_plemiona SET currently_running=0"
+                    f"UPDATE konta_plemiona SET "
+                    f"currently_running=0, "
+                    f"captcha_solved=captcha_solved + {self.captcha_counter.get()} "
                     f"WHERE user_name='{settings['user_name']}'"
                 )
+            self.master.destroy()
 
         self.exit_button = ttk.Button(
             self.custom_bar,
@@ -1421,20 +1521,22 @@ class MainWindow:
         # content_frame
 
         # Notebook with frames
-        n = ttk.Notebook(self.content_frame)
-        n.grid(row=0, column=0, padx=5, pady=(0, 5), sticky=("N", "S", "E", "W"))
-        f1 = ttk.Frame(n)
-        f2 = ttk.Frame(n)
-        f3 = ttk.Frame(n)
-        f4 = ttk.Frame(n)
-        f5 = ttk.Frame(n)
-        f6 = ttk.Frame(n)
-        n.add(f1, text="Farma")
-        n.add(f2, text="Zbieractwo")
-        n.add(f3, text="Planer")
-        n.add(f4, text="Rynek")
-        n.add(f5, text="Ustawienia")
-        n.add(f6, text="Powiadomienia")
+        self.notebook = ttk.Notebook(self.content_frame)
+        self.notebook.grid(
+            row=0, column=0, padx=5, pady=(0, 5), sticky=("N", "S", "E", "W")
+        )
+        f1 = ttk.Frame(self.notebook)
+        f2 = ttk.Frame(self.notebook)
+        f3 = ttk.Frame(self.notebook)
+        f4 = ttk.Frame(self.notebook)
+        f5 = ttk.Frame(self.notebook)
+        f6 = ttk.Frame(self.notebook)
+        self.notebook.add(f1, text="Farma")
+        self.notebook.add(f2, text="Zbieractwo")
+        self.notebook.add(f3, text="Planer")
+        self.notebook.add(f4, text="Rynek")
+        self.notebook.add(f5, text="Ustawienia")
+        self.notebook.add(f6, text="Powiadomienia")
 
         # f1 -> 'Farma'
         templates = ttk.Notebook(f1)
@@ -2149,13 +2251,19 @@ class MainWindow:
         ]
 
         f5_settings["world_number"] = tk.StringVar()
-        self.world_number_trace = f5_settings["world_number"].trace_add(
-            "write", lambda *_: self.world_number_change(settings=settings)
-        )
         self.world_number_input = ttk.Entry(
             f5, textvariable=f5_settings["world_number"], width=5, justify="center"
         )
         self.world_number_input.grid(row=0, column=2, padx=5, pady=(15, 5), sticky="E")
+
+        self.game_url.bind(
+            "<FocusOut>",
+            lambda *_: self.world_number_or_game_url_change(settings=settings),
+        )
+        self.world_number_input.bind(
+            "<FocusOut>",
+            lambda *_: self.world_number_or_game_url_change(settings=settings),
+        )
 
         ttk.Label(f5, text="Dostępne grupy wiosek").grid(
             row=2, column=0, padx=(5, 0), pady=(10), sticky="W"
@@ -2182,31 +2290,37 @@ class MainWindow:
         ).grid(row=2, column=2, padx=5, pady=(10), sticky="E")
 
         # Wybijanie monet
-        # self.entries_content["mine_coin"] = tk.StringVar()
-        # self.check_mine_coin = ttk.Checkbutton(
-        #     f5,
-        #     text="Wybijanie monet",
-        #     variable=self.entries_content["mine_coin"],
-        #     onvalue=True,
-        #     offvalue=False,
-        # )
-        # self.check_mine_coin.grid(row=3, columnspan=3, padx=5, pady=5)
+        self.entries_content["mine_coin"] = tk.StringVar()
+        self.check_mine_coin = ttk.Checkbutton(
+            f5,
+            text="Wybijanie monet",
+            variable=self.entries_content["mine_coin"],
+            onvalue=True,
+            offvalue=False,
+        )
+        self.check_mine_coin.grid(row=3, columnspan=3, padx=5, pady=5)
 
-        ttk.Label(f5, text="Informacje o koncie").grid(
-            row=5, column=0, columnspan=3, padx=5, pady=5, sticky="S"
+        self.acc_info_frame = ttk.Labelframe(
+            f5, text="Informacje o koncie", labelanchor="n"
+        )
+        self.acc_info_frame.grid(
+            row=5, column=0, columnspan=3, padx=5, pady=5, sticky=("W", "S", "E")
+        )
+        self.acc_info_frame.columnconfigure(0, weight=1)
+
+        self.verified_email_label = ttk.Label(self.acc_info_frame, text="")
+        self.verified_email_label.grid(
+            row=9, column=0, padx=5, pady=(10, 5), sticky="S"
         )
 
-        self.verified_email_label = ttk.Label(f5, text="")
-        self.verified_email_label.grid(row=9, columnspan=3, padx=5, pady=5, sticky="S")
-
-        self.acc_expire_time = ttk.Label(f5, text="acc_expire_time")
-        self.acc_expire_time.grid(row=10, columnspan=3, padx=5, pady=5, sticky="S")
+        self.acc_expire_time = ttk.Label(self.acc_info_frame, text="acc_expire_time")
+        self.acc_expire_time.grid(row=10, column=0, padx=5, pady=5, sticky="S")
 
         ttk.Button(
-            f5,
+            self.acc_info_frame,
             text="Przedłuż ważność konta",
-            command=lambda: PaymentWindow(parent=self.master),
-        ).grid(row=11, column=0, columnspan=3, padx=5, pady=5)
+            command=lambda: PaymentWindow(parent=self),
+        ).grid(row=11, column=0, padx=5, pady=(10, 15))
 
         # endregion
 
@@ -2301,6 +2415,7 @@ class MainWindow:
             variable=notifications["sms_notifications"],
             onvalue=True,
             offvalue=False,
+            state="disabled",
             command=lambda: change_entry(
                 value=notifications["sms_notifications"],
                 widget=self.sms_notifications_entry,
@@ -2315,11 +2430,26 @@ class MainWindow:
         )
         notifications["phone_number"] = tk.StringVar()
         self.sms_notifications_entry = ttk.Entry(
-            f6, textvariable=notifications["phone_number"], justify="center"
+            f6,
+            textvariable=notifications["phone_number"],
+            justify="center",
+            state="disabled",
         )
         self.sms_notifications_entry.grid(
             row=13, column=1, padx=(5, 25), pady=10, sticky="E"
         )
+        ToolTip(
+            self.sms_notifications,
+            text="Funkcja jest tymczasowo niedostępna",
+            topmost=True,
+        )
+        ToolTip(
+            self.sms_notifications_entry,
+            text="Funkcja jest tymczasowo niedostępna",
+            topmost=True,
+        )
+        # ToolTip()
+
         # endregion
 
         # content_frame
@@ -2349,7 +2479,13 @@ class MainWindow:
 
         self.master.withdraw()
 
-    def add_new_world_settings(self, settings: dict):
+    def add_new_world_settings(
+        self,
+        settings: dict,
+        game_url: str,
+        world_number: str,
+        entry_change: bool = False,
+    ) -> bool:
         def get_world_config() -> None:
             response = requests.get(
                 f"https://{settings['server_world']}.{settings['game_url']}"
@@ -2375,19 +2511,30 @@ class MainWindow:
             settings["groups"] = ["wszystkie"]
             settings["scheduler"]["ready_schedule"].clear()
 
-        world_number = self.entries_content["world_number"].get()
-        game_url = self.entries_content["game_url"].get()
         country_code = game_url[game_url.rfind(".") + 1 :]
         server_world = f"{country_code}{world_number}"
 
         if not os.path.isdir("settings"):
             os.mkdir("settings")
-
         settings_list = os.listdir("settings")
 
+        # Takie ustawienia już istnieją
         if any(world_number in settings_name for settings_name in settings_list):
-            custom_error("Ustawienia tego świata już istnieją!")
-        elif len(settings_list) == 0:
+            if entry_change:
+                self.notebook.select(4)
+                custom_error("Ustawienia tego świata już istnieją!", parent=self.master)
+                self.entries_content["game_url"].set(settings["game_url"])
+                self.entries_content["world_number"].set(settings["world_number"])
+                self.world_number_input.focus_set()
+            else:
+                custom_error(
+                    "Ustawienia tego świata już istnieją!",
+                    parent=self.master.focus_displayof().winfo_toplevel(),
+                )
+            return False
+
+        # Ustawienia pierwszego świata
+        elif len(settings_list) == 0 and entry_change:
             self.entries_content["world_in_title"].set(
                 f"{country_code.upper()}{world_number}"
             )
@@ -2396,20 +2543,36 @@ class MainWindow:
             )
             get_world_config()
             save_entry_to_settings(entries=self.entries_content, settings=settings)
-        else:
-            self.entries_content["world_number"].set(value=settings["world_number"])
-            self.entries_content["game_url"].set(value=settings["game_url"])
-            save_entry_to_settings(entries=self.entries_content, settings=settings)
+            return True
 
-            # Ustawia domyślne wartości elementów GUI (entries_content)
-            def default_entry_values(entries: dict | tk.StringVar) -> None:
+        # Zmiana świata w obrębie wybranej konfiguracji ustawień
+        elif entry_change:
+            if os.path.exists(f'settings/{settings["server_world"]}.json'):
+                os.remove(f'settings/{settings["server_world"]}.json')
+            set_additional_settings(
+                game_url=game_url, country_code=country_code, server_world=server_world
+            )
+            self.entries_content["world_in_title"].set(
+                f"{country_code.upper()}{world_number}"
+            )
+            get_world_config()
+            save_entry_to_settings(entries=self.entries_content, settings=settings)
+            return True
+
+        # Dodanie nowych ustawień nieistniejącego jeszcze świata
+        else:
+
+            def set_default_entry_values(entries: dict | tk.StringVar) -> None:
+                """Ustawia domyślne wartości elementów GUI (entries_content)"""
+
                 for key in entries:
                     if isinstance(entries[key], dict):
-                        default_entry_values(entries=entries[key])
+                        set_default_entry_values(entries=entries[key])
                     else:
                         entries[key].set(value="0")
 
-            default_entry_values(entries=self.entries_content)
+            save_entry_to_settings(entries=self.entries_content, settings=settings)
+            set_default_entry_values(entries=self.entries_content)
 
             self.entries_content["world_number"].set(value=world_number)
             self.entries_content["game_url"].set(value=game_url)
@@ -2437,6 +2600,7 @@ class MainWindow:
             invoke_checkbuttons(parent=self.master)
             get_world_config()
             save_entry_to_settings(entries=self.entries_content, settings=settings)
+            return True
 
     def check_groups(self, settings: dict):
 
@@ -2543,15 +2707,19 @@ class MainWindow:
             return
 
         # Check if_paid
-        if not if_paid(str(self.user_data["active_until"])):
-            custom_error(
-                message="Ważność konta wygasła. Przejdź do ustawień i wybierz wykup dostęp.",
-                parent=self.master,
-            )
-            self.running = False
-            self.run_button.config(text="Uruchom")
-            return
+        if not paid(str(self.user_data["active_until"])):
+            self.user_data = get_user_data(settings=settings, update=True)
+            if not paid(str(self.user_data["active_until"])):
+                custom_error(
+                    message="Ważność konta wygasła.\n"
+                    "Przejdź do ustawień i kliknij przedłuż ważność konta.",
+                    parent=self.master,
+                )
+                self.running = False
+                self.run_button.config(text="Uruchom")
+                return
 
+        # Check if group was choosed
         if self.entries_content["farm_group"].get() == "Wybierz grupę":
             if any(
                 int(self.entries_content[letter]["active"].get())
@@ -2569,7 +2737,7 @@ class MainWindow:
                 self.run_button.config(text="Uruchom")
                 return
 
-        settings_by_worlds = {}
+        self.settings_by_worlds = {}
         self.to_do = []
 
         incoming_attacks = False
@@ -2582,63 +2750,45 @@ class MainWindow:
 
         for settings_file_name in os.listdir("settings"):
             world_number = settings_file_name[: settings_file_name.find(".")]
-            settings_by_worlds[world_number] = load_settings(
+            self.settings_by_worlds[world_number] = load_settings(
                 f"settings//{settings_file_name}"
             )
 
         # Add functions into to_do list
-        for world_number in settings_by_worlds:  # world_number = de199, pl173 etc.
-            _settings = settings_by_worlds[world_number]
-            _settings["temp"] = {"to_do": self.to_do}
+        for world_number in self.settings_by_worlds:  # world_number = de199, pl173 etc.
+            _settings = self.settings_by_worlds[world_number]
+            _settings["temp"] = {
+                "to_do": self.to_do,
+                "captcha_counter": self.captcha_counter,
+            }
+            to_do = []
             # Add farm
             if (
                 int(_settings["A"]["active"])
                 | int(_settings["B"]["active"])
                 | int(_settings["C"]["active"])
             ):
-                self.to_do.append(
-                    {
-                        "func": "auto_farm",
-                        "start_time": time.time(),
-                        "server_world": _settings["server_world"],
-                    }
-                )
+                to_do.append({"func": "auto_farm"})
             # Add gathering
             if int(_settings["gathering"]["active"]):
-                self.to_do.append(
-                    {
-                        "func": "gathering",
-                        "start_time": time.time(),
-                        "server_world": _settings["server_world"],
-                    }
-                )
+                to_do.append({"func": "gathering"})
             # Add check incoming attacks
             if int(_settings["notifications"]["check_incoming_attacks"]):
-                self.to_do.append(
-                    {
-                        "func": "check_incoming_attacks",
-                        "start_time": time.time(),
-                        "server_world": _settings["server_world"],
-                    }
-                )
+                to_do.append({"func": "check_incoming_attacks"})
             # Premium exchange
             if int(_settings["market"]["premium_exchange"]):
-                self.to_do.append(
-                    {
-                        "func": "premium_exchange",
-                        "start_time": time.time(),
-                        "server_world": _settings["server_world"],
-                    }
-                )
+                to_do.append({"func": "premium_exchange"})
             # Mine coins
-            if "mine_coin" in settings and int(_settings["mine_coin"]):
-                self.to_do.append(
-                    {
-                        "func": "mine_coin",
-                        "start_time": time.time(),
-                        "server_world": _settings["server_world"],
-                    }
-                )
+            if "mine_coin" in _settings and int(_settings["mine_coin"]):
+                to_do.append({"func": "mine_coin"})
+
+            # Add start_time and other settings for above functions
+            server_world = _settings["server_world"]
+            for func in to_do:
+                func["start_time"] = time.time()
+                func["server_world"] = server_world
+                func["settings"] = _settings
+
             # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
             if _settings["scheduler"]["ready_schedule"]:
                 current_time = time.time()
@@ -2649,13 +2799,16 @@ class MainWindow:
                 ]
                 # Dodaj planer do listy to_do
                 for send_info in _settings["scheduler"]["ready_schedule"]:
-                    self.to_do.append(
+                    to_do.append(
                         {
                             "func": "send_troops",
                             "start_time": send_info["send_time"] - 8,
                             "server_world": _settings["server_world"],
+                            "settings": _settings,
                         }
                     )
+
+            self.to_do.extend(to_do)
 
         if not len(self.to_do):
             self.running = False
@@ -2685,25 +2838,26 @@ class MainWindow:
                     ):
                         if not self.running:
                             break
-                        if hasattr(self, "jobs_info"):
-                            if hasattr(self.jobs_info, "master"):
-                                if self.jobs_info.master.winfo_exists():
-                                    self.jobs_info.time.set(
-                                        f"{datetime.timedelta(seconds=_)}"
-                                    )
-                        self.time.set(f"{datetime.timedelta(seconds=_)}")
+                        if not paid(str(self.user_data["active_until"])):
+                            self.user_data = get_user_data(
+                                settings=settings, update=True
+                            )
+                            if not paid(str(self.user_data["active_until"])):
+                                self.running = False
+                                break
+
+                        self.time.set(f"{time.strftime('%H:%M:%S', time.gmtime(_))}")
                         time.sleep(1)
                     if not self.running:
                         break
-                    if hasattr(self, "jobs_info"):
-                        if hasattr(self.jobs_info, "master"):
-                            if self.jobs_info.master.winfo_exists():
-                                self.jobs_info.time.set("Running..")
                     self.time.set("Running..")
                 except BaseException:
                     bot_functions.log_error(self.driver)
 
-            _settings = settings_by_worlds[self.to_do[0]["server_world"]]
+            if "errors_number" not in self.to_do[0]:
+                self.to_do[0]["errors_number"] = 0
+
+            _settings = self.to_do[0]["settings"]
 
             # Deleguję zadania na podstawie dopasowań self.to_do[0]["func"]
             try:
@@ -2732,7 +2886,7 @@ class MainWindow:
                             and not incoming_attacks
                         ):
                             list_of_dicts = bot_functions.gathering_resources(
-                                self.driver, _settings, **self.to_do[0]
+                                driver=self.driver, **self.to_do[0]
                             )
                             for _dict in list_of_dicts:
                                 self.to_do.append(_dict)
@@ -2797,11 +2951,33 @@ class MainWindow:
                 if hasattr(self, "jobs_info"):
                     if hasattr(self.jobs_info, "master"):
                         if self.jobs_info.master.winfo_exists():
-                            self.jobs_info.print_jobs(self)
+                            self.jobs_info.update_table(main_window=self)
 
             except BaseException:
-                html = self.driver.page_source
+                # Skip 1st func in self.to_do if can't run properly after two attempts
+                self.to_do[0]["errors_number"] += 1
 
+                if (
+                    self.to_do[0]["errors_number"] > 1
+                    and self.to_do[0]["func"] == "send_troops"
+                ):
+                    del self.to_do[0]
+                    if len(self.to_do) and (
+                        self.to_do[0]["start_time"] > time.time() + 300
+                        or _settings["server_world"] != self.to_do[0]["server_world"]
+                    ):
+                        self.driver.get("chrome://newtab")
+                        logged = False
+                if self.to_do[0]["errors_number"] > 9:
+                    del self.to_do[0]
+                    if len(self.to_do) and (
+                        self.to_do[0]["start_time"] > time.time() + 300
+                        or _settings["server_world"] != self.to_do[0]["server_world"]
+                    ):
+                        self.driver.get("chrome://newtab")
+                        logged = False
+
+                html = self.driver.page_source
                 # If disconected/sesion expired
                 if (
                     html.find("chat-disconnected") != -1
@@ -2837,14 +3013,15 @@ class MainWindow:
         # Zapis ustawień gdy bot zostanie ręcznie zatrzymany
         self.time.set("")
         self.title_timer.grid_remove()
+        self.run_button.config(text="Uruchom")
         for settings_file_name in os.listdir("settings"):
             server_world = settings_file_name[: settings_file_name.find(".")]
             # Dla wszystkich zapisanych oprócz aktualnie aktywnego
             if settings["server_world"] != server_world:
                 _settings = load_settings(f"settings//{settings_file_name}")
-                for scheduled_attack in settings_by_worlds[server_world]["scheduler"][
-                    "ready_schedule"
-                ]:
+                for scheduled_attack in self.settings_by_worlds[server_world][
+                    "scheduler"
+                ]["ready_schedule"]:
                     if any(
                         scheduled_attack == scheduled_attack2
                         for scheduled_attack2 in _settings["scheduler"][
@@ -2859,9 +3036,9 @@ class MainWindow:
                 with open(f"settings/{server_world}.json", "w") as settings_json_file:
                     json.dump(_settings, settings_json_file)
             else:
-                for scheduled_attack in settings_by_worlds[server_world]["scheduler"][
-                    "ready_schedule"
-                ]:
+                for scheduled_attack in self.settings_by_worlds[server_world][
+                    "scheduler"
+                ]["ready_schedule"]:
                     if any(
                         scheduled_attack == scheduled_attack2
                         for scheduled_attack2 in settings["scheduler"]["ready_schedule"]
@@ -2885,20 +3062,87 @@ class MainWindow:
         """Show new window with available worlds settings to choose"""
 
         def add_world() -> None:
-            pass
+            self.world_chooser_window.destroy()
+
+            master = TopLevel(title_text="Tribal Wars Bot")
+
+            ttk.Label(master.content_frame, text="Wybierz serwer i numer świata").grid(
+                row=0, column=0, columnspan=2, padx=5, pady=(5, 0)
+            )
+
+            game_url_var = tk.StringVar()
+            game_url = ttk.Combobox(
+                master=master.content_frame,
+                textvariable=game_url_var,
+                state="readonly",
+                justify="center",
+                width=20,
+            )
+            game_url.grid(row=1, column=0, padx=5, pady=(5))
+            game_url.set("Wybierz serwer")
+            game_url["values"] = [
+                "die-staemme.de",
+                "staemme.ch",
+                "tribalwars.net",
+                "tribalwars.nl",
+                "plemiona.pl",
+                "tribalwars.se",
+                "tribalwars.com.br",
+                "tribalwars.com.pt",
+                "divokekmeny.cz",
+                "triburile.ro",
+                "voyna-plemyon.ru",
+                "fyletikesmaxes.gr",
+                "no.tribalwars.com",
+                "divoke-kmene.sk",
+                "klanhaboru.hu",
+                "tribalwars.dk",
+                "tribals.it",
+                "klanlar.org",
+                "guerretribale.fr",
+                "guerrastribales.es",
+                "tribalwars.ae",
+                "tribalwars.co.uk",
+                "vojnaplemen.si",
+                "plemena.com",
+                "tribalwars.asia",
+                "tribalwars.us",
+            ]
+
+            world_number = tk.StringVar()
+            world_number_input = ttk.Entry(
+                master.content_frame,
+                textvariable=world_number,
+                width=5,
+                justify="center",
+            )
+            world_number_input.grid(row=1, column=1, padx=(0, 5), pady=(5), sticky="E")
+
+            def on_add_new_world() -> None:
+                if self.add_new_world_settings(
+                    settings=settings,
+                    game_url=game_url_var.get(),
+                    world_number=world_number.get(),
+                ):
+                    master.destroy()
+
+            ttk.Button(
+                master.content_frame, text="Dodaj", command=on_add_new_world
+            ).grid(row=2, column=0, columnspan=2, padx=5, pady=(15, 5), sticky=ttk.EW)
+
+            center(window=master, parent=self.master)
+            master.attributes("-alpha", 1.0)
 
         def change_world(settings_file_name: str, world_in_title: str) -> None:
             nonlocal settings
 
+            # Skip if user clicked/choose the same world as he is now
             if (
                 re.search(r"\d+", settings_file_name).group()
                 == self.entries_content["world_number"].get()
             ):
                 self.world_chooser_window.destroy()
                 return
-            self.entries_content["world_number"].trace_remove(
-                "write", self.world_number_trace
-            )
 
             if os.path.exists(f"settings/{settings_file_name}.json"):
                 # Save current settings before changing to other
@@ -2926,28 +3170,61 @@ class MainWindow:
                 self.entries_content["world_in_title"].set(f"{world_in_title}")
                 self.world_chooser_window.destroy()
 
-            self.world_number_trace = self.entries_content["world_number"].trace_add(
-                "write", lambda *_: self.world_number_change(settings=settings)
-            )
+        def delete_world(settings_file_name: str) -> None:
 
-        def on_leave(event) -> None:
+            master = TopLevel(title_text="Tribal Wars Bot")
+
+            content_frame = master.content_frame
+            content_frame.columnconfigure(1, weight=1)
+
+            ttk.Label(
+                content_frame,
+                text=f"Czy chcesz usunąć ustawienia {settings_file_name}?",
+            ).grid(row=0, column=0, columnspan=2, padx=5, pady=5)
+
+            exit_var = ttk.BooleanVar()
+            ttk.Button(
+                content_frame,
+                text="Tak",
+                command=lambda: [exit_var.set(1), master.destroy()],
+            ).grid(row=1, column=0, padx=5, pady=5, sticky=ttk.NSEW)
+            ttk.Button(
+                content_frame,
+                text="Nie",
+                command=lambda: [exit_var.set(0), master.destroy()],
+            ).grid(row=1, column=1, padx=5, pady=5, sticky=ttk.NSEW)
+
+            center(window=master, parent=self.world_chooser_window)
+            master.attributes("-alpha", 1.0)
+            master.wait_window()
+
+            if not exit_var.get():
+                return
+
+            if os.path.exists(f"settings/{settings_file_name}.json"):
+                os.remove(f"settings/{settings_file_name}.json")
+
+            self.master.unbind("<Button-1>", self.btn_func_id)
+            self.world_chooser_window.destroy()
+
+        def on_leave(event: tk.Event) -> None:
             if event.widget != self.world_chooser_window:
                 return
 
-            def on_enter(event) -> None:
+            def on_enter(event: tk.Event) -> None:
                 if event.widget != self.world_chooser_window:
                     return
                 self.master.unbind("<Button-1>", self.btn_func_id)
 
-            def quit(event) -> None:
+            def quit(event: tk.Event) -> None:
                 self.master.unbind("<Button-1>", self.btn_func_id)
                 self.world_chooser_window.destroy()
 
             self.btn_func_id = self.master.bind("<Button-1>", quit, "+")
             self.world_chooser_window.bind("<Enter>", on_enter)
 
-        self.world_chooser_window = tk.Toplevel(
-            self.title_world, borderwidth=1, relief="groove"
+        self.world_chooser_window = ttk.Toplevel(
+            self.title_world, borderwidth=2, relief="groove"
         )
         self.world_chooser_window.attributes("-alpha", 0.0)
         self.world_chooser_window.overrideredirect(True)
@@ -2969,177 +3246,225 @@ class MainWindow:
                 bootstyle="primary.Link.TButton",
                 text=f"{world_in_title}",
                 command=partial(change_world, settings_file_name, world_in_title),
-            ).grid(row=index, column=0)
+            ).grid(row=index * 2, column=0, sticky=ttk.NSEW)
 
-        ttk.Button(
+            ttk.Button(
+                self.world_chooser_window,
+                style="danger.primary.Link.TButton",
+                image=self.exit,
+                command=partial(delete_world, settings_file_name),
+            ).grid(row=index * 2, column=2, sticky=ttk.NSEW)
+
+            ttk.Separator(self.world_chooser_window, style="default.TSeparator").grid(
+                row=index * 2 + 1, column=0, columnspan=3, sticky=ttk.EW
+            )
+
+        ttk.Separator(
+            self.world_chooser_window,
+            orient=ttk.VERTICAL,
+            style="default.TSeparator",
+        ).grid(row=0, rowspan=len(file_list) * 2 - 1, column=1, sticky=ttk.NS)
+
+        add_world_button = ttk.Button(
             self.world_chooser_window,
             image=self.plus,
             bootstyle="primary.Link.TButton",
             command=add_world,
-        ).grid(row=len(file_list), column=0, sticky=ttk.NSEW)
+        )
+        add_world_button.grid(
+            row=len(file_list) * 2, column=0, columnspan=3, sticky=ttk.NSEW
+        )
 
         self.world_chooser_window.bind("<Leave>", on_leave)
         center(self.world_chooser_window, self.title_world)
         self.world_chooser_window.attributes("-alpha", 1.0)
 
-    def world_number_change(self, settings: dict, *args) -> None:
-        def on_focus_out(event) -> None:
-            if settings["world_number"] != self.entries_content["world_number"].get():
-                self.world_number_input.unbind_all("<FocusOut>")
-                self.entries_content["world_number"].trace_remove(
-                    "write", self.world_number_trace
-                )
-                self.add_new_world_settings(settings=settings)
-                self.world_number_trace = self.entries_content[
-                    "world_number"
-                ].trace_add(
-                    "write", lambda *_: self.world_number_change(settings=settings)
-                )
+    def world_number_or_game_url_change(self, settings: dict, *args) -> None:
+        def on_focus_out(event: tk.Event = None) -> None:
+            self.master.update()
+            if (
+                "pressed" in self.game_url.state()
+                or "focus" in self.world_number_input.state()
+            ):
+                return
 
-        if settings["world_number"] != self.entries_content["world_number"].get():
-            self.world_number_input.bind("<FocusOut>", on_focus_out)
+            self.add_new_world_settings(
+                settings=settings,
+                game_url=self.entries_content["game_url"].get(),
+                world_number=self.entries_content["world_number"].get(),
+                entry_change=True,
+            )
+
+        if (
+            settings["world_number"] != self.entries_content["world_number"].get()
+            or settings["game_url"] != self.entries_content["game_url"].get()
+        ):
+
+            on_focus_out()
 
 
 class JobsToDoWindow:
 
-    translate_tuples = (
-        ("gathering", "zbieractwo"),
-        ("auto_farm", "farmienie"),
-        ("check_incoming_attacks", "etykiety ataków"),
-        ("premium_exchange", "giełda premium"),
-        ("send_troops", "planer"),
-        ("mine_coin", "wybijanie monet"),
-    )
+    translate = {
+        "gathering": "zbieractwo",
+        "auto_farm": "farmienie",
+        "check_incoming_attacks": "etykiety ataków",
+        "premium_exchange": "giełda premium",
+        "send_troops": "planer",
+        "mine_coin": "wybijanie monet",
+    }
 
     def __init__(self, main_window: MainWindow) -> None:
-        self.master = TopLevel(title_text="Lista zadań")
+        self.master = TopLevel(title_text="Lista zadań", timer=main_window.time)
 
         self.content_frame = self.master.content_frame
-        self.time = self.master.time
 
-        self.print_jobs(main_window)
+        coldata = [
+            {"text": "Świat", "stretch": False},
+            "Zadanie",
+            {"text": "Data wykonania", "stretch": False},
+        ]
+
+        rowdata = [
+            tuple(
+                (
+                    row["server_world"],
+                    self.translate[row["func"]],
+                    time.strftime(
+                        "%H:%M:%S %d.%m.%Y", time.localtime(row["start_time"])
+                    ),
+                )
+            )
+            for row in main_window.to_do
+        ]
+
+        self.table = Tableview(
+            master=self.content_frame,
+            coldata=coldata,
+            rowdata=rowdata,
+            paginated=True,
+            searchable=True,
+        )
+        self.table.grid(row=0, column=0)
 
         center(self.master, main_window.master)
-        self.time.set(
-            f'{datetime.timedelta(seconds=int(main_window.to_do[0]["start_time"] - time.time()))}'
-        )
         self.master.attributes("-alpha", 1.0)
 
-    def hide(self):
-        self.master.attributes("-alpha", 0.0)
-        self.master.overrideredirect(False)
-        self.master.iconify()
-
-        def show(event=None):
-            self.master.overrideredirect(True)
-            self.master.attributes("-alpha", 1.0)
-
-        self.minimize_button.bind("<Map>", show)
-
-    def print_jobs(self, main_window: MainWindow):
-
-        self.scrollable_window = ScrollableFrame(parent=self.master.content_frame)
-        self.add_widgets_to_frame(main_window)
-
-        self.scrollable_window.frame.update_idletasks()
-        reqwidth = self.scrollable_window.frame.winfo_reqwidth()
-        self.master.geometry(f"{reqwidth+15}x250")
-
-    def add_widgets_to_frame(self, main_window: MainWindow) -> None:
-        """Add widgets to self.frame in self.canvas"""
-
-        # Table description -> column names
-        for col_index, col_name in zip(
-            range(1, 4, 1), ("Świat", "Zadanie", "Data wykonania")
-        ):
-            if col_name != "Data wykonania":
-                ttk.Label(self.scrollable_window.frame, text=col_name).grid(
-                    row=0, column=col_index, padx=10, pady=5
-                )
-            else:
-                ttk.Label(self.scrollable_window.frame, text=col_name).grid(
-                    row=0, column=col_index, padx=(10, 25), pady=5
-                )
-
-        # Create table with data of jobs to do
-        for row_index, row in enumerate(main_window.to_do):
-            row_index += 1
-            ttk.Label(self.scrollable_window.frame, text=f"{row_index}.").grid(
-                row=row_index, column=0, padx=(25, 10), pady=5
-            )
-            for col_index, col in enumerate(("server_world", "func", "start_time")):
-                match col:
-                    case "func":
-                        for search_for, change_to in self.translate_tuples:
-                            if row[col] == search_for:
-                                label_text = change_to
-                    case "start_time":
-                        label_text = time.strftime(
-                            "%H:%M:%S %d.%m.%Y", time.localtime(row[col])
-                        )
-                    case _:
-                        label_text = str(row[col])
-                if col != "start_time":
-                    ttk.Label(self.scrollable_window.frame, text=label_text).grid(
-                        row=row_index, column=col_index + 1, padx=10, pady=5
+    def update_table(self, main_window: MainWindow) -> None:
+        self.table.delete_rows()
+        self.table.insert_rows(
+            index="end",
+            rowdata=[
+                tuple(
+                    (
+                        row["server_world"],
+                        self.translate[row["func"]],
+                        time.strftime(
+                            "%H:%M:%S %d.%m.%Y", time.localtime(row["start_time"])
+                        ),
                     )
-                else:
-                    ttk.Label(self.scrollable_window.frame, text=label_text).grid(
-                        row=row_index, column=col_index + 1, padx=(10, 25), pady=(5, 10)
-                    )
-
-    def update_widgets_in_frame(self) -> None:
-        """Clear and than create new widgets in frame"""
-
-        for widgets in self.scrollable_window.frame.winfo_children():
-            widgets.destroy()
-        self.add_widgets_to_frame()
+                )
+                for row in main_window.to_do
+            ],
+        )
+        self.table.load_table_data()
 
 
 class PaymentWindow:
-    def __init__(self, parent) -> None:
-        master = TopLevel(title_text="TribalWarsBot - płatności", master=parent)
-        content_frame = master.content_frame
-        ttk.Label(master=content_frame, text="Witaj").grid(
-            row=0, column=0, padx=5, pady=5
+    def __init__(self, parent: MainWindow) -> None:
+        self.master = TopLevel(title_text="Tribal Wars Bot")
+        self.master.geometry("555x505")
+
+        self.text = ttk.Text(master=self.master.content_frame, wrap="word")
+        self.text.grid(row=0, column=0, sticky=ttk.NSEW)
+        self.text.insert("1.0", "Dostępne pakiety:\n", "bold_text")
+        self.text.insert("2.0", "- 30zł za jeden miesiąc\n")
+        self.text.insert("3.0", "- 55zł za dwa miesiące 60zł oszczędzasz 5zł\n")
+        self.text.insert("4.0", "- 75zł za trzy miesiące 90zł oszczędzasz 15zł\n")
+        self.text.insert("5.0", "Dostępne metody płatności:\n", "bold_text")
+        self.text.insert("6.0", "- blik na numer: 604 065 940\n")
+        self.text.insert(
+            "7.0", "- przelew na numer: 83 1240 6117 1111 0010 7122 6836\n"
         )
-        ttk.Text
-        ttk.Label(
-            master=content_frame,
-            text="""
-    Jeśli tak jak ja jesteś fanem gry w plemiona ale oprócz wyników w grze cenisz także swój czas osobisty to dobrze trafiłeś.  
+        self.text.insert(
+            "8.0",
+            f'W tytule blika/przelewu należy wpisać swój login "{parent.user_data["user_name"]}"\n',
+            "bold_text",
+        )
+        self.text.insert("9.0", "Czas oczekiwania:\n", "bold_text")
+        self.text.insert("10.0", "Blik\n", "bold_text")
+        self.text.insert("11.0", "- przeważnie w ciągu kilku godzin\n")
+        self.text.insert("12.0", "- maksymalnie jeden dzień\n")
+        self.text.insert("13.0", "Przelew\n", "bold_text")
+        self.text.insert("14.0", "- przeważnie w ciągu jednego dnia *\n")
+        self.text.insert(
+            "15.0",
+            "* Wyjątek stanowią weekendy i dni ustawowo wolne od pracy jako, że w te dni "
+            "banki nie realizują przelewów. W takim przypadku w celu przyspieszenia aktywacji "
+            "wystarczy wysłać potwierdzenie przelewu na adres e-mail k.spec@tuta.io. "
+            "Na tej podstawie mogę dokonać aktywacji konta niezwłocznie po odczytaniu wiadomości.",
+        )
 
-    Realny zysk:
-     - świętne wyniki farmy i zbieractwa
-     - etykiety ataków w dzień i w nocy 24/h
-     - masa pp z automatycznej sprzedaży surki na giełdzie premium 
-     - zaplanujesz z wyprzedzeniem ataki/wsparcia/kliny/skany
-     - powiadomienia email/sms o wykryciu ndachodzącej szlachty
-     - koniec z wstawaniem po nocach
-     - oszczędzisz nawet kilkadziesiąt godzin miesięcznie
-     - wesprzesz rozwój aplikacji i jej kolejnych nadchodzących funkcji
+        photo = tk.PhotoImage(file="icons//copy.png")
+        self.copy_icon = photo.subsample(2, 2)
 
-    Dostępne pakiety:
-     - 30zł za jeden miesiąc
-     - 55zł za dwa miesiące
-     - 80zł za trzy miesiące
+        def copy_acc_number() -> None:
+            self.text.clipboard_clear()
+            self.text.clipboard_append("83 1240 6117 1111 0010 7122 6836")
+            self.text.config(state="normal")
+            self.text.insert("7.end", "skopiowano do schowka")
+            self.text.config(state="disabled")
 
-    Dostępne metody płatności:
-     - blik na numer: 604 065 940
-     - przelew na numer: 83 1240 6117 1111 0010 7122 6836
+            def delete_extra_text() -> None:
+                self.text.config(state="normal")
+                self.text.delete("7.53", "7.end")
+                self.text.config(state="disabled")
 
-    W tytule blika/przelewu należy podać login konta używanego w aplikacji
+            self.text.after(ms=3000, func=delete_extra_text)
 
-    Aktywacji dokonuję przeważnie 2-3 razy dziennie. 
-    W przypadku blika czas oczekiwania może wynieść maksymalnie kilka godzin
-    W przypadku przelewu czas oczekiwania może być dłuższy. Wynika to z różnych godzin księgowania przelewów
-    Przelewy nie przychodzą także w weekendy i dni ustawowo wolne od pracy.   
-    W celu przyspieszenia aktywacji wystarczy wysłać potwierdzenie przelewu na adres e-mail k.spec@tuta.io
-    Na tej podstawie mogę dokonać aktywacji niezwłocznie po odczytaniu wiadomości
-    """,
-        ).grid(row=1, column=0, padx=5, pady=5)
-        center(window=master, parent=parent)
-        master.attributes("-alpha", 1.0)
+        copy_button = ttk.Button(
+            master=self.text,
+            image=self.copy_icon,
+            style="copy.primary.Link.TButton",
+            command=copy_acc_number,
+        )
+        copy_button.bind("<Enter>", lambda _: self.text.config(cursor=""))
+        copy_button.bind("<Leave>", lambda _: self.text.config(cursor="xterm"))
+        self.text.window_create("7.end", window=copy_button, padx=4)
+
+        self.text.tag_add("account_number", "7.20", "8.0-1c")
+        self.text.tag_add("italic_text", "15.0", "end")
+        self.text.tag_add("indent_text", "1.0", "end")
+        self.text.tag_add("first_line", "1.0", "1.end -1c")
+        self.text.tag_add("last_line", "end -1 lines", "end")
+        self.text.tag_add("strike", "3.23", "3.27", "4.24", "4.28")
+
+        self.text.tag_config(
+            "bold_text",
+            font=("TkTextFont", 11, "bold"),
+            lmargin1=16,
+            spacing1=16,
+            spacing3=3,
+        )
+        self.text.tag_config(
+            "italic_text",
+            font=("TkTextFont", 10, "italic"),
+            lmargin1=16,
+            lmargin2=25,
+            spacing1=16,
+        )
+        self.text.tag_config("indent_text", lmargin1=25, rmargin=16)
+        self.text.tag_config("first_line", spacing1=10)
+        self.text.tag_config("last_line", spacing3=10)
+        self.text.tag_config("strike", overstrike=True)
+
+        self.text.tag_raise("bold_text", "indent_text")
+        self.text.tag_raise("italic_text", "indent_text")
+
+        self.text.config(state="disabled")
+
+        center(window=self.master, parent=parent.master)
+        self.master.attributes("-alpha", 1.0)
 
 
 def check_for_updates() -> None:
@@ -3150,7 +3475,7 @@ def check_for_updates() -> None:
         print(downloaded, total, status)
 
     APP_NAME = "tribal_wars"
-    APP_VERSION = "0.0.68"
+    APP_VERSION = "0.0.81"
 
     client = Client(ClientConfig())
     client.refresh()
@@ -3170,6 +3495,98 @@ def check_for_updates() -> None:
             app_update.extract_restart()
 
 
+def configure_style(style: ttk.Style) -> None:
+    # primary.TButton
+    style.map(
+        "TButton",
+        bordercolor=[
+            ("active", "#315172"),
+            ("pressed", "#1f3247"),
+            ("focus", "#315172"),
+            ("disabled", "#383838"),
+        ],
+        background=[
+            ("active", "#315172"),
+            ("pressed", "#1f3247"),
+            ("focus", "#315172"),
+            ("disabled", "#383838"),
+        ],
+    )
+    # primary.Link.TButton
+    style.configure(
+        "primary.Link.TButton",
+        foreground="white",
+        shiftrelief="",
+    )
+    style.map(
+        "primary.Link.TButton",
+        background=[("active", "gray24")],
+        bordercolor=[("active", "gray50"), ("pressed", "gray50"), ("focus", "")],
+        foreground=[("active", "white")],
+        focuscolor=[("pressed", ""), ("focus", ""), ("active", "gray50")],
+        shiftrelief=[("pressed", "")],
+    )
+    # danger.primary.Link.TButton
+    style.configure("danger.primary.Link.TButton", foreground="white", padding=(6, 0))
+    style.map(
+        "danger.primary.Link.TButton",
+        background=[("active", "#e74c3c")],
+    )
+    # copy.primary.Link.TButton
+    style.configure(
+        "copy.primary.Link.TButton",
+        padding=(0, 0),
+        background="#2f2f2f",
+        bordercolor="#2f2f2f",
+        lightcolor="#2f2f2f",
+        darkcolor="#2f2f2f",
+    )
+    style.map(
+        "copy.primary.Link.TButton",
+        background=[("active", "gray24")],
+        bordercolor=[
+            ("alternate", "#2f2f2f"),
+            ("active", "gray50"),
+            ("pressed", "gray50"),
+            ("focus", ""),
+        ],
+    )
+    # default.TSeparator
+    style.configure(
+        "default.TSeparator",
+        borderwidth=0,
+    )
+
+
+def style_info(style: ttk.Style, style_name: str) -> None:
+    for _ in ("border", "focus", "padding", "label"):
+        print("\n========================================")
+        print(_)
+        print("========================================\n")
+        for state in (
+            "active",
+            "disabled",
+            "focus",
+            "pressed",
+            # "selected",
+            # "background",
+            # "readonly",
+            "alternate",
+            "invalid",
+        ):
+            print("----------------------------------------")
+            print(state)
+            print("----------------------------------------\n")
+            for key in style.element_options(f"{style_name}.{_}"):
+                if not style.lookup(f"{style_name}", f"{key}", state=[f"{state}"]):
+                    continue
+                print(f"{key}, {state}")
+                print(style.lookup(f"{style_name}", f"{key}", state=[f"{state}"]))
+                print("----------------------")
+
+    print(style.layout(f"{style_name}"))
+
+
 def main() -> None:
     driver = None
     settings = load_settings()
@@ -3182,62 +3599,11 @@ def main() -> None:
 
     style = ttk.Style(theme="darkly")
 
-    # custom_error(
-    #     message="Zaloguj się na otwartej stronie plemion.\n"
-    #     'Pole "zapamiętaj mnie" powinno być zaznaczone.'
-    # )
-
-    # custom_error(message="Konto utraciło swoją ważność")
-
-    # root.mainloop()
+    configure_style(style=style)
+    # style_info(style, "TSeparator")
 
     main_window = MainWindow(root=root, driver=driver, settings=settings)
     LogInWindow(main_window=main_window, settings=settings)
-
-    style.configure("primary.Link.TButton", foreground="white")
-    style.map(
-        "primary.Link.TButton",
-        background=[("active", "gray24")],
-        bordercolor=[("active", "gray50"), ("pressed", "gray50"), ("focus", "")],
-        foreground=[("active", "white")],
-        focuscolor=[("pressed", ""), ("focus", ""), ("active", "gray50")],
-        shiftrelief=[("pressed", "")],
-    )
-
-    # region
-    # for _ in ("border", "focus", "padding", "label"):
-    #     print("\n========================================")
-    #     print(_)
-    #     print("========================================")
-    #     print()
-    #     for state in (
-    #         "active",
-    #         # "disabled",
-    #         "focus",
-    #         "pressed",
-    #         # "selected",
-    #         # "background",
-    #         # "readonly",
-    #         "alternate",
-    #         "invalid",
-    #     ):
-    #         print("----------------------------------------")
-    #         print(state)
-    #         print("----------------------------------------")
-    #         print()
-    #         for key in style.element_options(f"primary.Link.TButton.{_}"):
-    #             if not style.lookup(
-    #                 "primary.Link.TButton", f"{key}", state=[f"{state}"]
-    #             ):
-    #                 continue
-    #             print(f"{key}, {state}")
-    #             print(
-    #                 style.lookup("primary.Link.TButton", f"{key}", state=[f"{state}"])
-    #             )
-    #             print("----------------------")
-
-    # print(style.layout("primary.Link.TButton"))
-    # endregion
 
     main_window.master.mainloop()
 

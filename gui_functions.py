@@ -115,13 +115,6 @@ def change_state_on_settings_load(
 def chrome_profile_path(settings: dict) -> None:
     """Wyszukuję i zapisuje w ustawieniach aplikacji aktualną ścierzkę do profilu użytkownika przeglądarki chrome"""
 
-    # driver = webdriver.Chrome(
-    #     service=Service(ChromeDriverManager(cache_valid_range=31).install())
-    # )
-    # driver.get("chrome://version")
-    # path = driver.find_element_by_xpath('//*[@id="profile_path"]').text
-    # driver.quit()
-    # path = path[: path.find("Temp\\")] + "Google\\Chrome\\User Data"
     path = os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\User Data\TribalWars")
     settings["path"] = path
     settings["first_lunch"] = False
@@ -169,6 +162,7 @@ def custom_error(message: str, auto_hide: bool = False, parent=None) -> None:
         master.bind("<Return>", lambda event: master.destroy())
         center(master, parent=parent)
         master.attributes("-alpha", 1.0)
+        master.grab_set()
         ok_button.wait_window(master)
 
     if auto_hide:
@@ -244,7 +238,9 @@ def get_pos(self, event, *args) -> None:
         getattr(self, arg).bind("<B1-Motion>", move_window)
 
 
-def if_paid(date: str) -> bool:
+def paid(date: str) -> bool:
+    """Return True if paid or False if not"""
+
     if time.strptime(current_time(), "%d/%m/%Y %H:%M:%S") > time.strptime(
         date + " 23:59:59", "%Y-%m-%d %H:%M:%S"
     ):

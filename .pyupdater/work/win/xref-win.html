@@ -28,7 +28,6 @@ imports:
  &#8226;   <a href="#collections.abc">collections.abc</a>
  &#8226;   <a href="#copyreg">copyreg</a>
  &#8226;   <a href="#database_connection">database_connection</a>
- &#8226;   <a href="#datetime">datetime</a>
  &#8226;   <a href="#decorators">decorators</a>
  &#8226;   <a href="#encodings">encodings</a>
  &#8226;   <a href="#encodings.aliases">encodings.aliases</a>
@@ -159,8 +158,6 @@ imports:
  &#8226;   <a href="#io">io</a>
  &#8226;   <a href="#json">json</a>
  &#8226;   <a href="#keyword">keyword</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
  &#8226;   <a href="#linecache">linecache</a>
  &#8226;   <a href="#locale">locale</a>
  &#8226;   <a href="#log_in_window">log_in_window</a>
@@ -192,6 +189,8 @@ imports:
  &#8226;   <a href="#tkinter">tkinter</a>
  &#8226;   <a href="#traceback">traceback</a>
  &#8226;   <a href="#ttkbootstrap">ttkbootstrap</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
+ &#8226;   <a href="#ttkbootstrap.tooltip">ttkbootstrap.tooltip</a>
  &#8226;   <a href="#types">types</a>
  &#8226;   <a href="#warnings">warnings</a>
  &#8226;   <a href="#weakref">weakref</a>
@@ -9810,8 +9809,10 @@ imported by:
   <a target="code" href="///C:/Users/klime/VS%20Code/selenium_chrome/bot_functions.py" type="text/plain"><tt>bot_functions</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
-    <a href="#email_notifications">email_notifications</a>
+    <a href="#database_connection">database_connection</a>
+ &#8226;   <a href="#email_notifications">email_notifications</a>
  &#8226;   <a href="#gui_functions">gui_functions</a>
+ &#8226;   <a href="#json">json</a>
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#lxml.html">lxml.html</a>
  &#8226;   <a href="#math">math</a>
@@ -14734,6 +14735,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#importlib.metadata">importlib.metadata</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
 
   </div>
 
@@ -15034,7 +15036,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#bot_main.py">bot_main.py</a>
+    <a href="#bot_functions">bot_functions</a>
+ &#8226;   <a href="#bot_main.py">bot_main.py</a>
  &#8226;   <a href="#log_in_window">log_in_window</a>
  &#8226;   <a href="#register_window">register_window</a>
 
@@ -15087,7 +15090,6 @@ imported by:
  &#8226;   <a href="#IPython.lib.pretty">IPython.lib.pretty</a>
  &#8226;   <a href="#OpenSSL.crypto">OpenSSL.crypto</a>
  &#8226;   <a href="#_strptime">_strptime</a>
- &#8226;   <a href="#bot_main.py">bot_main.py</a>
  &#8226;   <a href="#calendar">calendar</a>
  &#8226;   <a href="#cryptography.hazmat.backends.openssl.x509">cryptography.hazmat.backends.openssl.x509</a>
  &#8226;   <a href="#cryptography.x509.base">cryptography.x509.base</a>
@@ -15129,6 +15131,7 @@ imported by:
  &#8226;   <a href="#tornado.queues">tornado.queues</a>
  &#8226;   <a href="#tornado.util">tornado.util</a>
  &#8226;   <a href="#ttkbootstrap.dialogs.dialogs">ttkbootstrap.dialogs.dialogs</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
  &#8226;   <a href="#ttkbootstrap.widgets">ttkbootstrap.widgets</a>
  &#8226;   <a href="#urllib3.connection">urllib3.connection</a>
  &#8226;   <a href="#webdriver_manager.driver_cache">webdriver_manager.driver_cache</a>
@@ -20513,6 +20516,7 @@ imported by:
  &#8226;   <a href="#setuptools.glob">setuptools.glob</a>
  &#8226;   <a href="#shutil">shutil</a>
  &#8226;   <a href="#test.support">test.support</a>
+ &#8226;   <a href="#tkinter.filedialog">tkinter.filedialog</a>
  &#8226;   <a href="#tracemalloc">tracemalloc</a>
  &#8226;   <a href="#unittest.loader">unittest.loader</a>
  &#8226;   <a href="#urllib.request">urllib.request</a>
@@ -26161,6 +26165,7 @@ imports:
 imported by:
     <a href="#IPython.core.display">IPython.core.display</a>
  &#8226;   <a href="#IPython.core.formatters">IPython.core.formatters</a>
+ &#8226;   <a href="#bot_functions">bot_functions</a>
  &#8226;   <a href="#bot_main.py">bot_main.py</a>
  &#8226;   <a href="#charset_normalizer.models">charset_normalizer.models</a>
  &#8226;   <a href="#dateutil.zoneinfo">dateutil.zoneinfo</a>
@@ -26950,354 +26955,6 @@ imported by:
 </div>
 
 <div class="node">
-  <a name="lib2to3"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/__init__.py" type="text/plain"><tt>lib2to3</tt></a>
-<span class="moduletype">Package</span>  <div class="import">
-imports:
-    <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.btm_matcher">lib2to3.btm_matcher</a>
- &#8226;   <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pytree">lib2to3.pytree</a>
- &#8226;   <a href="#warnings">warnings</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.btm_matcher">lib2to3.btm_matcher</a>
- &#8226;   <a href="#lib2to3.btm_utils">lib2to3.btm_utils</a>
- &#8226;   <a href="#lib2to3.fixer_util">lib2to3.fixer_util</a>
- &#8226;   <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pygram">lib2to3.pygram</a>
- &#8226;   <a href="#lib2to3.pytree">lib2to3.pytree</a>
- &#8226;   <a href="#lib2to3.refactor">lib2to3.refactor</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.btm_matcher"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/btm_matcher.py" type="text/plain"><tt>lib2to3.btm_matcher</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#collections">collections</a>
- &#8226;   <a href="#itertools">itertools</a>
- &#8226;   <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.btm_utils">lib2to3.btm_utils</a>
- &#8226;   <a href="#lib2to3.pygram">lib2to3.pygram</a>
- &#8226;   <a href="#lib2to3.pytree">lib2to3.pytree</a>
- &#8226;   <a href="#logging">logging</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.refactor">lib2to3.refactor</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.btm_utils"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/btm_utils.py" type="text/plain"><tt>lib2to3.btm_utils</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.grammar">lib2to3.pgen2.grammar</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
- &#8226;   <a href="#lib2to3.pygram">lib2to3.pygram</a>
- &#8226;   <a href="#lib2to3.pytree">lib2to3.pytree</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3.btm_matcher">lib2to3.btm_matcher</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.patcomp"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/patcomp.py" type="text/plain"><tt>lib2to3.patcomp</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#io">io</a>
- &#8226;   <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
- &#8226;   <a href="#lib2to3.pgen2.grammar">lib2to3.pgen2.grammar</a>
- &#8226;   <a href="#lib2to3.pgen2.literals">lib2to3.pgen2.literals</a>
- &#8226;   <a href="#lib2to3.pgen2.parse">lib2to3.pgen2.parse</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
- &#8226;   <a href="#lib2to3.pgen2.tokenize">lib2to3.pgen2.tokenize</a>
- &#8226;   <a href="#lib2to3.pygram">lib2to3.pygram</a>
- &#8226;   <a href="#lib2to3.pytree">lib2to3.pytree</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.fixer_util">lib2to3.fixer_util</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pgen2"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pgen2/__init__.py" type="text/plain"><tt>lib2to3.pgen2</tt></a>
-<span class="moduletype">Package</span>  <div class="import">
-imports:
-    <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
- &#8226;   <a href="#lib2to3.pgen2.grammar">lib2to3.pgen2.grammar</a>
- &#8226;   <a href="#lib2to3.pgen2.literals">lib2to3.pgen2.literals</a>
- &#8226;   <a href="#lib2to3.pgen2.parse">lib2to3.pgen2.parse</a>
- &#8226;   <a href="#lib2to3.pgen2.pgen">lib2to3.pgen2.pgen</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
- &#8226;   <a href="#lib2to3.pgen2.tokenize">lib2to3.pgen2.tokenize</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#bot_main.py">bot_main.py</a>
- &#8226;   <a href="#lib2to3.btm_utils">lib2to3.btm_utils</a>
- &#8226;   <a href="#lib2to3.fixer_util">lib2to3.fixer_util</a>
- &#8226;   <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
- &#8226;   <a href="#lib2to3.pgen2.grammar">lib2to3.pgen2.grammar</a>
- &#8226;   <a href="#lib2to3.pgen2.literals">lib2to3.pgen2.literals</a>
- &#8226;   <a href="#lib2to3.pgen2.parse">lib2to3.pgen2.parse</a>
- &#8226;   <a href="#lib2to3.pgen2.pgen">lib2to3.pgen2.pgen</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
- &#8226;   <a href="#lib2to3.pgen2.tokenize">lib2to3.pgen2.tokenize</a>
- &#8226;   <a href="#lib2to3.pygram">lib2to3.pygram</a>
- &#8226;   <a href="#lib2to3.refactor">lib2to3.refactor</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pgen2.driver"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pgen2/driver.py" type="text/plain"><tt>lib2to3.pgen2.driver</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#io">io</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.grammar">lib2to3.pgen2.grammar</a>
- &#8226;   <a href="#lib2to3.pgen2.parse">lib2to3.pgen2.parse</a>
- &#8226;   <a href="#lib2to3.pgen2.pgen">lib2to3.pgen2.pgen</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
- &#8226;   <a href="#lib2to3.pgen2.tokenize">lib2to3.pgen2.tokenize</a>
- &#8226;   <a href="#logging">logging</a>
- &#8226;   <a href="#os">os</a>
- &#8226;   <a href="#pkgutil">pkgutil</a>
- &#8226;   <a href="#sys">sys</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#bot_main.py">bot_main.py</a>
- &#8226;   <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pygram">lib2to3.pygram</a>
- &#8226;   <a href="#lib2to3.refactor">lib2to3.refactor</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pgen2.grammar"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pgen2/grammar.py" type="text/plain"><tt>lib2to3.pgen2.grammar</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
- &#8226;   <a href="#pickle">pickle</a>
- &#8226;   <a href="#pprint">pprint</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3.btm_utils">lib2to3.btm_utils</a>
- &#8226;   <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
- &#8226;   <a href="#lib2to3.pgen2.pgen">lib2to3.pgen2.pgen</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pgen2.literals"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pgen2/literals.py" type="text/plain"><tt>lib2to3.pgen2.literals</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#re">re</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pgen2.parse"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pgen2/parse.py" type="text/plain"><tt>lib2to3.pgen2.parse</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pgen2.pgen"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pgen2/pgen.py" type="text/plain"><tt>lib2to3.pgen2.pgen</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.grammar">lib2to3.pgen2.grammar</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
- &#8226;   <a href="#lib2to3.pgen2.tokenize">lib2to3.pgen2.tokenize</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pgen2.token"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pgen2/token.py" type="text/plain"><tt>lib2to3.pgen2.token</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3.btm_utils">lib2to3.btm_utils</a>
- &#8226;   <a href="#lib2to3.fixer_util">lib2to3.fixer_util</a>
- &#8226;   <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
- &#8226;   <a href="#lib2to3.pgen2.grammar">lib2to3.pgen2.grammar</a>
- &#8226;   <a href="#lib2to3.pgen2.parse">lib2to3.pgen2.parse</a>
- &#8226;   <a href="#lib2to3.pgen2.pgen">lib2to3.pgen2.pgen</a>
- &#8226;   <a href="#lib2to3.pgen2.tokenize">lib2to3.pgen2.tokenize</a>
- &#8226;   <a href="#lib2to3.pygram">lib2to3.pygram</a>
- &#8226;   <a href="#lib2to3.refactor">lib2to3.refactor</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pgen2.tokenize"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pgen2/tokenize.py" type="text/plain"><tt>lib2to3.pgen2.tokenize</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#codecs">codecs</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
- &#8226;   <a href="#re">re</a>
- &#8226;   <a href="#string">string</a>
- &#8226;   <a href="#sys">sys</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
- &#8226;   <a href="#lib2to3.pgen2.pgen">lib2to3.pgen2.pgen</a>
- &#8226;   <a href="#lib2to3.refactor">lib2to3.refactor</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pygram"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pygram.py" type="text/plain"><tt>lib2to3.pygram</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.pgen2">lib2to3.pgen2</a>
- &#8226;   <a href="#lib2to3.pgen2.driver">lib2to3.pgen2.driver</a>
- &#8226;   <a href="#lib2to3.pgen2.token">lib2to3.pgen2.token</a>
- &#8226;   <a href="#lib2to3.pytree">lib2to3.pytree</a>
- &#8226;   <a href="#os">os</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3.btm_matcher">lib2to3.btm_matcher</a>
- &#8226;   <a href="#lib2to3.btm_utils">lib2to3.btm_utils</a>
- &#8226;   <a href="#lib2to3.fixer_util">lib2to3.fixer_util</a>
- &#8226;   <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pytree">lib2to3.pytree</a>
- &#8226;   <a href="#lib2to3.refactor">lib2to3.refactor</a>
-
-  </div>
-
-</div>
-
-<div class="node">
-  <a name="lib2to3.pytree"></a>
-  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/lib2to3/pytree.py" type="text/plain"><tt>lib2to3.pytree</tt></a>
-<span class="moduletype">SourceModule</span>  <div class="import">
-imports:
-    <a href="#io">io</a>
- &#8226;   <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.pygram">lib2to3.pygram</a>
- &#8226;   <a href="#sys">sys</a>
-
-  </div>
-  <div class="import">
-imported by:
-    <a href="#lib2to3">lib2to3</a>
- &#8226;   <a href="#lib2to3.btm_matcher">lib2to3.btm_matcher</a>
- &#8226;   <a href="#lib2to3.btm_utils">lib2to3.btm_utils</a>
- &#8226;   <a href="#lib2to3.fixer_util">lib2to3.fixer_util</a>
- &#8226;   <a href="#lib2to3.patcomp">lib2to3.patcomp</a>
- &#8226;   <a href="#lib2to3.pygram">lib2to3.pygram</a>
- &#8226;   <a href="#lib2to3.refactor">lib2to3.refactor</a>
-
-  </div>
-
-</div>
-
-<div class="node">
   <a name="linecache"></a>
   <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/linecache.py" type="text/plain"><tt>linecache</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -27361,6 +27018,7 @@ imported by:
  &#8226;   <a href="#ipython_genutils.encoding">ipython_genutils.encoding</a>
  &#8226;   <a href="#pygments.util">pygments.util</a>
  &#8226;   <a href="#test.support">test.support</a>
+ &#8226;   <a href="#tkinter.filedialog">tkinter.filedialog</a>
  &#8226;   <a href="#ttkbootstrap.dialogs.dialogs">ttkbootstrap.dialogs.dialogs</a>
  &#8226;   <a href="#xml.etree.ElementTree">xml.etree.ElementTree</a>
 
@@ -27376,8 +27034,10 @@ imports:
     <a href="#database_connection">database_connection</a>
  &#8226;   <a href="#gui_functions">gui_functions</a>
  &#8226;   <a href="#register_window">register_window</a>
+ &#8226;   <a href="#threading">threading</a>
  &#8226;   <a href="#tkinter">tkinter</a>
  &#8226;   <a href="#ttkbootstrap">ttkbootstrap</a>
+ &#8226;   <a href="#unicodedata">unicodedata</a>
  &#8226;   <a href="#uuid">uuid</a>
 
   </div>
@@ -27780,6 +27440,7 @@ imported by:
  &#8226;   <a href="#trio._sync">trio._sync</a>
  &#8226;   <a href="#trio._wait_for_object">trio._wait_for_object</a>
  &#8226;   <a href="#ttkbootstrap.style">ttkbootstrap.style</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
  &#8226;   <a href="#ttkbootstrap.widgets">ttkbootstrap.widgets</a>
  &#8226;   <a href="#zmq.eventloop.minitornado.ioloop">zmq.eventloop.minitornado.ioloop</a>
 
@@ -30011,6 +29672,7 @@ imported by:
  &#8226;   <a href="#threading">threading</a>
  &#8226;   <a href="#timeit">timeit</a>
  &#8226;   <a href="#tkinter">tkinter</a>
+ &#8226;   <a href="#tkinter.filedialog">tkinter.filedialog</a>
  &#8226;   <a href="#tkinter.ttk">tkinter.ttk</a>
  &#8226;   <a href="#tornado.ioloop">tornado.ioloop</a>
  &#8226;   <a href="#tornado.iostream">tornado.iostream</a>
@@ -36872,9 +36534,9 @@ imports:
  &#8226;   <a href="#pygments">pygments</a>
  &#8226;   <a href="#pygments.lexers.PythonLexer">pygments.lexers.PythonLexer</a>
  &#8226;   <a href="#pygments.lexers._mapping">pygments.lexers._mapping</a>
+ &#8226;   <a href="#pygments.lexers._mql_builtins">pygments.lexers._mql_builtins</a>
  &#8226;   <a href="#pygments.lexers._scilab_builtins">pygments.lexers._scilab_builtins</a>
  &#8226;   <a href="#pygments.lexers._stan_builtins">pygments.lexers._stan_builtins</a>
- &#8226;   <a href="#pygments.lexers._tsql_builtins">pygments.lexers._tsql_builtins</a>
  &#8226;   <a href="#pygments.modeline">pygments.modeline</a>
  &#8226;   <a href="#pygments.plugin">pygments.plugin</a>
  &#8226;   <a href="#pygments.util">pygments.util</a>
@@ -37252,6 +36914,7 @@ imports:
   <div class="import">
 imported by:
     <a href="#pygments">pygments</a>
+ &#8226;   <a href="#pygments.lexers">pygments.lexers</a>
  &#8226;   <a href="#pygments.lexers.c_like">pygments.lexers.c_like</a>
  &#8226;   <a href="#pygments.lexers.freefem">pygments.lexers.freefem</a>
 
@@ -37433,7 +37096,6 @@ imports:
   <div class="import">
 imported by:
     <a href="#pygments">pygments</a>
- &#8226;   <a href="#pygments.lexers">pygments.lexers</a>
  &#8226;   <a href="#pygments.lexers.sql">pygments.lexers.sql</a>
 
   </div>
@@ -48699,6 +48361,7 @@ imported by:
  &#8226;   <a href="#threading">threading</a>
  &#8226;   <a href="#timeit">timeit</a>
  &#8226;   <a href="#tkinter">tkinter</a>
+ &#8226;   <a href="#tkinter.filedialog">tkinter.filedialog</a>
  &#8226;   <a href="#tokenize">tokenize</a>
  &#8226;   <a href="#tornado.concurrent">tornado.concurrent</a>
  &#8226;   <a href="#tornado.gen">tornado.gen</a>
@@ -49061,6 +48724,7 @@ imported by:
  &#8226;   <a href="#ipykernel.zmqshell">ipykernel.zmqshell</a>
  &#8226;   <a href="#jedi.inference.compiled.subprocess">jedi.inference.compiled.subprocess</a>
  &#8226;   <a href="#jupyter_client.channels">jupyter_client.channels</a>
+ &#8226;   <a href="#log_in_window">log_in_window</a>
  &#8226;   <a href="#logging">logging</a>
  &#8226;   <a href="#logging.handlers">logging.handlers</a>
  &#8226;   <a href="#multiprocessing.context">multiprocessing.context</a>
@@ -49259,8 +48923,10 @@ imports:
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#tkinter.commondialog">tkinter.commondialog</a>
  &#8226;   <a href="#tkinter.constants">tkinter.constants</a>
  &#8226;   <a href="#tkinter.font">tkinter.font</a>
+ &#8226;   <a href="#tkinter.messagebox">tkinter.messagebox</a>
  &#8226;   <a href="#tkinter.ttk">tkinter.ttk</a>
  &#8226;   <a href="#traceback">traceback</a>
  &#8226;   <a href="#types">types</a>
@@ -49276,17 +48942,41 @@ imported by:
  &#8226;   <a href="#my_widgets">my_widgets</a>
  &#8226;   <a href="#register_window">register_window</a>
  &#8226;   <a href="#test.support">test.support</a>
+ &#8226;   <a href="#tkinter.commondialog">tkinter.commondialog</a>
  &#8226;   <a href="#tkinter.constants">tkinter.constants</a>
+ &#8226;   <a href="#tkinter.dialog">tkinter.dialog</a>
+ &#8226;   <a href="#tkinter.filedialog">tkinter.filedialog</a>
  &#8226;   <a href="#tkinter.font">tkinter.font</a>
+ &#8226;   <a href="#tkinter.messagebox">tkinter.messagebox</a>
  &#8226;   <a href="#tkinter.scrolledtext">tkinter.scrolledtext</a>
+ &#8226;   <a href="#tkinter.simpledialog">tkinter.simpledialog</a>
  &#8226;   <a href="#tkinter.ttk">tkinter.ttk</a>
  &#8226;   <a href="#ttkbootstrap">ttkbootstrap</a>
  &#8226;   <a href="#ttkbootstrap.dialogs.colorchooser">ttkbootstrap.dialogs.colorchooser</a>
  &#8226;   <a href="#ttkbootstrap.dialogs.colordropper">ttkbootstrap.dialogs.colordropper</a>
  &#8226;   <a href="#ttkbootstrap.dialogs.dialogs">ttkbootstrap.dialogs.dialogs</a>
  &#8226;   <a href="#ttkbootstrap.style">ttkbootstrap.style</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
  &#8226;   <a href="#ttkbootstrap.widgets">ttkbootstrap.widgets</a>
  &#8226;   <a href="#ttkbootstrap.window">ttkbootstrap.window</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="tkinter.commondialog"></a>
+  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/tkinter/commondialog.py" type="text/plain"><tt>tkinter.commondialog</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#tkinter">tkinter</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#tkinter">tkinter</a>
+ &#8226;   <a href="#tkinter.filedialog">tkinter.filedialog</a>
+ &#8226;   <a href="#tkinter.messagebox">tkinter.messagebox</a>
 
   </div>
 
@@ -49311,6 +49001,45 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="tkinter.dialog"></a>
+  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/tkinter/dialog.py" type="text/plain"><tt>tkinter.dialog</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#tkinter">tkinter</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#tkinter.filedialog">tkinter.filedialog</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="tkinter.filedialog"></a>
+  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/tkinter/filedialog.py" type="text/plain"><tt>tkinter.filedialog</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#fnmatch">fnmatch</a>
+ &#8226;   <a href="#locale">locale</a>
+ &#8226;   <a href="#os">os</a>
+ &#8226;   <a href="#sys">sys</a>
+ &#8226;   <a href="#tkinter">tkinter</a>
+ &#8226;   <a href="#tkinter.commondialog">tkinter.commondialog</a>
+ &#8226;   <a href="#tkinter.dialog">tkinter.dialog</a>
+ &#8226;   <a href="#tkinter.simpledialog">tkinter.simpledialog</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="tkinter.font"></a>
   <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/tkinter/font.py" type="text/plain"><tt>tkinter.font</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
@@ -49324,7 +49053,26 @@ imported by:
     <a href="#tkinter">tkinter</a>
  &#8226;   <a href="#ttkbootstrap.dialogs.dialogs">ttkbootstrap.dialogs.dialogs</a>
  &#8226;   <a href="#ttkbootstrap.style">ttkbootstrap.style</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
  &#8226;   <a href="#ttkbootstrap.widgets">ttkbootstrap.widgets</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="tkinter.messagebox"></a>
+  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/tkinter/messagebox.py" type="text/plain"><tt>tkinter.messagebox</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#tkinter">tkinter</a>
+ &#8226;   <a href="#tkinter.commondialog">tkinter.commondialog</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#tkinter">tkinter</a>
+ &#8226;   <a href="#tkinter.simpledialog">tkinter.simpledialog</a>
 
   </div>
 
@@ -49342,6 +49090,23 @@ imports:
   <div class="import">
 imported by:
     <a href="#ttkbootstrap">ttkbootstrap</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="tkinter.simpledialog"></a>
+  <a target="code" href="///C:/Users/klime/AppData/Local/Programs/Python/Python310/lib/tkinter/simpledialog.py" type="text/plain"><tt>tkinter.simpledialog</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#tkinter">tkinter</a>
+ &#8226;   <a href="#tkinter.messagebox">tkinter.messagebox</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#tkinter.filedialog">tkinter.filedialog</a>
 
   </div>
 
@@ -52144,6 +51909,7 @@ imported by:
  &#8226;   <a href="#ttkbootstrap.localization.msgcat">ttkbootstrap.localization.msgcat</a>
  &#8226;   <a href="#ttkbootstrap.publisher">ttkbootstrap.publisher</a>
  &#8226;   <a href="#ttkbootstrap.style">ttkbootstrap.style</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
  &#8226;   <a href="#ttkbootstrap.themes">ttkbootstrap.themes</a>
  &#8226;   <a href="#ttkbootstrap.tooltip">ttkbootstrap.tooltip</a>
  &#8226;   <a href="#ttkbootstrap.utility">ttkbootstrap.utility</a>
@@ -52191,6 +51957,7 @@ imported by:
  &#8226;   <a href="#ttkbootstrap.dialogs.colordropper">ttkbootstrap.dialogs.colordropper</a>
  &#8226;   <a href="#ttkbootstrap.dialogs.dialogs">ttkbootstrap.dialogs.dialogs</a>
  &#8226;   <a href="#ttkbootstrap.style">ttkbootstrap.style</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
  &#8226;   <a href="#ttkbootstrap.tooltip">ttkbootstrap.tooltip</a>
  &#8226;   <a href="#ttkbootstrap.widgets">ttkbootstrap.widgets</a>
  &#8226;   <a href="#ttkbootstrap.window">ttkbootstrap.window</a>
@@ -52353,6 +52120,7 @@ imported by:
  &#8226;   <a href="#ttkbootstrap.localization.msgcat">ttkbootstrap.localization.msgcat</a>
  &#8226;   <a href="#ttkbootstrap.localization.msgs">ttkbootstrap.localization.msgs</a>
  &#8226;   <a href="#ttkbootstrap.style">ttkbootstrap.style</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
 
   </div>
 
@@ -52449,6 +52217,32 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="ttkbootstrap.tableview"></a>
+  <a target="code" href="///C:/Users/klime/VS%20Code/selenium_chrome/.venv_tribal_wars/lib/site-packages/ttkbootstrap/tableview.py" type="text/plain"><tt>ttkbootstrap.tableview</tt></a>
+<span class="moduletype">SourceModule</span>  <div class="import">
+imports:
+    <a href="#csv">csv</a>
+ &#8226;   <a href="#datetime">datetime</a>
+ &#8226;   <a href="#math">math</a>
+ &#8226;   <a href="#tkinter">tkinter</a>
+ &#8226;   <a href="#tkinter.filedialog">tkinter.filedialog</a>
+ &#8226;   <a href="#tkinter.font">tkinter.font</a>
+ &#8226;   <a href="#ttkbootstrap">ttkbootstrap</a>
+ &#8226;   <a href="#ttkbootstrap.constants">ttkbootstrap.constants</a>
+ &#8226;   <a href="#ttkbootstrap.localization">ttkbootstrap.localization</a>
+ &#8226;   <a href="#ttkbootstrap.utility">ttkbootstrap.utility</a>
+ &#8226;   <a href="#typing">typing</a>
+
+  </div>
+  <div class="import">
+imported by:
+    <a href="#bot_main.py">bot_main.py</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="ttkbootstrap.themes"></a>
   <a target="code" href="///C:/Users/klime/VS%20Code/selenium_chrome/.venv_tribal_wars/lib/site-packages/ttkbootstrap/themes/__init__.py" type="text/plain"><tt>ttkbootstrap.themes</tt></a>
 <span class="moduletype">Package</span>  <div class="import">
@@ -52509,7 +52303,8 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#register_window">register_window</a>
+    <a href="#bot_main.py">bot_main.py</a>
+ &#8226;   <a href="#register_window">register_window</a>
  &#8226;   <a href="#ttkbootstrap.dialogs.colorchooser">ttkbootstrap.dialogs.colorchooser</a>
 
   </div>
@@ -52532,6 +52327,7 @@ imported by:
  &#8226;   <a href="#ttkbootstrap.dialogs.colordropper">ttkbootstrap.dialogs.colordropper</a>
  &#8226;   <a href="#ttkbootstrap.dialogs.dialogs">ttkbootstrap.dialogs.dialogs</a>
  &#8226;   <a href="#ttkbootstrap.style">ttkbootstrap.style</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
  &#8226;   <a href="#ttkbootstrap.tooltip">ttkbootstrap.tooltip</a>
  &#8226;   <a href="#ttkbootstrap.widgets">ttkbootstrap.widgets</a>
  &#8226;   <a href="#ttkbootstrap.window">ttkbootstrap.window</a>
@@ -53028,6 +52824,7 @@ imported by:
  &#8226;   <a href="#trio.testing._sequencer">trio.testing._sequencer</a>
  &#8226;   <a href="#ttkbootstrap.publisher">ttkbootstrap.publisher</a>
  &#8226;   <a href="#ttkbootstrap.style">ttkbootstrap.style</a>
+ &#8226;   <a href="#ttkbootstrap.tableview">ttkbootstrap.tableview</a>
  &#8226;   <a href="#webdriver_manager.archive">webdriver_manager.archive</a>
  &#8226;   <a href="#zmq.backend.select">zmq.backend.select</a>
  &#8226;   <a href="#zmq.error">zmq.error</a>
@@ -53072,6 +52869,7 @@ imported by:
  &#8226;   <a href="#charset_normalizer.utils">charset_normalizer.utils</a>
  &#8226;   <a href="#encodings.idna">encodings.idna</a>
  &#8226;   <a href="#idna.core">idna.core</a>
+ &#8226;   <a href="#log_in_window">log_in_window</a>
  &#8226;   <a href="#pygments.unistring">pygments.unistring</a>
  &#8226;   <a href="#setuptools.unicode_utils">setuptools.unicode_utils</a>
  &#8226;   <a href="#sre_parse">sre_parse</a>

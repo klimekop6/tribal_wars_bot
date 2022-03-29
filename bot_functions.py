@@ -1,3 +1,4 @@
+import json
 import logging
 import random
 import re
@@ -18,6 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
 import email_notifications
+from database_connection import DataBaseConnection
 from gui_functions import custom_error
 
 logging.basicConfig(filename="log.txt", level=logging.ERROR)
@@ -324,15 +326,8 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
 
                     send_troops_in_the_middle(driver=driver, settings=settings)
 
-                    html = driver.page_source
-                    if html.find("captcha") != -1 and not captcha_solved:
-                        driver.save_screenshot("before.png")
-                        WebDriverWait(driver, 120).until(
-                            lambda x: x.find_element_by_css_selector(
-                                ".antigate_solver.solved"
-                            )
-                        )
-                        driver.save_screenshot("after.png")
+                    if not captcha_solved:
+                        captcha_check(driver=driver, settings=settings)
                         captcha_solved = True
 
                     while time.time() - start_time < 0.195:
@@ -359,6 +354,26 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
             break
         used_villages.append(
             driver.execute_script("return window.game_data.village.id;")
+        )
+
+
+def captcha_check(
+    driver: webdriver.Chrome, settings: dict[str], page_source: str = None
+) -> None:
+    """Check for captcha existence.
+
+    If exist, wait until solved and than update captcha counter.
+    """
+
+    if not page_source:
+        page_source = driver.page_source
+
+    if page_source.find("captcha") != -1:
+        WebDriverWait(driver, 120).until(
+            lambda x: x.find_element_by_css_selector(".antigate_solver.solved")
+        )
+        settings["temp"]["captcha_counter"].set(
+            settings["temp"]["captcha_counter"].get() + 1
         )
 
 
@@ -540,10 +555,10 @@ def dodge_attacks(driver: webdriver.Chrome) -> None:
                 break
 
 
-def gathering_resources(
-    driver: webdriver.Chrome, settings: dict[str], **kwargs
-) -> list:
+def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
     """Wysyła wojska do zbierania surowców"""
+
+    settings = kwargs["settings"]
 
     if "url_to_gathering" not in kwargs:
         # Tworzy listę docelowo zawierającą słowniki
@@ -616,15 +631,23 @@ def gathering_resources(
 
         send_troops_in_the_middle(driver=driver, settings=settings)
 
-        source_page = driver.page_source
-        if source_page.find("captcha") != -1:
-            WebDriverWait(driver, 120).until(
-                lambda x: x.find_element_by_css_selector(".antigate_solver.solved")
+        page_source = driver.page_source
+        captcha_check(driver=driver, settings=settings, page_source=page_source)
+
+        # Skip to next village if current one doesn't have place
+        place_str = re.search(r'"place":"\d"', page_source).group()
+        if re.search(r"\d", place_str).group() == "0":
+            driver.find_element_by_id("ds_body").send_keys("d")
+            current_village_id = driver.execute_script(
+                "return window.game_data.village.id;"
             )
+            if starting_village == current_village_id:
+                return list_of_dicts
+            continue
 
         # Dostępne wojska
         available_troops = {}
-        doc = lxml.html.fromstring(source_page)
+        doc = lxml.html.fromstring(page_source)
         troops_name = [
             troop_name.get("name")
             for troop_name in doc.xpath(
@@ -800,6 +823,8 @@ def gathering_resources(
                         case _:
                             army_sum += troops_to_send[key][troop_name] * reduce_ratio
             if army_sum < 10:
+                if key == 1:
+                    troops_to_send.clear()
                 break
             start = WebDriverWait(driver, 3, 0.01).until(
                 EC.element_to_be_clickable(
@@ -834,7 +859,7 @@ def gathering_resources(
                 ).get_attribute("innerHTML")
             )
             doc = doc.xpath("//div/div[3]/div/ul/li[4]/span[2]")
-            if not [ele.text for ele in doc] and troops_to_send:
+            if troops_to_send and not [ele.text for ele in doc]:
                 for _ in range(10):
                     time.sleep(0.2)
                     doc = lxml.html.fromstring(
@@ -858,17 +883,13 @@ def gathering_resources(
             journey_time = (
                 journey_time[0] * 3600 + journey_time[1] * 60 + journey_time[2]
             )
-            base_url = driver.current_url[: driver.current_url.rfind("/")]
-            current_village_id = driver.execute_script(
-                "return window.game_data.village.id;"
-            )
             return [
                 {
                     "func": "gathering",
-                    "url_to_gathering": base_url
-                    + f"/game.php?village={current_village_id}&screen=place&mode=scavenge",
+                    "url_to_gathering": kwargs["url_to_gathering"],
                     "start_time": time.time() + journey_time + 3,
                     "server_world": settings["server_world"],
+                    "settings": settings,
                 }
             ]
 
@@ -898,6 +919,7 @@ def gathering_resources(
                 + f"/game.php?village={current_village_id}&screen=place&mode=scavenge",
                 "start_time": time.time() + journey_time + 3,
                 "server_world": settings["server_world"],
+                "settings": settings,
             }
         )
 
@@ -967,10 +989,11 @@ def log_error(driver: webdriver.Chrome, msg: str = "") -> None:
     error_str = traceback.format_exc()
     error_str = error_str[: error_str.find("Stacktrace")]
     logging.error(
-        f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())}\n'
-        f"{driver.current_url}\n"
+        f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())}\n\n'
+        f"{msg}\n\n"
+        f"{driver.current_url}\n\n"
         f"{error_str}\n"
-        f"{msg}\n"
+        f"-----------------------------------------------------------------------------------\n"
     )
 
 
@@ -1301,6 +1324,21 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
             )
         doc = lxml.html.fromstring(html_response)
         doc = doc.xpath('//table[@id="villages_list"]/tbody/tr')
+        if len(doc) > 100:
+            player_id = driver.execute_script("return game_data.player.id")
+            get_remain_villages_url = (
+                f"{player_profile_url}&ajax=fetch_villages&player_id={player_id}"
+            )
+            html_response = driver.execute_script(
+                f"""
+                var request = new XMLHttpRequest();
+                request.open("GET", "{get_remain_villages_url}", false);
+                request.send(null);   
+                return request.responseText;"""
+            )
+            add_to_doc = lxml.html.fromstring(json.loads(html_response)["villages"])
+            doc.pop()
+            doc.extend(add_to_doc)
 
         villages = {}
         for row in doc:
@@ -1339,6 +1377,13 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
             send_troops_in_the_middle(driver=driver, settings=settings)
 
             driver.get(village_url)
+
+            # Skip if market has not been built yet
+            if (
+                driver.execute_script("return game_data.village.buildings.market")
+                == "0"
+            ):
+                continue
 
             chat = driver.find_element_by_xpath('//*[@id="chat-wrapper"]')
             driver.execute_script("arguments[0].innerHTML = '';", chat)
@@ -1650,7 +1695,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
     It can be attack or help.
     You can also use it for fakes.
     """
-
+    # to_do = settings["temp"]["to_do"]
     send_time = settings["scheduler"]["ready_schedule"][0]["send_time"]
     list_to_send = []
     for cell_in_list in settings["scheduler"]["ready_schedule"]:
@@ -1667,10 +1712,10 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
 
         if index > 0:
             previous_tabs = set(driver.window_handles)
-            driver.execute_script(f'window.open("{send_info["url"]}");')
+            driver.switch_to.new_window("tab")
+            driver.get(send_info["url"])
             new_tab = set(driver.window_handles).difference(previous_tabs)
             new_tabs.append(*new_tab)
-            driver.switch_to.window(*new_tab)
         else:
             driver.get(send_info["url"])
 
@@ -1862,6 +1907,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                     + 2 * send_info["travel_time"]
                                     + 1,
                                     "server_world": settings["server_world"],
+                                    "settings": settings,
                                 }
                             )
                             # Add the same attack to scheduler with changed send_time etc.
@@ -1975,18 +2021,29 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
 def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
     """The same as send_troops but it is used during the other func run"""
 
-    if settings["scheduler"]["ready_schedule"]:
-        # Check if left more than 8sec to send troops
-        if settings["scheduler"]["ready_schedule"][0]["send_time"] - 8 > time.time():
+    to_do: list = settings["temp"]["to_do"]
+
+    current_time = time.time()
+    for task in to_do[1:]:
+        if task["start_time"] - 1 > current_time:
             return
+        if task["func"] != "send_troops":
+            continue
+        settings = task["settings"]
+        break
     else:
         return
 
+    # if settings["scheduler"]["ready_schedule"]:
+    #     # Check if left more than 8sec to send troops
+    #     if settings["scheduler"]["ready_schedule"][0]["send_time"] - 8 > time.time():
+    #         return
+    # else:
+    #     return
+
     # Save current tab, open new and switch to it
     origin_tab = driver.current_window_handle
-    # previous_tabs = set(driver.window_handles)
     driver.switch_to.new_window("tab")
-    # driver.switch_to.window(*set(driver.window_handles).difference(previous_tabs))
 
     try:
         (send_number_times, attacks_to_repeat) = send_troops(
@@ -1998,13 +2055,12 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
             driver=driver, settings=settings
         )
     finally:
-        # Switch to original tab
+        # Close current tab and switch to original one
+        driver.close()
         driver.switch_to.window(origin_tab)
 
     # Clean from settings and to_do
     del settings["scheduler"]["ready_schedule"][0:send_number_times]
-
-    to_do: list = settings["temp"]["to_do"]
 
     index_to_del = []
     for index, row_data in enumerate(to_do):
@@ -2033,169 +2089,188 @@ def unwanted_page_content(
     captcha etc.
     """
 
-    if not html:
-        html = driver.page_source
-
-    # If disconected/sesion expired
-    if html.find("chat-disconnected") != -1 or "session_expired" in driver.current_url:
-        return log_in(driver, settings)
-
-    # If captcha on page
-    if html.find("captcha") != -1:
-        driver.save_screenshot("before.png")
-        WebDriverWait(driver, 120).until(
-            lambda x: x.find_element_by_css_selector(".antigate_solver.solved")
-        )
-        driver.save_screenshot("after.png")
-        return True
-
-    # Bonus dzienny i pozostałe okna należacę do popup_box_container
-    elif html.find("popup_box_container") != -1:
-        # Poczekaj do 2 sekund w celu wczytania całości dynamicznego kontentu
-        for _ in range(25):
-            time.sleep(0.1)
+    try:
+        if not html:
             html = driver.page_source
+
+        # If disconected/sesion expired
+        if (
+            html.find("chat-disconnected") != -1
+            or "session_expired" in driver.current_url
+        ):
+            return log_in(driver, settings)
+
+        # If captcha on page
+        if html.find("captcha") != -1:
+            captcha_check(driver=driver, settings=settings, page_source=html)
+            return True
+
+        # Bonus dzienny i pozostałe okna należacę do popup_box_container
+        elif html.find("popup_box_container") != -1:
+            # Poczekaj do 2 sekund w celu wczytania całości dynamicznego kontentu
+            for _ in range(25):
+                time.sleep(0.1)
+                html = driver.page_source
+                if html.find("popup_box_daily_bonus") != -1:
+                    break
+
+            # Odbierz bonus dzienny
             if html.find("popup_box_daily_bonus") != -1:
-                break
 
-        # Odbierz bonus dzienny
-        if html.find("popup_box_daily_bonus") != -1:
-
-            def open_daily_bonus() -> bool:
-                try:
-                    popup_box_html = (
-                        WebDriverWait(driver, 5, 0.1)
-                        .until(
-                            EC.element_to_be_clickable((By.ID, "popup_box_daily_bonus"))
-                        )
-                        .get_attribute("innerHTML")
-                    )
-                    WebDriverWait(driver, 2, 0.1).until(
-                        EC.element_to_be_clickable(
-                            (By.CLASS_NAME, "popup_box_close.tooltip-delayed")
-                        )
-                    )
-                    bonuses = driver.find_elements(
-                        By.XPATH,
-                        '//*[@id="daily_bonus_content"]/div/div/div/div/div[@class="db-chest unlocked"]/../div[3]/a',
-                    )
-                    for bonus in bonuses:
-                        driver.execute_script(
-                            "return arguments[0].scrollIntoView(true);", bonus
-                        )
-                        bonus.click()
-
-                    if popup_box_html.find("icon header premium") != -1:
-                        WebDriverWait(driver, 2, 0.25).until(
-                            EC.element_to_be_clickable(
-                                (By.CLASS_NAME, "popup_box_close.tooltip-delayed")
-                            )
-                        ).click()
-
-                    # Check if popup_box_daily_bonus was closed
+                def open_daily_bonus() -> bool:
                     try:
-                        if WebDriverWait(driver, 3, 0.05).until(
-                            EC.invisibility_of_element_located(
-                                (By.ID, "popup_box_daily_bonus")
+                        popup_box_html = (
+                            WebDriverWait(driver, 5, 0.1)
+                            .until(
+                                EC.element_to_be_clickable(
+                                    (By.ID, "popup_box_daily_bonus")
+                                )
                             )
-                        ):
-                            return True
-                    except:
-                        WebDriverWait(driver, 3, 0.05).until(
+                            .get_attribute("innerHTML")
+                        )
+                        WebDriverWait(driver, 2, 0.1).until(
                             EC.element_to_be_clickable(
                                 (By.CLASS_NAME, "popup_box_close.tooltip-delayed")
                             )
-                        ).click()
-                        if WebDriverWait(driver, 3, 0.05).until(
-                            EC.invisibility_of_element_located(
-                                (By.ID, "popup_box_daily_bonus")
+                        )
+                        bonuses = driver.find_elements(
+                            By.XPATH,
+                            '//*[@id="daily_bonus_content"]/div/div/div/div/div[@class="db-chest unlocked"]/../div[3]/a',
+                        )
+                        for bonus in bonuses:
+                            driver.execute_script(
+                                "return arguments[0].scrollIntoView(true);", bonus
                             )
-                        ):
-                            return True
+                            bonus.click()
 
-                    return False
+                        if popup_box_html.find("icon header premium") != -1:
+                            WebDriverWait(driver, 2, 0.25).until(
+                                EC.element_to_be_clickable(
+                                    (By.CLASS_NAME, "popup_box_close.tooltip-delayed")
+                                )
+                            ).click()
 
-                except BaseException:
-                    return False
+                        # Check if popup_box_daily_bonus was closed
+                        try:
+                            if WebDriverWait(driver, 3, 0.05).until(
+                                EC.invisibility_of_element_located(
+                                    (By.ID, "popup_box_daily_bonus")
+                                )
+                            ):
+                                return True
+                        except:
+                            WebDriverWait(driver, 3, 0.05).until(
+                                EC.element_to_be_clickable(
+                                    (By.CLASS_NAME, "popup_box_close.tooltip-delayed")
+                                )
+                            ).click()
+                            if WebDriverWait(driver, 3, 0.05).until(
+                                EC.invisibility_of_element_located(
+                                    (By.ID, "popup_box_daily_bonus")
+                                )
+                            ):
+                                return True
 
-            # Próbuję odebrać bonus dzienny jeśli się nie uda odświeża stronę i próbuję ponownie. W razie niepowodzenia tworzy log błędu
-            try:
+                        return False
+
+                    except BaseException:
+                        return False
+
+                # Próbuję odebrać bonus dzienny jeśli się nie uda odświeża stronę i próbuję ponownie.
+                # W razie niepowodzenia tworzy log błędu
                 if open_daily_bonus():
                     return True
-                else:
-                    driver.refresh()
-                    if open_daily_bonus():
-                        return True
-                    else:
-                        raise
-            except BaseException:
+
+                driver.refresh()
+                if open_daily_bonus():
+                    return True
+
                 log_error(
                     driver=driver, msg="unwanted_page_content -> open_daily_bonus"
                 )
                 return False
 
-        # Zamknij wszystkie popup_boxy które nie dotyczą bonusu dziennego
-        else:
-            driver.find_element(
-                By.CLASS_NAME, "popup_box_close.tooltip-delayed"
-            ).click()
-            try:
-                WebDriverWait(driver, 3, 0.05).until(
-                    EC.invisibility_of_element_located(
-                        (By.CLASS_NAME, "popup_box_container")
+            # Zamknij wszystkie popup_boxy które nie dotyczą bonusu dziennego
+            else:
+                driver.find_element(
+                    By.CLASS_NAME, "popup_box_close.tooltip-delayed"
+                ).click()
+                try:
+                    WebDriverWait(driver, 3, 0.05).until(
+                        EC.invisibility_of_element_located(
+                            (By.CLASS_NAME, "popup_box_container")
+                        )
                     )
-                )
-            except:
-                return False
+                except:
+                    return False
+                return True
+
+        # Zamyka otwarte okno grup
+        elif driver.find_elements_by_xpath(
+            '//*[@id="open_groups"][@style="display: none;"]'
+        ):
+            driver.execute_script("villageDock.close(event);")
+
             return True
 
-    # Zamyka otwarte okno grup
-    elif driver.find_elements_by_xpath(
-        '//*[@id="open_groups"][@style="display: none;"]'
-    ):
-        driver.execute_script("villageDock.close(event);")
+        # Zamyka okno promki premium
+        elif driver.find_elements(By.ID, "payment_box_iframe_container"):
+            driver.switch_to.frame("pay_frame")
+            driver.find_element(By.CLASS_NAME, "Button-close").click()
+            driver.switch_to.default_content()
 
-        return True
+            return True
 
-    # Zamyka okno promki premium
-    elif driver.find_elements(By.ID, "payment_box_iframe_container"):
-        driver.switch_to.frame("pay_frame")
-        driver.find_element(By.CLASS_NAME, "Button-close").click()
-        driver.switch_to.default_content()
+        # Nieznane -> log_error
+        else:
+            log_error(driver=driver, msg="unwanted_page_content -> else(uknown error)")
+            return False
 
-        return True
-
-    # Nieznane -> log_error
-    else:
-        log_error(driver=driver, msg="unwanted_page_content -> else(uknown erros)")
+    except BaseException:
+        log_error(
+            driver=driver,
+            msg="unwanted_page_content -> error while handling common errors",
+        )
         return False
 
 
 def mine_coin(driver: webdriver.Chrome) -> None:
-    # Wybij monety -> pałac
-    driver.get("https://pl173.plemiona.pl/game.php?village=15449&screen=snob")
-    try:
-        max_coin = driver.find_element(By.ID, "coin_mint_fill_max")
-        driver.execute_script("return arguments[0].scrollIntoView(false);", max_coin)
-        footer_height = driver.find_element(By.ID, "footer").size["height"]
-        driver.execute_script(f"scrollBy(0, {footer_height});")
-        max_coin.click()
-        driver.find_element(
+
+    village_palace_url = (
+        "https://pl173.plemiona.pl/game.php?village=46740&screen=snob",
+        "https://pl173.plemiona.pl/game.php?village=15449&screen=snob",
+    )
+    village_market_url = (
+        "https://pl173.plemiona.pl/game.php?village=46740&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=110555&",
+        "https://pl173.plemiona.pl/game.php?village=15449&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=110559&",
+    )
+
+    for palace_url, market_url in zip(village_palace_url, village_market_url):
+        # Wybij monety -> pałac
+        driver.get(palace_url)
+        try:
+            max_coin = driver.find_element(By.ID, "coin_mint_fill_max")
+            driver.execute_script(
+                "return arguments[0].scrollIntoView(false);", max_coin
+            )
+            footer_height = driver.find_element(By.ID, "footer").size["height"]
+            driver.execute_script(f"scrollBy(0, {footer_height});")
+            max_coin.click()
+            driver.find_element(
+                By.XPATH,
+                '//*[@id="content_value"]/table[2]/tbody/tr/td[2]/table[4]/tbody/tr[10]/td[2]/form/input[2]',
+            ).click()
+        except:
+            pass
+        # Wezwij surowce -> rynek
+        driver.get(market_url)
+        driver.find_element(By.ID, "ds_body").send_keys("4")
+        request_resources = driver.find_element(
             By.XPATH,
-            '//*[@id="content_value"]/table[2]/tbody/tr/td[2]/table[4]/tbody/tr[10]/td[2]/form/input[2]',
-        ).click()
-    except:
-        pass
-    # Wezwij surowce -> rynek
-    driver.get(
-        "https://pl173.plemiona.pl/game.php?village=15449&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=96301&"
-    )
-    driver.find_element(By.ID, "ds_body").send_keys("4")
-    request_resources = driver.find_element(
-        By.XPATH, '//*[@id="content_value"]/table[2]/tbody/tr/td[2]/form[1]/input[2]'
-    )
-    driver.execute_script(
-        "return arguments[0].scrollIntoView(false);", request_resources
-    )
-    time.sleep(1.5)
-    request_resources.click()
+            '//*[@id="content_value"]/table[2]/tbody/tr/td[2]/form[1]/input[2]',
+        )
+        driver.execute_script(
+            "return arguments[0].scrollIntoView(false);", request_resources
+        )
+        time.sleep(1.5)
+        request_resources.click()

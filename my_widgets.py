@@ -4,7 +4,9 @@ import ttkbootstrap as ttk
 
 
 class TopLevel(tk.Toplevel):
-    def __init__(self, title_text: str = "", *args, **kwargs) -> None:
+    def __init__(
+        self, title_text: str = "", timer: tk.StringVar = None, *args, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.attributes("-alpha", 0.0)
@@ -32,9 +34,9 @@ class TopLevel(tk.Toplevel):
         self.title_label = ttk.Label(self.custom_bar, text=title_text)
         self.title_label.grid(row=0, column=1, padx=(5, 0), sticky="W")
 
-        self.time = tk.StringVar()
-        self.title_timer = ttk.Label(self.custom_bar, textvariable=self.time)
-        self.title_timer.grid(row=0, column=2, padx=5)
+        if timer:
+            self.title_timer = ttk.Label(self.custom_bar, textvariable=timer)
+            self.title_timer.grid(row=0, column=2, padx=5)
 
         self.photo = tk.PhotoImage(file="icons//minimize.png")
         self.minimize = self.photo.subsample(2, 2)
@@ -64,9 +66,11 @@ class TopLevel(tk.Toplevel):
         self.title_label.bind(
             "<Button-1>", lambda event: self._get_pos(event, "title_label")
         )
-        self.title_timer.bind(
-            "<Button-1>", lambda event: self._get_pos(event, "title_timer")
-        )
+
+        if timer:
+            self.title_timer.bind(
+                "<Button-1>", lambda event: self._get_pos(event, "title_timer")
+            )
 
     def _hide(self):
         self.attributes("-alpha", 0.0)

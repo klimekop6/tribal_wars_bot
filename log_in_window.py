@@ -1,5 +1,7 @@
+import threading
 import tkinter as tk
 import uuid
+from unicodedata import name
 
 import ttkbootstrap as ttk
 
@@ -30,8 +32,6 @@ class LogInWindow:
                     }
             if not db_answer:
                 custom_error(message="Automatyczne logowanie nie powiodło się.")
-            # elif not if_paid(str(db_answer[5])):
-            #     custom_error(message="Ważność konta wygasła.")
             elif db_answer[6]:
                 custom_error(message="Konto jest już obecnie w użyciu.")
             else:
@@ -147,6 +147,10 @@ class LogInWindow:
             text=f'Konto ważne do {user_data["active_until"]}'
         )
 
+        # Remove from grid some widgets for users without privilages
+        if user_data["user_name"] != "klimekop6":
+            main_window.check_mine_coin.grid_remove()
+
         invoke_checkbuttons(parent=main_window.master)
         center(main_window.master, parent=parent)
         main_window.master.deiconify()
@@ -157,6 +161,8 @@ class LogInWindow:
         db_answer = None
         user_data = None
         with DataBaseConnection() as cursor:
+            if not cursor:
+                return
             cursor.execute(
                 "SELECT * FROM konta_plemiona WHERE user_name='"
                 + self.user_name_input.get()
@@ -172,9 +178,6 @@ class LogInWindow:
         if not db_answer:
             custom_error(message="Wprowadzono nieprawidłowe dane", parent=self.master)
             return
-        # if not if_paid(str(db_answer[5])):
-        #     custom_error(message="Ważność konta wygasła", parent=self.master)
-        #     return
         if db_answer[6]:
             custom_error(message="Konto jest już obecnie w użyciu", parent=self.master)
             return
@@ -194,7 +197,7 @@ class LogInWindow:
         )
         self.master.destroy()
 
-    def register(self, settings: dict):
+    def register(self):
         with DataBaseConnection() as cursor:
             # MAC address check
             MAC_Address = "-".join(
@@ -219,11 +222,30 @@ class LogInWindow:
     def update_db_running_status(self, settings: dict, main_window):
         """Inform database about account activity every 10min"""
 
-        with DataBaseConnection() as cursor:
-            cursor.execute(
-                f"UPDATE konta_plemiona SET currently_running=1"
-                f"WHERE user_name='{settings['user_name']}'"
-            )
+        def data_update(settings: dict, main_window) -> None:
+            captcha_counter = main_window.captcha_counter.get()
+            if captcha_counter > 0:
+                sql_str = (
+                    f"UPDATE konta_plemiona "
+                    f"SET currently_running=1, captcha_solved=captcha_solved + {captcha_counter} "
+                    f"WHERE user_name='{settings['user_name']}'"
+                )
+                main_window.captcha_counter.set(0)
+            else:
+                sql_str = (
+                    f"UPDATE konta_plemiona SET currently_running=1 "
+                    f"WHERE user_name='{settings['user_name']}'"
+                )
+
+            with DataBaseConnection(ignore_erros=True) as cursor:
+                cursor.execute(sql_str)
+
+        threading.Thread(
+            target=lambda: data_update(settings=settings, main_window=main_window),
+            name="status_running_update",
+            daemon=True,
+        ).start()
+
         main_window.master.after(
             ms=595000,
             func=lambda: self.update_db_running_status(

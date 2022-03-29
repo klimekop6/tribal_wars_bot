@@ -260,7 +260,8 @@ class RegisterWindow:
                             currently_running,
                             invited_by,
                             verified_email,
-                            verification_code) 
+                            verification_code,
+                            captcha_solved) 
                         VALUES (
                             '{self.login.get()}',
                             '{self.password.get()}',
@@ -269,7 +270,8 @@ class RegisterWindow:
                             '0',
                             '{self.recommended_by.get()}',
                             '0',
-                            '{verification_code}'
+                            '{verification_code}',
+                            '0'
                     )"""
                 )
 
