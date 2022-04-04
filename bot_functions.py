@@ -1000,67 +1000,72 @@ def log_error(driver: webdriver.Chrome, msg: str = "") -> None:
 def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
     """Logowanie"""
 
-    driver.get(
-        f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
-    )
-
-    # Czy prawidłowo wczytano i zalogowano się na stronie
-    if f"{settings['server_world']}.{settings['game_url']}" in driver.current_url:
-        return True
-
-    # Ręczne logowanie na stronie plemion
-    elif f"https://www.{settings['game_url']}/" == driver.current_url:
-
-        if not "game_user_name" in settings:
-            driver.switch_to.window(driver.current_window_handle)
-            custom_error(
-                message="Zaloguj się na otwartej stronie plemion.\n"
-                "Pole zapamiętaj mnie powinno być zaznaczone."
-            )
-            if WebDriverWait(driver, 60).until(
-                EC.invisibility_of_element_located((By.ID, "login_form"))
-            ):
-                return log_in(driver=driver, settings=settings)
-
-        username = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[name="username"]'))
-        )
-        password = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[name="password"]'))
+    try:
+        driver.get(
+            f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
         )
 
-        username.send_keys(Keys.CONTROL + "a")
-        username.send_keys(Keys.DELETE)
-        password.send_keys(Keys.CONTROL + "a")
-        password.send_keys(Keys.DELETE)
-        username.send_keys("klimekop6")
-        password.send_keys("u56708")
+        # Czy prawidłowo wczytano i zalogowano się na stronie
+        if f"{settings['server_world']}.{settings['game_url']}" in driver.current_url:
+            return True
 
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CLASS_NAME, "btn-login"))
-        ).click()
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable(
-                (By.XPATH, f'//span[text()="Świat {settings["world_number"]}"]')
+        # Ręczne logowanie na stronie plemion
+        elif f"https://www.{settings['game_url']}/" == driver.current_url:
+
+            if not "game_user_name" in settings:
+                driver.switch_to.window(driver.current_window_handle)
+                custom_error(
+                    message="Zaloguj się na otwartej stronie plemion.\n"
+                    "Pole zapamiętaj mnie powinno być zaznaczone."
+                )
+                if WebDriverWait(driver, 60).until(
+                    EC.invisibility_of_element_located((By.ID, "login_form"))
+                ):
+                    return log_in(driver=driver, settings=settings)
+
+            username = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[name="username"]'))
             )
-        ).click()
-        return True
-
-    # Ponowne wczytanie strony w przypadku nie powodzenia (np. chwilowy brak internetu)
-    else:
-        for sleep_time in (5, 15, 60, 120, 300):
-            time.sleep(sleep_time)
-            driver.get(
-                f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
+            password = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[name="password"]'))
             )
-            if (
-                f"{settings['server_world']}.{settings['game_url']}"
-                in driver.current_url
-            ):
-                return True
 
-    log_error(driver)
-    return False
+            username.send_keys(Keys.CONTROL + "a")
+            username.send_keys(Keys.DELETE)
+            password.send_keys(Keys.CONTROL + "a")
+            password.send_keys(Keys.DELETE)
+            username.send_keys(settings["game_user_name"])
+            password.send_keys(settings["game_user_password"])
+
+            WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CLASS_NAME, "btn-login"))
+            ).click()
+            WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, f'//span[text()="Świat {settings["world_number"]}"]')
+                )
+            ).click()
+            return True
+
+        # Ponowne wczytanie strony w przypadku niepowodzenia (np. chwilowy brak internetu)
+        else:
+            for sleep_time in (5, 15, 60, 120, 300):
+                time.sleep(sleep_time)
+                driver.get(
+                    f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
+                )
+                if (
+                    f"{settings['server_world']}.{settings['game_url']}"
+                    in driver.current_url
+                ):
+                    return True
+
+        log_error(driver, msg="bot_functions -> log_in no error raised")
+        return False
+
+    except BaseException:
+        log_error(driver, msg="bot_functions -> log_in error raised")
+        return False
 
 
 def market_offers(driver: webdriver.Chrome) -> None:
@@ -1608,6 +1613,18 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     )
 
                     if (
+                        resource_to_sell == 1
+                        and final_resource_amount_to_sell > transport_capacity
+                        and final_resource_amount_to_sell
+                        > resources_available[resource_name]
+                    ):
+                        driver.find_element(
+                            By.CLASS_NAME, "btn.evt-cancel-btn.btn-confirm-no"
+                        ).click()
+                        input.clear()
+                        continue
+
+                    if (
                         final_resource_amount_to_sell
                         > resources_available[resource_name]
                     ):
@@ -1619,9 +1636,9 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                             / int(re.search(r"\d+", current_exchange_rate).group())
                         )
 
-                        driver.find_element_by_xpath(  # Click cancel button
-                            '//*[@id="premium_exchange"]/div/div/div[2]/button[2]'
-                        ).click()
+                        driver.find_element(
+                            By.CLASS_NAME, "btn.evt-cancel-btn.btn-confirm-no"
+                        ).click()  # Click cancel button
 
                         final_resource_amount_to_sell = (
                             resources_available[resource_name] - current_exchange_rate
@@ -1638,8 +1655,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                         WebDriverWait(driver, 3, 0.025).until(
                             EC.element_to_be_clickable(
                                 (
-                                    By.XPATH,
-                                    f'//*[@id="premium_exchange"]/div/div/div[2]/button[1]',
+                                    By.CLASS_NAME,
+                                    f"btn.evt-confirm-btn.btn-confirm-yes",
                                 )
                             )
                         ).click()
@@ -1647,8 +1664,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                         WebDriverWait(driver, 3, 0.025).until(
                             EC.element_to_be_clickable(
                                 (
-                                    By.XPATH,
-                                    f'//*[@id="premium_exchange"]/div/div/div[2]/button[1]',
+                                    By.CLASS_NAME,
+                                    f"btn.evt-confirm-btn.btn-confirm-yes",
                                 )
                             )
                         ).click()
@@ -1885,6 +1902,10 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                     troop_input.send_keys(troop_number)
                     if current_population >= min_population:
                         break
+                else:
+                    if len(list_to_send) == 1:
+                        return 1, attacks_list_to_repeat
+                    continue
 
             case "send_my_template":
                 # Choose troops to send
@@ -1960,9 +1981,10 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
         if index > 0:
             driver.switch_to.window(new_tabs[index - 1])
 
-        current_time = driver.find_element(
-            By.XPATH, '//*[@id="date_arrival"]/span'
-        )  # 01
+        current_time = driver.find_elements(By.XPATH, '//*[@id="date_arrival"]/span')
+        if not current_time:
+            continue
+        current_time = current_time[0]
         send_button = driver.find_element(By.ID, "troop_confirm_submit")
         arrival_time = re.search(
             r"\d{2}:\d{2}:\d{2}", send_info["arrival_time"]

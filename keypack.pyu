@@ -1,12 +1,12 @@
 {
   "client": {
-    "offline_public": "g7wReffvHLYOFYi339dfYAFxIqJrIZfZqRNltfrf7DQ"
+    "offline_public": "R5v6Jw2gRMm/ZfJF5KyAffHfiPupp2BW5wpc836rNQ8"
   },
   "repo": {
-    "app_private": "UJ3jnJU4dI3VKEHxVl9lHF/4NH0b6Z2ChHcePyz2eyc"
+    "app_private": "5ytG4crk762SF2NbB6MeVKwm17kHU5D3ZQ9FZsxw7Hg"
   },
   "upload": {
-    "app_public": "J09YBfBCfJCec3rdzAVuNGHyx/2A6/rLDrvgjyeNjLo",
-    "signature": "dg1zrOOPQg8BVMEakMU8aM5JME4bbG4R6HJvF+cHNOao54ux38la8MKOp8C7x9/xtBG2NuogtnFTl6dsxasQDg"
+    "app_public": "FpeEIWMm4iMqpTu6GAr915tFekSZTS5tXUOdd67PE10",
+    "signature": "R+UyzfoP40pjrGDh1kreuYTJfpM/xVBimHiJq1TUjhvHML8e1trKxbx1mb93JmeajaPL9AnXAl5nJha2dgI2Cg"
   }
 }

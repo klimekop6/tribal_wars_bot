@@ -8,6 +8,7 @@ import sys
 import threading
 import time
 import tkinter as tk
+from datetime import datetime
 from functools import partial
 from math import sqrt
 
@@ -60,28 +61,30 @@ class NotebookSchedul:
         self.plus = photo.subsample(2, 2)
         photo = tk.PhotoImage(file="icons//exit.png")
         self.exit = photo.subsample(8, 8)
+        photo = tk.PhotoImage(file="icons//info.png")
+        self.info = photo.subsample(2, 2)
 
         entries_content["scheduler"] = {}
 
         self.scroll_able = ScrollableFrame(parent=parent)
 
         ttk.Label(self.scroll_able.frame, text="Data wejścia wojsk").grid(
-            row=0, column=0, columnspan=2, padx=5, pady=(15, 5)
+            row=2, column=0, columnspan=2, padx=5, pady=(15, 5), sticky=ttk.W
         )
 
         # Date entry settings
         date_frame = ttk.Frame(self.scroll_able.frame)
-        date_frame.grid(row=1, column=0, columnspan=2, pady=(0, 5), sticky=ttk.EW)
-        date_frame.columnconfigure(0, weight=1)
-        date_frame.columnconfigure(1, weight=1)
+        date_frame.grid(row=3, column=0, columnspan=2, pady=(5, 0), sticky=ttk.EW)
+        # date_frame.columnconfigure(0, weight=1)
+        # date_frame.columnconfigure(1, weight=1)
 
-        ttk.Label(date_frame, text="Od").grid(row=1, column=0, pady=5)
-        ttk.Label(date_frame, text="Do").grid(row=1, column=1, pady=5)
+        ttk.Label(date_frame, text="Od:").grid(row=0, column=0, pady=5, padx=(25, 5))
+        ttk.Label(date_frame, text="Do:").grid(row=1, column=0, pady=5, padx=(25, 5))
 
         self.destiny_date = ttk.DateEntry(
             date_frame, dateformat="%d.%m.%Y %H:%M:%S:%f", firstweekday=0
         )
-        self.destiny_date.grid(row=2, column=0, padx=5, pady=5, sticky=ttk.EW)
+        self.destiny_date.grid(row=0, column=1, pady=5)
         self.date_entry = ttk.StringVar(value=self.destiny_date.entry.get())
         self.destiny_date.entry.configure(textvariable=self.date_entry)
         self.destiny_date.entry.configure(justify=ttk.CENTER)
@@ -89,7 +92,7 @@ class NotebookSchedul:
         self.final_destiny_date = ttk.DateEntry(
             date_frame, dateformat="%d.%m.%Y %H:%M:%S:%f", firstweekday=0
         )
-        self.final_destiny_date.grid(row=2, column=1, padx=5, pady=5, sticky=ttk.EW)
+        self.final_destiny_date.grid(row=1, column=1, pady=5)
         self.final_date_entry = ttk.StringVar(value=self.destiny_date.entry.get())
         self.final_destiny_date.entry.configure(textvariable=self.final_date_entry)
         self.final_destiny_date.entry.configure(justify=ttk.CENTER)
@@ -99,12 +102,12 @@ class NotebookSchedul:
 
             def inner_call() -> None:
                 self.date_entry.trace_remove(*self.date_entry.trace_info()[0])
-                destiny_date = time.mktime(
-                    time.strptime(self.date_entry.get(), "%d.%m.%Y %H:%M:%S:%f")
-                )
-                final_destiny_date = time.mktime(
-                    time.strptime(self.final_date_entry.get(), "%d.%m.%Y %H:%M:%S:%f")
-                )
+                destiny_date = datetime.strptime(
+                    self.date_entry.get(), "%d.%m.%Y %H:%M:%S:%f"
+                ).timestamp()
+                final_destiny_date = datetime.strptime(
+                    self.final_date_entry.get(), "%d.%m.%Y %H:%M:%S:%f"
+                ).timestamp()
                 if destiny_date > final_destiny_date:
                     self.final_date_entry.trace_remove(
                         *self.final_date_entry.trace_info()[0]
@@ -124,12 +127,12 @@ class NotebookSchedul:
                 self.final_date_entry.trace_remove(
                     *self.final_date_entry.trace_info()[0]
                 )
-                destiny_date = time.mktime(
-                    time.strptime(self.date_entry.get(), "%d.%m.%Y %H:%M:%S:%f")
-                )
-                final_destiny_date = time.mktime(
-                    time.strptime(self.final_date_entry.get(), "%d.%m.%Y %H:%M:%S:%f")
-                )
+                destiny_date = datetime.strptime(
+                    self.date_entry.get(), "%d.%m.%Y %H:%M:%S:%f"
+                ).timestamp()
+                final_destiny_date = datetime.strptime(
+                    self.final_date_entry.get(), "%d.%m.%Y %H:%M:%S:%f"
+                ).timestamp()
                 if destiny_date > final_destiny_date:
                     self.date_entry.trace_remove(*self.date_entry.trace_info()[0])
                     self.date_entry.set(self.final_date_entry.get())
@@ -145,20 +148,67 @@ class NotebookSchedul:
 
         # Text widgets
         ttk.Label(self.scroll_able.frame, text="Wioski startowe").grid(
-            row=2, column=0, padx=5, pady=10
+            row=0, column=0, padx=5, pady=10
         )
         ttk.Label(self.scroll_able.frame, text="Wioski docelowe").grid(
-            row=2, column=1, padx=5, pady=10
+            row=0, column=1, padx=5, pady=10
         )
 
+        def clear_hint(text_widget: ttk.Text) -> None:
+            if text_widget.get("1.0", "1.11") == "Współrzędne":
+                text_widget.delete("1.0", "end")
+                text_widget.unbind("<Button>")
+
+        def text_mouse_scroll(text_widget: ttk.Text) -> None:
+            def text_exceed() -> None:
+                if text_widget.yview() != (0.0, 1.0):
+                    self.scroll_able._unbound_to_mousewheel()
+                    return
+                self.scroll_able._bound_to_mousewheel()
+
+            text_exceed()
+            text_widget.bind("<Key>", lambda event: text_widget.after(25, text_exceed))
+
+        def text_hint(text_widget: ttk.Text) -> None:
+            # if len(text_widget.get("1.0", "end-1c")) == 0:
+            text_widget.insert(
+                "1.0",
+                "Współrzędne wiosek w formacie XXX|YYY "
+                "oddzielone spacją, tabulatorem lub enterem.",
+            )
+
+        # Text1
         self.villages_to_use = tk.Text(
             self.scroll_able.frame, wrap="word", height=5, width=28
         )
-        self.villages_to_use.grid(row=3, column=0, padx=5, pady=(0, 5), sticky=ttk.EW)
+        self.villages_to_use.grid(row=1, column=0, padx=5, pady=(0, 5), sticky=ttk.EW)
+        self.villages_to_use.bind(
+            "<Enter>", lambda event: text_mouse_scroll(self.villages_to_use)
+        )
+        self.villages_to_use.bind(
+            "<Leave>", lambda event: self.scroll_able._bound_to_mousewheel(event)
+        )
+        self.villages_to_use.bind(
+            "<Button>", lambda event: clear_hint(self.villages_to_use)
+        )
+
+        # Text2
         self.villages_destiny = tk.Text(
             self.scroll_able.frame, wrap="word", height=5, width=28
         )
-        self.villages_destiny.grid(row=3, column=1, padx=5, pady=(0, 5), sticky=ttk.EW)
+        self.villages_destiny.grid(row=1, column=1, padx=5, pady=(0, 5), sticky=ttk.EW)
+        self.villages_destiny.bind(
+            "<Enter>", lambda event: text_mouse_scroll(self.villages_destiny)
+        )
+        self.villages_destiny.bind(
+            "<Leave>", lambda event: self.scroll_able._bound_to_mousewheel(event)
+        )
+        self.villages_destiny.bind(
+            "<Button>", lambda event: clear_hint(self.villages_destiny)
+        )
+
+        text_hint(self.villages_to_use)
+        text_hint(self.villages_destiny)
 
         # Rodzaj komendy -> atak lub wsparcie
         ttk.Label(self.scroll_able.frame, text="Rodzaj komendy").grid(
@@ -679,6 +729,7 @@ class NotebookSchedul:
         sends_to = self.villages_destiny.get("1.0", tk.END)
         command_type = self.command_type.get()
         template_type = self.template_type.get()
+        current_time = time.time()
         max_time_to_add: float = 0
         if arrival_time != final_arrival_time:
             max_time_to_add = time.mktime(
@@ -729,13 +780,24 @@ class NotebookSchedul:
                     if troop_value:
                         troop_value = int(troop_value)
                         troops[troop_name] = troop_value
+                army_speed = max(
+                    troops_speed[troop_name] for troop_name in troops.keys()
+                )
+                if (
+                    command_type == "target_support"
+                    and "knight" in troops
+                    and troops["knight"] > 0
+                ):
+                    army_speed = 10
                 repeat_attack = self.repeat_attack.get()
                 repeat_attack_number = self.repeat_attack_number.get()
 
         villages = get_villages_id(settings=settings)
 
         send_info_list = []  # When, from where, attack or help, amount of troops etc.
-        for send_from, send_to in zip(sends_from.split(), sends_to.split()):
+        sends_from = sends_from.split()
+        sends_to = sends_to.split()
+        for send_from, send_to in zip(sends_from, sends_to):
             send_info = {}
             send_info["command"] = command_type  # Is it attack or help
             send_info[
@@ -810,9 +872,6 @@ class NotebookSchedul:
 
                 case "send_my_template":
                     send_info["troops"] = troops
-                    army_speed = max(
-                        troops_speed[troop_name] for troop_name in troops.keys()
-                    )
                     send_info["repeat_attack"] = repeat_attack
                     send_info["repeat_attack_number"] = repeat_attack_number
 
@@ -840,6 +899,10 @@ class NotebookSchedul:
                 send_info["send_time"] = (
                     arrival_time_in_sec - travel_time_in_sec
                 )  # sec since epoch
+
+            if send_info["send_time"] - 3 < current_time:
+                sends_from.append(send_from)
+                continue
 
             send_info_list.append(send_info)
 
@@ -930,7 +993,11 @@ class NotebookSchedul:
         template = {}
         last_row_number = 4
 
-        template_window = TopLevel(master=self.parent, borderwidth=1, relief="groove")
+        template_window = TopLevel(
+            title_text="Tribal Wars Bot",
+            borderwidth=1,
+            relief="groove",
+        )
 
         frame = template_window.content_frame
 
@@ -940,11 +1007,42 @@ class NotebookSchedul:
         min_value = tk.StringVar()
         max_value = tk.StringVar()
 
-        ttk.Label(frame, text="Szablon dobierania jednostek").grid(
-            row=0, column=0, columnspan=5, padx=5, pady=(0, 10)
+        top_frame = ttk.Frame(frame)
+        top_frame.grid(row=0, column=0, columnspan=5, padx=5, pady=(5, 10))
+        top_frame.columnconfigure(0, weight=1)
+
+        ttk.Label(
+            top_frame,
+            text="Szablon dobierania jednostek",
+        ).grid(row=0, column=0, padx=5)
+
+        info = ttk.Label(top_frame, image=self.info)
+        info.grid(row=0, column=1)
+
+        ToolTip(
+            info,
+            text="Kolejność dobierania jednostek zaczyna się od tych o najwyższym priorytecie.\n\n"
+            "Najwyższy = 1, najniższy = 9\n\n"
+            "Min oznacza minimalną ilość wybranej jednostki która musi się znaleźć w wysyłanym fejku. \n\n"
+            "Jednostki są dobierane po kolei na podstawie priorytetu aż do momentu spełnienia warunku "
+            "minimalnej liczby populacji.\n\n"
+            "Przykład:\n\n"
+            "Priorytet Jednostka Min Max\n"
+            "1 Katapulta 1 5\n"
+            "2 Zwiadowca 0 25\n"
+            "3 Topornik 0 25\n"
+            "4 Lekka kawaleria 0 10\n\n"
+            "W fejku musi się znaleźć min 1 katapulta do max 5. "
+            "Dzięki temu mamy pewność, że fejk będzie miał prędkość tarana. "
+            "Jeśli minimalny limit populacji nie został osiągnięty w pierwszym kroku, zostanie dobrana "
+            "odpowiednia ilość jednostek niższego priorytetu w tym przypadku zwiadowców. "
+            "Krok ten będzie powatarzany aż do momentu spełnienia limitu minimalnej liczby populacji lub "
+            "wyczerpania się wszystkich możliwości.",
+            wraplength=500,
+            topmost=True,
         )
 
-        ttk.Label(frame, text="Nazwa szablonu").grid(
+        ttk.Label(frame, text="Nazwa szablonu:").grid(
             row=1, column=0, columnspan=5, padx=10, pady=10, sticky=tk.W
         )
 
@@ -1006,7 +1104,7 @@ class NotebookSchedul:
                 template_window.destroy(),
                 self.redraw_availabe_templates(settings=settings),
             ],
-        ).grid(row=50, column=0, columnspan=5, pady=(5, 10))
+        ).grid(row=50, column=0, columnspan=5, pady=(10, 10))
 
         center(template_window, self.parent)
         template_window.attributes("-alpha", 1.0)
@@ -1485,7 +1583,10 @@ class MainWindow:
         def on_exit() -> None:
             self.master.withdraw()
             if self.driver:
-                subprocess.run("taskkill /IM chromedriver.exe /F /T")
+                subprocess.run(
+                    "taskkill /IM chromedriver.exe /F /T",
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                )
             save_entry_to_settings(entries=self.entries_content, settings=settings)
             with DataBaseConnection(ignore_erros=True) as cursor:
                 cursor.execute(
@@ -3319,7 +3420,7 @@ class JobsToDoWindow:
 
         self.content_frame = self.master.content_frame
 
-        coldata = [
+        self.coldata = [
             {"text": "Świat", "stretch": False},
             "Zadanie",
             {"text": "Data wykonania", "stretch": False},
@@ -3340,10 +3441,11 @@ class JobsToDoWindow:
 
         self.table = Tableview(
             master=self.content_frame,
-            coldata=coldata,
+            coldata=self.coldata,
             rowdata=rowdata,
             paginated=True,
             searchable=True,
+            stripecolor=("gray14", None),
         )
         self.table.grid(row=0, column=0)
 
@@ -3351,23 +3453,37 @@ class JobsToDoWindow:
         self.master.attributes("-alpha", 1.0)
 
     def update_table(self, main_window: MainWindow) -> None:
-        self.table.delete_rows()
-        self.table.insert_rows(
-            index="end",
-            rowdata=[
-                tuple(
-                    (
-                        row["server_world"],
-                        self.translate[row["func"]],
-                        time.strftime(
-                            "%H:%M:%S %d.%m.%Y", time.localtime(row["start_time"])
-                        ),
-                    )
+        rowdata = [
+            tuple(
+                (
+                    row["server_world"],
+                    self.translate[row["func"]],
+                    time.strftime(
+                        "%H:%M:%S %d.%m.%Y", time.localtime(row["start_time"])
+                    ),
                 )
-                for row in main_window.to_do
-            ],
-        )
-        self.table.load_table_data()
+            )
+            for row in main_window.to_do
+        ]
+        self.table.build_table_data(coldata=self.coldata, rowdata=rowdata)
+        # self.table.delete_rows()
+        # self.table.insert_rows(
+        #     index="end",
+        #     rowdata=[
+        #         tuple(
+        #             (
+        #                 row["server_world"],
+        #                 self.translate[row["func"]],
+        #                 time.strftime(
+        #                     "%H:%M:%S %d.%m.%Y", time.localtime(row["start_time"])
+        #                 ),
+        #             )
+        #         )
+        #         for row in main_window.to_do
+        #     ],
+        # )
+        # self.table.load_table_data()
+        # self.table.configure()
 
 
 class PaymentWindow:
@@ -3382,7 +3498,9 @@ class PaymentWindow:
         self.text.insert("3.0", "- 55zł za dwa miesiące 60zł oszczędzasz 5zł\n")
         self.text.insert("4.0", "- 75zł za trzy miesiące 90zł oszczędzasz 15zł\n")
         self.text.insert("5.0", "Dostępne metody płatności:\n", "bold_text")
-        self.text.insert("6.0", "- blik na numer: 604 065 940\n")
+        self.text.insert(
+            "6.0", "- blik na numer: 604 065 940 (nazwa odbiorcy: Klemens)\n"
+        )
         self.text.insert(
             "7.0", "- przelew na numer: 83 1240 6117 1111 0010 7122 6836\n"
         )
@@ -3468,14 +3586,25 @@ class PaymentWindow:
 
 
 def check_for_updates() -> None:
-    def print_status_info(info):
-        total = info.get("total")
-        downloaded = info.get("downloaded")
-        status = info.get("status")
-        print(downloaded, total, status)
+    def if_downloaded() -> None:
+        if not app_update.is_downloaded():
+            master.after(250, if_downloaded)
+        master.update_idletasks()
+        master.after(500, master.destroy)
 
-    APP_NAME = "tribal_wars"
-    APP_VERSION = "0.0.81"
+    def print_status_info(info):
+        percent_complete = int(float(info.get("percent_complete")))
+        progress_bar["value"] = percent_complete
+        style.configure(
+            "str_progress_in.Horizontal.TProgressbar", text=f"{percent_complete}%"
+        )
+        if percent_complete == 100:
+            description_progress_bar.config(text="Aktualizacja ukończona!")
+            if_downloaded()
+        master.update_idletasks()
+
+    APP_NAME = "TribalWarsBot"
+    APP_VERSION = "0.2.5"
 
     client = Client(ClientConfig())
     client.refresh()
@@ -3486,13 +3615,32 @@ def check_for_updates() -> None:
         master = tk.Tk()
         master.withdraw()
 
-        ttk.Style(theme="darkly")
+        style = ttk.Style(theme="darkly")
+        configure_style(style=style)
+
         custom_error(message=f"Dostępna jest nowa aktualizacja!")
 
+        update_window = TopLevel(title_text="TribalWarsBot")
+        description_progress_bar = ttk.Label(
+            update_window.content_frame,
+            text="Aktualizowanie aplikacji. Proszę czekać..",
+        )
+        description_progress_bar.pack(anchor="center", pady=(0, 5))
+        progress_bar = ttk.Progressbar(
+            update_window.content_frame,
+            orient="horizontal",
+            mode="determinate",
+            length=280,
+            style="str_progress_in.Horizontal.TProgressbar",
+        )
+        progress_bar.pack(ipady=2, padx=5, pady=5)
+        center(window=update_window)
+        update_window.attributes("-alpha", 1.0)
+
         client.add_progress_hook(print_status_info)
-        app_update.download()
-        if app_update.is_downloaded():
-            app_update.extract_restart()
+        app_update.download(background=True)
+        master.mainloop()
+        app_update.extract_restart()
 
 
 def configure_style(style: ttk.Style) -> None:
@@ -3556,6 +3704,30 @@ def configure_style(style: ttk.Style) -> None:
         "default.TSeparator",
         borderwidth=0,
     )
+    # str_progress_in.Horizontal.TProgressbar
+    style.layout(
+        "str_progress_in.Horizontal.TProgressbar",
+        [
+            (
+                "Horizontal.Progressbar.trough",
+                {
+                    "children": [
+                        (
+                            "Horizontal.Progressbar.pbar",
+                            {"side": "left", "sticky": "ns"},
+                        )
+                    ],
+                    "sticky": "nswe",
+                },
+            ),
+            ("Horizontal.Progressbar.label", {"sticky": "nswe"}),
+        ],
+    )
+    style.configure(
+        "str_progress_in.Horizontal.TProgressbar",
+        anchor="center",
+        foreground="white",
+    )
 
 
 def style_info(style: ttk.Style, style_name: str) -> None:
@@ -3600,7 +3772,6 @@ def main() -> None:
     style = ttk.Style(theme="darkly")
 
     configure_style(style=style)
-    # style_info(style, "TSeparator")
 
     main_window = MainWindow(root=root, driver=driver, settings=settings)
     LogInWindow(main_window=main_window, settings=settings)
@@ -3609,6 +3780,44 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+
+    # master = tk.Tk()
+    # master.withdraw()
+
+    # style = ttk.Style(theme="darkly")
+    # configure_style(style=style)
+    # custom_error(message=f"Dostępna jest nowa aktualizacja!")
+
+    # def update_pb():
+    #     for _ in range(101):
+    #         progress_bar["value"] += 1
+    #         if _ == 100:
+    #             text_progessbar.config(text="Ponowne uruchamianie aplikacji..")
+    #             style.configure(
+    #                 "str_progress_in.Horizontal.TProgressbar",
+    #                 text="Aktualizacja ukończona!",
+    #             )
+    #         style.configure("str_progress_in.Horizontal.TProgressbar", text=f"{_}%")
+    #         master.update_idletasks()
+    #         time.sleep(0.025)
+
+    # update_window = TopLevel(title_text="TribalWarsBot")
+    # text_progessbar = ttk.Label(
+    #     update_window.content_frame, text="Aktualizowanie aplikacji. Proszę czekać.."
+    # )
+    # text_progessbar.pack(anchor="center", pady=(5, 0))
+    # progress_bar = ttk.Progressbar(
+    #     update_window.content_frame,
+    #     orient="horizontal",
+    #     mode="determinate",
+    #     length=280,
+    #     style="str_progress_in.Horizontal.TProgressbar",
+    # )
+    # progress_bar.pack(ipady=2, padx=5, pady=5)
+    # center(window=update_window)
+    # update_window.attributes("-alpha", 1.0)
+    # master.after(100, update_pb)
+    # master.mainloop()
 
     if hasattr(sys, "frozen"):
         check_for_updates()

@@ -114,26 +114,11 @@ class ScrollableFrame:
             # when all widgets are in canvas.
             self.canvas.configure(scrollregion=self.canvas.bbox("all"))
 
-        def _bound_to_mousewheel(event: tk.Event):
-            self.canvas.bind_all("<MouseWheel>", lambda event: _on_mousewheel(event))
-
-        def _unbound_to_mousewheel(event: tk.Event):
-            self.canvas.unbind_all("<MouseWheel>")
-
-        def _on_mousewheel(event: tk.Event):
-            # self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-            _yview("scroll", int(-1 * (event.delta / 120)), "units")
-
         def _frame_width(event: tk.Event):
             canvas_width = event.width
             self.canvas.itemconfig(self.canvas_frame, width=canvas_width - 11)
             # self.canvas.config(width=self.frame.winfo_reqwidth())
             # self.canvas.itemconfig(self.canvas_frame, width=self.frame.winfo_reqwidth())
-
-        def _yview(*args):
-            if self.canvas.yview() == (0.0, 1.0):
-                return
-            self.canvas.yview(*args)
 
         # --- Create self.canvas with scrollbar ---
         self.canvas = tk.Canvas(parent)
@@ -146,12 +131,12 @@ class ScrollableFrame:
         self.frame.columnconfigure(0, weight=1)
         self.frame.columnconfigure(1, weight=1)
 
-        self.scrollbar = ttk.Scrollbar(self.canvas, command=_yview)
+        self.scrollbar = ttk.Scrollbar(self.canvas, command=self._yview)
         self.scrollbar.grid(row=0, column=1, sticky=tk.NS)
 
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
-        self.canvas.bind("<Enter>", lambda event: _bound_to_mousewheel(event))
-        self.canvas.bind("<Leave>", lambda event: _unbound_to_mousewheel(event))
+        self.canvas.bind("<Enter>", lambda event: self._bound_to_mousewheel(event))
+        self.canvas.bind("<Leave>", lambda event: self._unbound_to_mousewheel(event))
 
         # --- Put frame in self.canvas ---
 
@@ -184,3 +169,17 @@ class ScrollableFrame:
 
         # # self.canvas.yview_moveto(0)
         pass
+
+    def _bound_to_mousewheel(self, event: tk.Event = None):
+        self.canvas.bind_all("<MouseWheel>", lambda event: self._on_mousewheel(event))
+
+    def _unbound_to_mousewheel(self, event: tk.Event = None):
+        self.canvas.unbind_all("<MouseWheel>")
+
+    def _on_mousewheel(self, event: tk.Event):
+        self._yview("scroll", int(-1 * (event.delta / 120)), "units")
+
+    def _yview(self, *args):
+        if self.canvas.yview() == (0.0, 1.0):
+            return
+        self.canvas.yview(*args)

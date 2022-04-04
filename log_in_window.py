@@ -99,7 +99,7 @@ class LogInWindow:
         self.register_button = ttk.Button(
             self.content,
             text="Utwórz konto",
-            command=lambda: self.register(settings=settings),
+            command=lambda: self.register(),
         )
 
         self.log_in_button.grid(row=5, columnspan=2, pady=4, padx=5, sticky=("W", "E"))
