@@ -75,8 +75,6 @@ class NotebookSchedul:
         # Date entry settings
         date_frame = ttk.Frame(self.scroll_able.frame)
         date_frame.grid(row=3, column=0, columnspan=2, pady=(5, 0), sticky=ttk.EW)
-        # date_frame.columnconfigure(0, weight=1)
-        # date_frame.columnconfigure(1, weight=1)
 
         ttk.Label(date_frame, text="Od:").grid(row=0, column=0, pady=5, padx=(25, 5))
         ttk.Label(date_frame, text="Do:").grid(row=1, column=0, pady=5, padx=(25, 5))
@@ -621,13 +619,25 @@ class NotebookSchedul:
             row=45, column=0, columnspan=2, pady=(5, 0), sticky=("W", "E")
         )
 
+        self.show_schedule = ttk.Button(
+            self.scroll_able.frame,
+            text="Pokaż planer [F4]",
+            command=lambda: self.show_existing_schedule(settings=settings),
+        )
+        self.show_schedule.grid(
+            row=46, column=0, padx=(25, 12.5), pady=10, sticky=ttk.EW
+        )
+
         self.add_to_schedule = ttk.Button(
             self.scroll_able.frame,
             text="Dodaj do planera [F5]",
             command=lambda: self.create_schedule(settings=settings),
         )
-        self.add_to_schedule.grid(row=46, columnspan=2, pady=10)
+        self.add_to_schedule.grid(
+            row=46, column=1, padx=(12.5, 25), pady=10, sticky=ttk.EW
+        )
 
+        self.scroll_able.frame.bind_all("<F4>", lambda _: self.show_schedule.invoke())
         self.scroll_able.frame.bind_all("<F5>", lambda _: self.add_to_schedule.invoke())
 
         # Update canvas size depend on frame requested size
@@ -1116,6 +1126,65 @@ class NotebookSchedul:
         self.scroll_able.canvas.configure(
             scrollregion=self.scroll_able.canvas.bbox("all")
         )
+
+    def show_existing_schedule(self, settings: dict) -> None:
+        if hasattr(self, "existing_schedule_window"):
+            if self.existing_schedule_window.winfo_exists():
+                return
+
+        self.existing_schedule_window = TopLevel(title_text="Tribal Wars Bot")
+
+        content_frame = self.existing_schedule_window.content_frame
+
+        self.coldata = [
+            {"text": "Data wysyłki", "stretch": False, "anchor": "center"},
+            {"text": "Świat", "stretch": False, "anchor": "center"},
+            {"text": "Komenda", "stretch": False, "anchor": "center"},
+            {"text": "Rodzaj", "stretch": False, "anchor": "center"},
+            # "Wioska startowa",
+            # "Wioska docelowa",
+            {"text": "Data wejścia wojsk", "stretch": False, "anchor": "center"},
+        ]
+
+        translate = {
+            "target_support": "wsparcie",
+            "target_attack": "atak",
+            "send_all": "wyślij wszystkie",
+            "send_fake": "wyślij fejk",
+            "send_my_template": "własny szablon",
+        }
+
+        SERVER_WORLD = settings["server_world"]
+        rowdata = [
+            tuple(
+                (
+                    datetime.strftime(
+                        datetime.fromtimestamp(row["send_time"]), "%d.%m.%Y %H:%M:%S:%f"
+                    )[:-3],
+                    SERVER_WORLD,
+                    translate[row["command"]],
+                    translate[row["template_type"]],
+                    row["arrival_time"],
+                )
+            )
+            for row in settings["scheduler"]["ready_schedule"]
+        ]
+
+        table = Tableview(
+            master=content_frame,
+            coldata=self.coldata,
+            rowdata=rowdata,
+            datasource=settings["scheduler"]["ready_schedule"],
+            paginated=True,
+            searchable=True,
+            stripecolor=("gray14", None),
+            autofit=True,
+            autoalign=False,
+        )
+        table.grid(row=0, column=0)
+
+        center(window=self.existing_schedule_window, parent=self.parent)
+        self.existing_schedule_window.attributes("-alpha", 1.0)
 
 
 class NotebookGathering:
@@ -2922,7 +2991,7 @@ class MainWindow:
 
         # Główna pętla
         while self.running:
-            if not len(self.to_do):
+            if not self.to_do:
                 self.running = False
                 custom_error(
                     message="Wszystkie zadania zostały wykonane", parent=self.master
@@ -2954,6 +3023,8 @@ class MainWindow:
                     self.time.set("Running..")
                 except BaseException:
                     bot_functions.log_error(self.driver)
+                if not self.to_do or self.to_do[0]["start_time"] > time.time() + 1:
+                    continue
 
             if "errors_number" not in self.to_do[0]:
                 self.to_do[0]["errors_number"] = 0
@@ -3443,6 +3514,7 @@ class JobsToDoWindow:
             master=self.content_frame,
             coldata=self.coldata,
             rowdata=rowdata,
+            datasource=main_window.to_do,
             paginated=True,
             searchable=True,
             stripecolor=("gray14", None),
