@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import random
 import re
 import threading
@@ -14,21 +15,32 @@ from selenium.common.exceptions import StaleElementReferenceException, TimeoutEx
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
 import email_notifications
-from database_connection import DataBaseConnection
 from gui_functions import custom_error
 
-logging.basicConfig(filename="log.txt", level=logging.ERROR)
+logger = logging.getLogger(__name__)
+if not os.path.exists("logs"):
+    os.mkdir("logs")
+f_handler = logging.FileHandler("logs/log.txt")
+f_format = logging.Formatter(
+    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+)
+f_handler.setFormatter(f_format)
+logger.addHandler(f_handler)
+logger.propagate = False
 
 
 def attacks_labels(
     driver: webdriver.Chrome, settings: dict[str], notifications: bool = False
 ) -> bool:
     """Etykiety ataków"""
+
+    COUNTRY_CODE: str = settings["country_code"]
 
     if not int(driver.execute_script("return window.game_data.player.incomings")):
         return False
@@ -65,7 +77,8 @@ def attacks_labels(
         )
     )
     etkyieta_rozkazu.clear()
-    etkyieta_rozkazu.send_keys("Atak")
+    translate = {"pl": "Atak", "de": "Angriff"}
+    etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
     WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable(
             (
@@ -77,9 +90,8 @@ def attacks_labels(
     WebDriverWait(driver, 10).until(
         EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
     )
-    try:
-        driver.find_element_by_id("incomings_table")
-    except:
+
+    if not driver.find_elements(By.ID, "incomings_table"):
         return True
 
     element = WebDriverWait(driver, 10).until(
@@ -88,7 +100,9 @@ def attacks_labels(
     driver.execute_script("return arguments[0].scrollIntoView(true);", element)
     element.click()
     WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, '//input[@value="Etykieta"]'))
+        EC.element_to_be_clickable(
+            (By.XPATH, '//*[@id="incomings_table"]//input[@type="submit"]')
+        )
     ).click()
 
     if notifications:
@@ -101,7 +115,8 @@ def attacks_labels(
             )
         )
         etkyieta_rozkazu.clear()
-        etkyieta_rozkazu.send_keys("Szlachcic")
+        translate = {"pl": "Szlachcic", "de": "AG"}
+        etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
         WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable(
                 (
@@ -416,7 +431,8 @@ def check_groups(
     )
     driver.find_element_by_id("close_groups").click()
     groups = [group[1:-1] for group in re.findall(r">[^<].+?<", groups)]
-    settings["groups"] = groups
+    settings["groups"].clear()
+    settings["groups"].extend(groups)
     for combobox in args:
         combobox["values"] = settings["groups"]
         combobox.set("Wybierz grupę")
@@ -894,11 +910,12 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             ]
 
         # Tworzy docelowy url i czas zakończenia zbieractwa w danej wiosce
-        doc = lxml.html.fromstring(
-            driver.find_element_by_xpath(
-                '//*[@id="scavenge_screen"]/div/div[2]'
-            ).get_attribute("innerHTML")
+        div_scavenge: WebElement = WebDriverWait(driver, 3, 0.025).until(
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="scavenge_screen"]/div/div[2]')
+            )
         )
+        doc = lxml.html.fromstring(div_scavenge.get_attribute("innerHTML"))
         doc = doc.xpath("//div/div[3]/div/ul/li[4]/span[2]")
         try:
             journey_time = [int(_) for _ in max([ele.text for ele in doc]).split(":")]
@@ -954,7 +971,7 @@ def get_villages_id(settings: dict[str], update: bool = False) -> dict:
         try:
             world_villages_file = open(f'villages{settings["server_world"]}.txt', "w")
         except:
-            logging.error(
+            logger.error(
                 f'There was a problem with villages{settings["server_world"]}.txt'
             )
         else:
@@ -983,14 +1000,15 @@ def get_villages_id(settings: dict[str], update: bool = False) -> dict:
 
 
 def log_error(driver: webdriver.Chrome, msg: str = "") -> None:
-    """Write erros with traceback into log.txt file"""
+    """Write erros with traceback into logs/log.txt"""
 
-    driver.save_screenshot(f'{time.strftime("%H-%M-%S", time.localtime())}.png')
+    driver.save_screenshot(
+        f'logs/{time.strftime("%d.%m.%Y %H_%M_%S", time.localtime())}.png'
+    )
     error_str = traceback.format_exc()
     error_str = error_str[: error_str.find("Stacktrace")]
-    logging.error(
-        f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())}\n\n'
-        f"{msg}\n\n"
+    logger.error(
+        f"\n\n{msg}\n\n"
         f"{driver.current_url}\n\n"
         f"{error_str}\n"
         f"-----------------------------------------------------------------------------------\n"
@@ -1954,14 +1972,16 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             )
 
         # Click command_type button (attack or support)
-        driver.find_element(By.ID, send_info["command"]).click()
+        driver.execute_script(
+            f'document.getElementById("{send_info["command"]}").click();'
+        )
 
+        # Add snoob
         if send_info["template_type"] == "send_all":
             if "snob_amount" in send_info:
+                add_snoob = driver.find_element(By.ID, "troop_confirm_train")
                 for _ in range(send_info["snob_amount"]):
-                    driver.find_element(
-                        By.XPATH, '//*[@id="troop_confirm_train"]'
-                    ).click()
+                    driver.execute_script("arguments[0].click()", add_snoob)
 
     # Sort all added attacks in scheduler
     if attacks_list_to_repeat:
@@ -1970,14 +1990,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
     if len(list_to_send) > 1:
         driver.switch_to.window(origin_tab)
 
-        def click_without_wait(ele):
-            try:
-                ele.click()
-            except:
-                pass
-
     for index, send_info in enumerate(list_to_send):
-
         if index > 0:
             driver.switch_to.window(new_tabs[index - 1])
 
@@ -1991,8 +2004,8 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
         ).group()
 
         if current_time.text[-8:] < arrival_time:
-            ms = int(send_info["arrival_time"][-3:]) - 15
-            if ms < 10:
+            ms = int(send_info["arrival_time"][-3:]) - 10
+            if ms <= 10:
                 sec = 0
             else:
                 sec = ms / 1000
@@ -2001,34 +2014,13 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                 if current_arrival_time == arrival_time:
                     if sec:
                         time.sleep(sec)
-                    if len(list_to_send) == 1:
-                        send_button.click()
-                    else:
-                        threading.Thread(
-                            target=lambda: click_without_wait(send_button),
-                            name="fast_click",
-                            daemon=True,
-                        ).start()
+                    driver.execute_script("arguments[0].click()", send_button)
                     break
                 elif current_arrival_time > arrival_time:
-                    if len(list_to_send) == 1:
-                        send_button.click()
-                    else:
-                        threading.Thread(
-                            target=lambda: click_without_wait(send_button),
-                            name="fast_click",
-                            daemon=True,
-                        ).start()
+                    driver.execute_script("arguments[0].click()", send_button)
                     break
         else:
-            if len(list_to_send) == 1:
-                send_button.click()
-            else:
-                threading.Thread(
-                    target=lambda: click_without_wait(send_button),
-                    name="fast_click",
-                    daemon=True,
-                ).start()
+            driver.execute_script("arguments[0].click()", send_button)
 
     if len(list_to_send) > 1:
         time.sleep(0.5)
@@ -2045,6 +2037,7 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
 
     to_do: list = settings["temp"]["to_do"]
 
+    # Check if should send some troops
     current_time = time.time()
     for task in to_do[1:]:
         if task["start_time"] - 1 > current_time:
@@ -2055,13 +2048,6 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
         break
     else:
         return
-
-    # if settings["scheduler"]["ready_schedule"]:
-    #     # Check if left more than 8sec to send troops
-    #     if settings["scheduler"]["ready_schedule"][0]["send_time"] - 8 > time.time():
-    #         return
-    # else:
-    #     return
 
     # Save current tab, open new and switch to it
     origin_tab = driver.current_window_handle
@@ -2093,6 +2079,7 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
     for index in sorted(index_to_del, reverse=True):
         del to_do[index]
 
+    # Attacks is already added in settings
     if attacks_to_repeat:
         for attack in attacks_to_repeat:
             to_do.append(attack)

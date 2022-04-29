@@ -1,10 +1,16 @@
 import logging
-import time
 import traceback
 
 import email_notifications
 
-logging.basicConfig(filename="log.txt", level=logging.WARNING)
+logger = logging.getLogger(__name__)
+f_handler = logging.FileHandler("logs/log.txt")
+f_format = logging.Formatter(
+    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+)
+f_handler.setFormatter(f_format)
+logger.addHandler(f_handler)
+logger.propagate = False
 
 
 def log_missed_erros(func):
@@ -14,10 +20,7 @@ def log_missed_erros(func):
         except:
             error_str = traceback.format_exc()
             error_str = error_str[: error_str.find("Stacktrace")]
-            logging.error(
-                f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())}\n'
-                f"{error_str}\n"
-            )
+            logger.error(f"\n{error_str}\n")
             email_notifications.send_email(
                 email_recepients=kwargs["settings"]["notifications"]["email_address"],
                 email_subject="TribalWars Error",

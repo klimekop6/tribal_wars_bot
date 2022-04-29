@@ -1,7 +1,6 @@
 import threading
 import tkinter as tk
 import uuid
-from unicodedata import name
 
 import ttkbootstrap as ttk
 
@@ -153,6 +152,7 @@ class LogInWindow:
 
         invoke_checkbuttons(parent=main_window.master)
         center(main_window.master, parent=parent)
+        main_window.load_after_log_in(settings=settings)
         main_window.master.deiconify()
         main_window.master.attributes("-alpha", 1.0)
         self.update_db_running_status(settings=settings, main_window=main_window)

@@ -1,0 +1,46 @@
+
+ERROR:root:21-04-2022 23:48:03 someinfo
+
+ERROR:root:21-04-2022 23:48:03 someinfo
+
+ERROR:root:21-04-2022 23:48:03 someinfo
+
+ERROR:root:21-04-2022 23:48:18 someinfo
+
+ERROR:root:21-04-2022 23:48:18 someinfo
+
+ERROR:root:21-04-2022 23:48:18 someinfo
+
+ERROR:root:21-04-2022 23:48:18 someinfo
+
+WARNING:root:21-04-2022 23:51:52 someinfo
+
+WARNING:root:21-04-2022 23:51:52 someinfo
+
+WARNING:root:21-04-2022 23:51:52 someinfo
+
+WARNING:root:21-04-2022 23:51:52 someinfo
+
+WARNING:root:21-04-2022 23:51:52 someinfo
+
+WARNING:root:21-04-2022 23:51:52 someinfo
+
+WARNING:root:21-04-2022 23:51:52 someinfo
+
+DEBUG:root:21-04-2022 23:52:13 someinfo
+
+DEBUG:root:21-04-2022 23:52:13 someinfo
+
+DEBUG:root:21-04-2022 23:52:13 someinfo
+
+DEBUG:root:21-04-2022 23:52:13 someinfo
+
+DEBUG:root:21-04-2022 23:52:13 someinfo
+
+DEBUG:root:21-04-2022 23:52:13 someinfo
+
+DEBUG:root:21-04-2022 23:52:13 someinfo
+
+DEBUG:root:21-04-2022 23:52:13 someinfo
+
+DEBUG:root:21-04-2022 23:52:50 someinfo

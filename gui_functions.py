@@ -315,30 +315,37 @@ def run_driver(settings: dict) -> webdriver.Chrome:
         logging.error(exc)
 
 
-def save_entry_to_settings(entries: dict, settings: dict) -> None:
-    def loop_over_settings(entries: dict | tk.StringVar, settings: dict | str):
+def save_entry_to_settings(
+    entries: dict, settings: dict, settings_by_worlds: dict = None
+) -> None:
+    def loop_over_entries(entries: dict | tk.StringVar, settings: dict | str):
         for key, value in entries.items():
             if isinstance(value, dict):
                 if key not in settings:
                     settings[key] = {}
-                loop_over_settings(entries=entries[key], settings=settings[key])
+                loop_over_entries(entries=entries[key], settings=settings[key])
             else:
                 settings[key] = value.get()
 
-    loop_over_settings(entries=entries, settings=settings)
+    print(settings["server_world"])
+    loop_over_entries(entries=entries, settings=settings)
+    print(settings["server_world"])
+    if settings_by_worlds:
+        loop_over_entries(
+            entries=entries, settings=settings_by_worlds[settings["server_world"]]
+        )
 
-    if "temp" in settings:
-        del settings["temp"]
-    # settings.pop('temp', None)
+    # if "temp" in settings:
+    #     del settings["temp"]
 
-    with open("settings.json", "w") as settings_json_file:
-        json.dump(settings, settings_json_file)
+    # with open("settings.json", "w") as settings_json_file:
+    #     json.dump(settings, settings_json_file)
 
-    if not settings["world_number"] or settings["world_number"] == "0":
-        return
+    # if not settings["world_number"] or settings["world_number"] == "0":
+    #     return
 
-    if not os.path.isdir("settings"):
-        os.mkdir("settings")
+    # if not os.path.isdir("settings"):
+    #     os.mkdir("settings")
 
-    with open(f'settings/{settings["server_world"]}.json', "w") as settings_json_file:
-        json.dump(settings, settings_json_file)
+    # with open(f'settings/{settings["server_world"]}.json', "w") as settings_json_file:
+    #     json.dump(settings, settings_json_file)

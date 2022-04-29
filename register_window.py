@@ -8,6 +8,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_validation, validator
 
+import geocoder
 from database_connection import DataBaseConnection
 from email_notifications import send_email
 from gui_functions import center, custom_error, forget_row
@@ -242,9 +243,12 @@ class RegisterWindow:
             and self.email_repeat_status.get()
             and self.recomended_by_status.get()
         ):
+            geolocation = geocoder.ip("me")
+            country = geolocation.country
+            city = geolocation.city
             with DataBaseConnection() as cursor:
                 # MAC address check
-                MAC_Address = "-".join(
+                mac_address = "-".join(
                     [
                         "{:02x}".format((uuid.getnode() >> ele) & 0xFF)
                         for ele in range(0, 8 * 6, 8)
@@ -261,17 +265,21 @@ class RegisterWindow:
                             invited_by,
                             verified_email,
                             verification_code,
-                            captcha_solved) 
+                            captcha_solved,
+                            country,
+                            city) 
                         VALUES (
                             '{self.login.get()}',
                             '{self.password.get()}',
                             '{self.email.get()}',
-                            '{MAC_Address}',
+                            '{mac_address}',
                             '0',
                             '{self.recommended_by.get()}',
                             '0',
                             '{verification_code}',
-                            '0'
+                            '0',
+                            '{country}',
+                            '{city}'
                     )"""
                 )
 

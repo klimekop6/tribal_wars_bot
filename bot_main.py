@@ -3,11 +3,13 @@ import logging
 import os
 import random
 import re
+import sched
 import subprocess
 import sys
 import threading
 import time
 import tkinter as tk
+from copy import deepcopy
 from datetime import datetime
 from functools import partial
 from math import sqrt
@@ -41,13 +43,47 @@ from gui_functions import (
 from log_in_window import LogInWindow
 from my_widgets import ScrollableFrame, TopLevel
 
-logging.basicConfig(filename="log.txt", level=logging.WARNING)
+# Change root logger path file
+root_logger = logging.getLogger("")
+root_logger.handlers = []
+root_format = logging.Formatter(
+    "%(levelname)s:%(name)s:%(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+)
+root_handler = logging.FileHandler("logs/pyu.txt")
+root_handler.setFormatter(root_format)
+root_handler.setLevel(logging.DEBUG)
+root_logger.addHandler(root_handler)
+
+# Default app log file
+logger = logging.getLogger(__name__)
+f_handler = logging.FileHandler("logs/log.txt")
+f_format = logging.Formatter(
+    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+)
+f_handler.setFormatter(f_format)
+f_handler.setLevel(logging.ERROR)
+logger.addHandler(f_handler)
+
+# Log debug if debug.txt file exist
+if os.path.exists("logs/debug.txt"):
+    debug_handler = logging.FileHandler("logs/debug.txt")
+    f_format = logging.Formatter(
+        "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+    )
+    debug_handler.setFormatter(f_format)
+    debug_handler.setLevel(logging.DEBUG)
+    logger.addHandler(debug_handler)
+    logger.setLevel(logging.DEBUG)
+
+logger.propagate = False
 
 
 class NotebookSchedul:
     """Content and functions to put in notebook frame f3 named 'Planer'."""
 
-    def __init__(self, parent: tk.Frame, entries_content: dict, settings: dict) -> None:
+    def __init__(
+        self, parent: tk.Frame, main_window, entries_content: dict, settings: dict
+    ) -> None:
 
         self.parent = parent
         self.entries_content = entries_content
@@ -631,7 +667,9 @@ class NotebookSchedul:
         self.add_to_schedule = ttk.Button(
             self.scroll_able.frame,
             text="Dodaj do planera [F5]",
-            command=lambda: self.create_schedule(settings=settings),
+            command=lambda: self.create_schedule(
+                settings=settings, main_window=main_window
+            ),
         )
         self.add_to_schedule.grid(
             row=46, column=1, padx=(12.5, 25), pady=10, sticky=ttk.EW
@@ -644,24 +682,26 @@ class NotebookSchedul:
         self.scroll_able.update_canvas(max_height=500)
 
     def available_templates(self, settings: dict) -> None:
-        def delete_template(row_number, template_name):
-            del settings["scheduler"]["fake_templates"][template_name]
+        def delete_template(row_number, fake_templates, template_name):
+            del fake_templates[template_name]
             forget_row(self.scroll_able.frame, row_number)
             self.scroll_able.frame.update_idletasks()
             self.scroll_able.canvas.configure(
                 scrollregion=self.scroll_able.canvas.bbox("all")
             )
 
-        if not settings["scheduler"]["fake_templates"]:
+        fake_templates = settings["scheduler"]["fake_templates"]
+
+        if not fake_templates:
             ttk.Label(self.scroll_able.frame, text="Brak dostępnych szablonów").grid(
                 row=20, column=0, columnspan=2, padx=(65, 5), pady=(0, 5), sticky=tk.W
             )
 
-        for index, template_name in enumerate(settings["scheduler"]["fake_templates"]):
+        for index, template_name in enumerate(fake_templates):
             ttk.Radiobutton(
                 self.scroll_able.frame,
                 text=f"{template_name}",
-                value=settings["scheduler"]["fake_templates"][template_name],
+                value=fake_templates[template_name],
                 variable=self.choosed_fake_template,
                 command=lambda: self.fake_troops_radiobutton.invoke(),
             ).grid(row=20 + index, column=0, padx=(65, 5), sticky=tk.W)
@@ -669,10 +709,12 @@ class NotebookSchedul:
                 self.scroll_able.frame,
                 image=self.exit,
                 bootstyle="primary.Link.TButton",
-                command=partial(delete_template, index + 20, template_name),
+                command=partial(
+                    delete_template, index + 20, fake_templates, template_name
+                ),
             ).grid(row=20 + index, column=0, columnspan=2, padx=(5, 27), sticky=tk.E)
 
-    def create_schedule(self, settings: dict) -> None:
+    def create_schedule(self, settings: dict, main_window) -> None:
         """Create scheduled defined on used options by the user"""
 
         def get_villages_id(settings: dict[str], update: bool = False) -> dict:
@@ -703,7 +745,7 @@ class NotebookSchedul:
                         f'villages{settings["server_world"]}.txt', "w"
                     )
                 except:
-                    logging.error(
+                    logger.error(
                         f'There was a problem with villages{settings["server_world"]}.txt'
                     )
                 else:
@@ -728,6 +770,20 @@ class NotebookSchedul:
                 world_villages_file.close()
 
             return villages
+
+        def local_custom_error(message) -> None:
+            custom_error(message=message, parent=self.parent)
+            self.scroll_able.canvas.yview_moveto(0)
+
+        if self.villages_to_use.get("1.0", "1.5") == "Współ":
+            local_custom_error("Brak wiosek startowych")
+            return
+        if self.villages_destiny.get("1.0", "1.5") == "Współ":
+            local_custom_error("Brak wiosek docelowych")
+            return
+        if not self.command_type.get():
+            local_custom_error("Wybierz rodzaj komendy")
+            return
 
         arrival_time = self.destiny_date.entry.get()
         ms = int(arrival_time[-3:])
@@ -809,33 +865,29 @@ class NotebookSchedul:
         sends_to = sends_to.split()
         for send_from, send_to in zip(sends_from, sends_to):
             send_info = {}
+            send_info["send_from"] = send_from
+            send_info["send_to"] = send_to
             send_info["command"] = command_type  # Is it attack or help
             send_info[
                 "template_type"
             ] = template_type  # send_all/send_fake/send_my_template
 
             try:
-                send_info["send_from_village_id"] = villages[send_from][
-                    :-1
-                ]  # It returns village ID
-                send_info["send_to_village_id"] = villages[send_to][
-                    :-1
-                ]  # It returns village ID
+                send_from_village_id = villages[send_from][:-1]  # It returns village ID
+                send_to_village_id = villages[send_to][:-1]  # It returns village ID
             except KeyError:
                 villages = get_villages_id(
                     settings=settings, update=True
                 )  # Update villages
                 try:
-                    send_info["send_from_village_id"] = villages[send_from][
+                    send_from_village_id = villages[send_from][
                         :-1
                     ]  # It returns village ID
                 except KeyError:
                     custom_error(message=f"Wioska {send_from} nie istnieje.")
                     continue
                 try:
-                    send_info["send_to_village_id"] = villages[send_to][
-                        :-1
-                    ]  # It returns village ID
+                    send_to_village_id = villages[send_to][:-1]  # It returns village ID
                 except KeyError:
                     custom_error(message=f"Wioska {send_to} nie istnieje.")
                     continue
@@ -844,9 +896,9 @@ class NotebookSchedul:
                 f"https://"
                 f'{settings["server_world"]}'
                 f".{settings['game_url']}/game.php?village="
-                f'{send_info["send_from_village_id"]}'
+                f"{send_from_village_id}"
                 f"&screen=place&target="
-                f'{send_info["send_to_village_id"]}'
+                f"{send_to_village_id}"
             )
 
             match template_type:
@@ -910,6 +962,11 @@ class NotebookSchedul:
                     arrival_time_in_sec - travel_time_in_sec
                 )  # sec since epoch
 
+            # Test purpose
+            print(
+                f"arrival_time_in_sec = {arrival_time_in_sec} extra_time = {extra_time} travel_time_in_sec = {travel_time_in_sec} "
+            )
+
             if send_info["send_time"] - 3 < current_time:
                 sends_from.append(send_from)
                 continue
@@ -919,8 +976,31 @@ class NotebookSchedul:
         if not send_info_list:
             return
 
-        for cell in send_info_list:
-            settings["scheduler"]["ready_schedule"].append(cell)
+        # Changed to settings["scheduler"]["ready_schedule"] also changes
+        # settings_by_worlds[server_world]["scheduler"]["ready_schedule"]
+        if hasattr(main_window, "to_do"):
+            server_world = settings["server_world"]
+            for cell in send_info_list:
+                settings["scheduler"]["ready_schedule"].append(cell)
+                main_window.to_do.append(
+                    {
+                        "func": "send_troops",
+                        "start_time": cell["send_time"] - 8,
+                        "server_world": server_world,
+                        "settings": main_window.settings_by_worlds[server_world],
+                    }
+                )
+        else:
+            for cell in send_info_list:
+                settings["scheduler"]["ready_schedule"].append(cell)
+        # Sort to_do if running and currently not busy
+        if main_window.running:
+            _time = main_window.time.get()
+            if _time != "Running..":
+                h, min, sec = (int(_) for _ in _time.split(":"))
+                total_sec = h * 3600 + min * 60 + sec
+                if total_sec > 1:
+                    main_window.to_do.sort(key=lambda sort_by: sort_by["start_time"])
         settings["scheduler"]["ready_schedule"].sort(key=lambda x: x["send_time"])
 
         # Scroll-up the page and clear input fields
@@ -1001,6 +1081,7 @@ class NotebookSchedul:
             last_row_number += 1
 
         template = {}
+        fake_templates = settings["scheduler"]["fake_templates"]
         last_row_number = 4
 
         template_window = TopLevel(
@@ -1104,7 +1185,7 @@ class NotebookSchedul:
         ).grid(row=3, column=4, padx=(0, 10), pady=(0, 5))
 
         def add_to_settings():
-            settings["scheduler"]["fake_templates"][template_name.get()] = template
+            fake_templates[template_name.get()] = template
 
         ttk.Button(
             frame,
@@ -1141,8 +1222,8 @@ class NotebookSchedul:
             {"text": "Świat", "stretch": False, "anchor": "center"},
             {"text": "Komenda", "stretch": False, "anchor": "center"},
             {"text": "Rodzaj", "stretch": False, "anchor": "center"},
-            # "Wioska startowa",
-            # "Wioska docelowa",
+            {"text": "Wioska startowa", "stretch": False, "anchor": "center"},
+            {"text": "Wioska docelowa", "stretch": False, "anchor": "center"},
             {"text": "Data wejścia wojsk", "stretch": False, "anchor": "center"},
         ]
 
@@ -1154,27 +1235,30 @@ class NotebookSchedul:
             "send_my_template": "własny szablon",
         }
 
-        SERVER_WORLD = settings["server_world"]
+        server_world = settings["server_world"]
+        schedule: list = settings["scheduler"]["ready_schedule"]
         rowdata = [
             tuple(
                 (
                     datetime.strftime(
                         datetime.fromtimestamp(row["send_time"]), "%d.%m.%Y %H:%M:%S:%f"
                     )[:-3],
-                    SERVER_WORLD,
+                    server_world,
                     translate[row["command"]],
                     translate[row["template_type"]],
+                    row["send_from"],
+                    row["send_to"],
                     row["arrival_time"],
                 )
             )
-            for row in settings["scheduler"]["ready_schedule"]
+            for row in schedule
         ]
 
         table = Tableview(
             master=content_frame,
             coldata=self.coldata,
             rowdata=rowdata,
-            datasource=settings["scheduler"]["ready_schedule"],
+            datasource=schedule,
             paginated=True,
             searchable=True,
             stripecolor=("gray14", None),
@@ -1582,8 +1666,9 @@ class NotebookGathering:
 
 class MainWindow:
 
-    entries_content = {}
     elements_state = []
+    entries_content = {}
+    settings_by_worlds = {}
 
     def __init__(self, root, driver: webdriver.Chrome, settings: dict[str]) -> None:
         self.captcha_counter = ttk.IntVar()
@@ -1656,7 +1741,6 @@ class MainWindow:
                     "taskkill /IM chromedriver.exe /F /T",
                     creationflags=subprocess.CREATE_NO_WINDOW,
                 )
-            save_entry_to_settings(entries=self.entries_content, settings=settings)
             with DataBaseConnection(ignore_erros=True) as cursor:
                 cursor.execute(
                     f"UPDATE konta_plemiona SET "
@@ -1664,6 +1748,15 @@ class MainWindow:
                     f"captcha_solved=captcha_solved + {self.captcha_counter.get()} "
                     f"WHERE user_name='{settings['user_name']}'"
                 )
+            if settings["server_world"] in self.settings_by_worlds:
+                save_entry_to_settings(
+                    entries=self.entries_content,
+                    settings=settings,
+                    settings_by_worlds=self.settings_by_worlds,
+                )
+            else:
+                save_entry_to_settings(entries=self.entries_content, settings=settings)
+            self.save_settings_to_files(settings=settings)
             self.master.destroy()
 
         self.exit_button = ttk.Button(
@@ -1701,12 +1794,14 @@ class MainWindow:
         f4 = ttk.Frame(self.notebook)
         f5 = ttk.Frame(self.notebook)
         f6 = ttk.Frame(self.notebook)
+        # f7 = ttk.Frame(self.notebook)
         self.notebook.add(f1, text="Farma")
         self.notebook.add(f2, text="Zbieractwo")
         self.notebook.add(f3, text="Planer")
         self.notebook.add(f4, text="Rynek")
         self.notebook.add(f5, text="Ustawienia")
         self.notebook.add(f6, text="Powiadomienia")
+        # self.notebook.add(f7, text="O aplikacji")
 
         # f1 -> 'Farma'
         templates = ttk.Notebook(f1)
@@ -2202,7 +2297,10 @@ class MainWindow:
         # f3 -> 'Planer'
 
         self.schedule = NotebookSchedul(
-            parent=f3, entries_content=self.entries_content, settings=settings
+            parent=f3,
+            main_window=self,
+            entries_content=self.entries_content,
+            settings=settings,
         )
 
         # f4 -> 'Rynek'
@@ -2686,10 +2784,9 @@ class MainWindow:
 
         if not os.path.isdir("settings"):
             os.mkdir("settings")
-        settings_list = os.listdir("settings")
 
         # Takie ustawienia już istnieją
-        if any(world_number in settings_name for settings_name in settings_list):
+        if server_world in self.settings_by_worlds:
             if entry_change:
                 self.notebook.select(4)
                 custom_error("Ustawienia tego świata już istnieją!", parent=self.master)
@@ -2704,7 +2801,8 @@ class MainWindow:
             return False
 
         # Ustawienia pierwszego świata
-        elif len(settings_list) == 0 and entry_change:
+        elif len(self.settings_by_worlds) == 0 and entry_change:
+            print("Ustawienie pierwszego świata")
             self.entries_content["world_in_title"].set(
                 f"{country_code.upper()}{world_number}"
             )
@@ -2713,10 +2811,14 @@ class MainWindow:
             )
             get_world_config()
             save_entry_to_settings(entries=self.entries_content, settings=settings)
+            self.settings_by_worlds[server_world] = {}
+            self.settings_by_worlds[server_world].update(settings)
             return True
 
         # Zmiana świata w obrębie wybranej konfiguracji ustawień
         elif entry_change:
+            print("Zmiana świata w obrębie wybranej konfiguracji ustawień")
+            del self.settings_by_worlds[settings["server_world"]]
             if os.path.exists(f'settings/{settings["server_world"]}.json'):
                 os.remove(f'settings/{settings["server_world"]}.json')
             set_additional_settings(
@@ -2726,11 +2828,17 @@ class MainWindow:
                 f"{country_code.upper()}{world_number}"
             )
             get_world_config()
-            save_entry_to_settings(entries=self.entries_content, settings=settings)
+            save_entry_to_settings(
+                entries=self.entries_content,
+                settings=settings,
+            )
+            self.settings_by_worlds[server_world] = {}
+            self.settings_by_worlds[server_world].update(settings)
             return True
 
         # Dodanie nowych ustawień nieistniejącego jeszcze świata
         else:
+            print("Dodanie całkowicie nowego świata")
 
             def set_default_entry_values(entries: dict | tk.StringVar) -> None:
                 """Ustawia domyślne wartości elementów GUI (entries_content)"""
@@ -2741,9 +2849,16 @@ class MainWindow:
                     else:
                         entries[key].set(value="0")
 
-            save_entry_to_settings(entries=self.entries_content, settings=settings)
-            set_default_entry_values(entries=self.entries_content)
+            if settings["server_world"] in self.settings_by_worlds:
+                save_entry_to_settings(
+                    entries=self.entries_content,
+                    settings=settings,
+                    settings_by_worlds=self.settings_by_worlds,
+                )
+            else:
+                save_entry_to_settings(entries=self.entries_content, settings=settings)
 
+            set_default_entry_values(entries=self.entries_content)
             self.entries_content["world_number"].set(value=world_number)
             self.entries_content["game_url"].set(value=game_url)
             self.entries_content["notifications"]["email_address"].set(
@@ -2768,8 +2883,18 @@ class MainWindow:
                 f"{country_code.upper()}{world_number}"
             )
             invoke_checkbuttons(parent=self.master)
+            self.schedule.template_type.set("")
             get_world_config()
             save_entry_to_settings(entries=self.entries_content, settings=settings)
+            self.settings_by_worlds[server_world] = deepcopy(settings)
+            settings.update(self.settings_by_worlds[server_world])
+
+            print("SETTINGS")
+            print("ID = ", id(settings))
+            print(settings)
+            print(f"\nSETTINGS_BY_WORLDS {server_world} \n")
+            print("ID = ", id(self.settings_by_worlds[server_world]))
+            print(self.settings_by_worlds[server_world])
             return True
 
     def check_groups(self, settings: dict):
@@ -2803,6 +2928,26 @@ class MainWindow:
             self.master.attributes("-alpha", 1.0)
 
         self.minimize_button.bind("<Map>", show)
+
+    def load_after_log_in(self, settings: dict):
+        """Used to load some things only after user log in correctly"""
+
+        # Load settings into settings_by_worlds[server_world]
+        for settings_file_name in os.listdir("settings"):
+            server_world = settings_file_name[: settings_file_name.find(".")]
+            self.settings_by_worlds[server_world] = load_settings(
+                f"settings//{settings_file_name}"
+            )
+
+        # Add reference to deeper lists and dicts between settings and settings_by_worlds[server_world]
+        if (
+            "server_world" in settings
+            and settings["server_world"] in self.settings_by_worlds
+        ):
+            settings.update(self.settings_by_worlds[settings["server_world"]])
+
+        # Redraw templates in scheduler after load settings_by_worlds[server_world]
+        self.schedule.redraw_availabe_templates(settings=settings)
 
     @log_missed_erros
     def run(self, settings: dict):
@@ -2888,6 +3033,9 @@ class MainWindow:
                 self.running = False
                 self.run_button.config(text="Uruchom")
                 return
+            self.acc_expire_time.config(
+                text=f'Konto ważne do {self.user_data["active_until"]}'
+            )
 
         # Check if group was choosed
         if self.entries_content["farm_group"].get() == "Wybierz grupę":
@@ -2907,26 +3055,23 @@ class MainWindow:
                 self.run_button.config(text="Uruchom")
                 return
 
-        self.settings_by_worlds = {}
         self.to_do = []
 
         incoming_attacks = False
         logged = False
 
-        save_entry_to_settings(entries=self.entries_content, settings=settings)
+        save_entry_to_settings(
+            entries=self.entries_content,
+            settings=settings,
+            settings_by_worlds=self.settings_by_worlds,
+        )
 
         if not self.driver:
             self.driver = run_driver(settings=settings)
 
-        for settings_file_name in os.listdir("settings"):
-            world_number = settings_file_name[: settings_file_name.find(".")]
-            self.settings_by_worlds[world_number] = load_settings(
-                f"settings//{settings_file_name}"
-            )
-
         # Add functions into to_do list
-        for world_number in self.settings_by_worlds:  # world_number = de199, pl173 etc.
-            _settings = self.settings_by_worlds[world_number]
+        for server_world in self.settings_by_worlds:  # server_world = de199, pl173 etc.
+            _settings = self.settings_by_worlds[server_world]
             _settings["temp"] = {
                 "to_do": self.to_do,
                 "captcha_counter": self.captcha_counter,
@@ -2979,11 +3124,11 @@ class MainWindow:
                     )
 
             self.to_do.extend(to_do)
-
         if not len(self.to_do):
             self.running = False
             custom_error(message="Brak zadań do wykonania", parent=self.master)
             return
+        self.to_do.sort(key=lambda sort_by: sort_by["start_time"])
 
         # Grid and set timer in custombar
         self.title_timer.grid(row=0, column=2, padx=5)
@@ -2993,6 +3138,7 @@ class MainWindow:
         while self.running:
             if not self.to_do:
                 self.running = False
+                self.time.set("")
                 custom_error(
                     message="Wszystkie zadania zostały wykonane", parent=self.master
                 )
@@ -3000,31 +3146,69 @@ class MainWindow:
 
             # Jeżeli zostało trochę czasu do wykonania najbliższego zadania
             # Uruchamia timer w oknie głównym i oknie zadań (jeśli istnieje)
-            if self.to_do[0]["start_time"] > time.time():
+            time_left = self.to_do[0]["start_time"] - time.time()
+            settings_send_amount = len(settings["scheduler"]["ready_schedule"])
+            while time_left > 0 and self.running:
                 try:
-                    # Timer -> odliczanie czasu do najbliższego zadania
-                    for _ in range(
-                        int(self.to_do[0]["start_time"] - time.time()), 0, -1
+                    # Update to_do after user delete something in schedule
+                    if settings_send_amount != len(
+                        settings["scheduler"]["ready_schedule"]
                     ):
-                        if not self.running:
-                            break
-                        if not paid(str(self.user_data["active_until"])):
-                            self.user_data = get_user_data(
-                                settings=settings, update=True
-                            )
-                            if not paid(str(self.user_data["active_until"])):
-                                self.running = False
-                                break
+                        current_settings_send_amount = len(
+                            settings["scheduler"]["ready_schedule"]
+                        )
+                        # If user added something -> update settings_send_amount and continue
+                        if current_settings_send_amount > settings_send_amount:
+                            settings_send_amount = current_settings_send_amount
+                            continue
+                        time_check = time.perf_counter()
+                        index_to_del = []
+                        amount_to_del = (
+                            settings_send_amount - current_settings_send_amount
+                        )
+                        for index, task in enumerate(self.to_do):
+                            if task["func"] != "send_troops":
+                                continue
+                            if task["server_world"] != settings["server_world"]:
+                                continue
+                            for schedule in settings["scheduler"]["ready_schedule"]:
+                                # Break if find in schedule with the same send_time with ms accuracy
+                                if task["start_time"] + 8 == schedule["send_time"]:
+                                    break
+                            else:
+                                index_to_del.append(index)
+                                if amount_to_del == len(index_to_del):
+                                    break
+                        for index in reversed(index_to_del):
+                            del self.to_do[index]
+                        settings_send_amount = current_settings_send_amount
+                        print(time.perf_counter() - time_check)
 
-                        self.time.set(f"{time.strftime('%H:%M:%S', time.gmtime(_))}")
-                        time.sleep(1)
-                    if not self.running:
+                    if not paid(str(self.user_data["active_until"])):
+                        self.user_data = get_user_data(settings=settings, update=True)
+                        if not paid(str(self.user_data["active_until"])):
+                            self.running = False
+                            break
+                        self.acc_expire_time.config(
+                            text=f'Konto ważne do {self.user_data["active_until"]}'
+                        )
+                    # Timer -> odliczanie czasu do najbliższego zadania
+                    self.time.set(
+                        f"{time.strftime('%H:%M:%S', time.gmtime(time_left))}"
+                    )
+                    time.sleep(0.33)
+                    if not self.to_do:
                         break
-                    self.time.set("Running..")
+                    time_left = self.to_do[0]["start_time"] - time.time()
                 except BaseException:
                     bot_functions.log_error(self.driver)
-                if not self.to_do or self.to_do[0]["start_time"] > time.time() + 1:
-                    continue
+
+            if not self.running:
+                break
+            if not self.to_do:
+                continue
+
+            self.time.set("Running..")
 
             if "errors_number" not in self.to_do[0]:
                 self.to_do[0]["errors_number"] = 0
@@ -3186,38 +3370,7 @@ class MainWindow:
         self.time.set("")
         self.title_timer.grid_remove()
         self.run_button.config(text="Uruchom")
-        for settings_file_name in os.listdir("settings"):
-            server_world = settings_file_name[: settings_file_name.find(".")]
-            # Dla wszystkich zapisanych oprócz aktualnie aktywnego
-            if settings["server_world"] != server_world:
-                _settings = load_settings(f"settings//{settings_file_name}")
-                for scheduled_attack in self.settings_by_worlds[server_world][
-                    "scheduler"
-                ]["ready_schedule"]:
-                    if any(
-                        scheduled_attack == scheduled_attack2
-                        for scheduled_attack2 in _settings["scheduler"][
-                            "ready_schedule"
-                        ]
-                    ):
-                        continue
-                    else:
-                        _settings["scheduler"]["ready_schedule"].append(
-                            scheduled_attack
-                        )
-                with open(f"settings/{server_world}.json", "w") as settings_json_file:
-                    json.dump(_settings, settings_json_file)
-            else:
-                for scheduled_attack in self.settings_by_worlds[server_world][
-                    "scheduler"
-                ]["ready_schedule"]:
-                    if any(
-                        scheduled_attack == scheduled_attack2
-                        for scheduled_attack2 in settings["scheduler"]["ready_schedule"]
-                    ):
-                        continue
-                    else:
-                        settings["scheduler"]["ready_schedule"].append(scheduled_attack)
+        # self.save_each_schedule_to_settings(settings=settings)
 
     def show_jobs_to_do_window(self, event) -> None:
 
@@ -3305,30 +3458,53 @@ class MainWindow:
             center(window=master, parent=self.master)
             master.attributes("-alpha", 1.0)
 
-        def change_world(settings_file_name: str, world_in_title: str) -> None:
+        def change_world(server_world: str, world_in_title: str) -> None:
             nonlocal settings
 
             # Skip if user clicked/choose the same world as he is now
             if (
-                re.search(r"\d+", settings_file_name).group()
-                == self.entries_content["world_number"].get()
+                # re.search(r"\d+", server_world).group()
+                # == self.entries_content["world_number"].get()
+                server_world
+                == settings["server_world"]
             ):
                 self.world_chooser_window.destroy()
                 return
 
-            if os.path.exists(f"settings/{settings_file_name}.json"):
+            print(f"Change from = {settings['server_world']}")
+            print(f"Change to = {server_world}")
+            print(f"Available server_world's: {self.settings_by_worlds.keys()}")
+
+            # Change if already exist in self.settings_by_worlds
+            if server_world in self.settings_by_worlds:
                 # Save current settings before changing to other
-                save_entry_to_settings(entries=self.entries_content, settings=settings)
-                settings.clear()
-                settings.update(load_settings(f"settings/{settings_file_name}.json"))
-                # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
-                if settings["scheduler"]["ready_schedule"]:
-                    current_time = time.time()
-                    settings["scheduler"]["ready_schedule"] = [
-                        value
-                        for value in settings["scheduler"]["ready_schedule"]
-                        if value["send_time"] > current_time
-                    ]
+                if settings["server_world"] in self.settings_by_worlds:
+                    save_entry_to_settings(
+                        entries=self.entries_content,
+                        settings=settings,
+                        settings_by_worlds=self.settings_by_worlds,
+                    )
+                print(f"ID BEFORE = {id(settings)}")
+                settings.update(self.settings_by_worlds[server_world])
+                print(f"ID AFTER = {id(settings)}")
+
+                print("\nREADY SCHEDULE ID")
+                print(f"ID BEFORE = {id(settings['scheduler']['ready_schedule'])}")
+                print(
+                    f"ID AFTER = {id(self.settings_by_worlds[server_world]['scheduler']['ready_schedule'])}\n"
+                )
+
+                print(f'\nID SETTINGS GROUP {id(settings["groups"])}')
+                print(
+                    f'\nID SETTINGS_BY_WORLDS GROUP {id(self.settings_by_worlds[server_world]["groups"])}'
+                )
+
+                # Set available groups
+                self.farm_group_A["values"] = settings["groups"]
+                self.farm_group_B["values"] = settings["groups"]
+                self.farm_group_C["values"] = settings["groups"]
+                self.gathering.gathering_group["values"] = settings["groups"]
+                self.villages_groups["values"] = settings["groups"]
 
                 # Odświeża okno planera
                 self.schedule.redraw_availabe_templates(settings=settings)
@@ -3337,12 +3513,23 @@ class MainWindow:
                     entries=self.entries_content, settings=settings
                 )
 
+                # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
+                schedule = self.settings_by_worlds[server_world]["scheduler"][
+                    "ready_schedule"
+                ]
+                if schedule:
+                    current_time = time.time()
+                    schedule = [
+                        value for value in schedule if value["send_time"] > current_time
+                    ]
+
                 invoke_checkbuttons(parent=self.master)
+                self.schedule.template_type.set("")
 
                 self.entries_content["world_in_title"].set(f"{world_in_title}")
                 self.world_chooser_window.destroy()
 
-        def delete_world(settings_file_name: str) -> None:
+        def delete_world(server_world: str) -> None:
 
             master = TopLevel(title_text="Tribal Wars Bot")
 
@@ -3351,7 +3538,7 @@ class MainWindow:
 
             ttk.Label(
                 content_frame,
-                text=f"Czy chcesz usunąć ustawienia {settings_file_name}?",
+                text=f"Czy chcesz usunąć ustawienia {server_world}?",
             ).grid(row=0, column=0, columnspan=2, padx=5, pady=5)
 
             exit_var = ttk.BooleanVar()
@@ -3373,8 +3560,10 @@ class MainWindow:
             if not exit_var.get():
                 return
 
-            if os.path.exists(f"settings/{settings_file_name}.json"):
-                os.remove(f"settings/{settings_file_name}.json")
+            if os.path.exists(f"settings/{server_world}.json"):
+                os.remove(f"settings/{server_world}.json")
+            if server_world in self.settings_by_worlds:
+                del self.settings_by_worlds[server_world]
 
             self.master.unbind("<Button-1>", self.btn_func_id)
             self.world_chooser_window.destroy()
@@ -3406,25 +3595,26 @@ class MainWindow:
             photo = tk.PhotoImage(file="icons//plus.png")
             self.plus = photo.subsample(2, 2)
 
-        file_list = os.listdir("settings")
-        for index, settings_file_name in enumerate(file_list):
-            settings_file_name = settings_file_name[: settings_file_name.find(".")]
-            country_code = re.search(r"\D+", settings_file_name).group()
-            world_in_title = settings_file_name.replace(
-                country_code, country_code.upper()
-            )
+        if not self.settings_by_worlds and "server_world" in settings:
+            save_entry_to_settings(entries=self.entries_content, settings=settings)
+            if settings["server_world"] not in self.settings_by_worlds:
+                self.settings_by_worlds[settings["server_world"]] = deepcopy(settings)
+
+        for index, server_world in enumerate(self.settings_by_worlds):
+            country_code = re.search(r"\D+", server_world).group()
+            world_in_title = server_world.replace(country_code, country_code.upper())
             ttk.Button(
                 self.world_chooser_window,
                 bootstyle="primary.Link.TButton",
                 text=f"{world_in_title}",
-                command=partial(change_world, settings_file_name, world_in_title),
+                command=partial(change_world, server_world, world_in_title),
             ).grid(row=index * 2, column=0, sticky=ttk.NSEW)
 
             ttk.Button(
                 self.world_chooser_window,
                 style="danger.primary.Link.TButton",
                 image=self.exit,
-                command=partial(delete_world, settings_file_name),
+                command=partial(delete_world, server_world),
             ).grid(row=index * 2, column=2, sticky=ttk.NSEW)
 
             ttk.Separator(self.world_chooser_window, style="default.TSeparator").grid(
@@ -3435,7 +3625,9 @@ class MainWindow:
             self.world_chooser_window,
             orient=ttk.VERTICAL,
             style="default.TSeparator",
-        ).grid(row=0, rowspan=len(file_list) * 2 - 1, column=1, sticky=ttk.NS)
+        ).grid(
+            row=0, rowspan=len(self.settings_by_worlds) * 2 - 1, column=1, sticky=ttk.NS
+        )
 
         add_world_button = ttk.Button(
             self.world_chooser_window,
@@ -3444,7 +3636,10 @@ class MainWindow:
             command=add_world,
         )
         add_world_button.grid(
-            row=len(file_list) * 2, column=0, columnspan=3, sticky=ttk.NSEW
+            row=len(self.settings_by_worlds) * 2,
+            column=0,
+            columnspan=3,
+            sticky=ttk.NSEW,
         )
 
         self.world_chooser_window.bind("<Leave>", on_leave)
@@ -3473,6 +3668,49 @@ class MainWindow:
         ):
 
             on_focus_out()
+
+    def save_each_schedule_to_settings(self, settings: dict) -> None:
+        """Save each ready_schedule list into suitable settings"""
+
+        for settings_file_name in os.listdir("settings"):
+            server_world = settings_file_name[: settings_file_name.find(".")]
+            server_world_ready_schedule = self.settings_by_worlds[server_world][
+                "scheduler"
+            ]["ready_schedule"].copy()
+            # For each settings without current
+            # if settings["server_world"] != server_world:
+            _settings = load_settings(f"settings//{settings_file_name}")
+            _settings["scheduler"][
+                "ready_schedule"
+            ] = server_world_ready_schedule.copy()
+            # Save settings in file
+            with open(f"settings/{server_world}.json", "w") as settings_json_file:
+                json.dump(_settings, settings_json_file)
+            # else:
+            #     settings["scheduler"][
+            #         "ready_schedule"
+            #     ] = server_world_ready_schedule.copy()
+
+    def save_settings_to_files(self, settings: dict) -> None:
+        # Initial/global settings
+        if "temp" in settings:
+            del settings["temp"]
+        with open("settings.json", "w") as settings_json_file:
+            json.dump(settings, settings_json_file)
+
+        if (
+            "server_world" in settings
+            and settings["server_world"] in self.settings_by_worlds
+        ):
+            self.settings_by_worlds[settings["server_world"]] = settings
+
+        # Settings per server_world
+        for server_world in self.settings_by_worlds:
+            _settings = self.settings_by_worlds[server_world]
+            if "temp" in _settings:
+                del _settings["temp"]
+            with open(f"settings/{server_world}.json", "w") as settings_json_file:
+                json.dump(_settings, settings_json_file)
 
 
 class JobsToDoWindow:
@@ -3538,24 +3776,6 @@ class JobsToDoWindow:
             for row in main_window.to_do
         ]
         self.table.build_table_data(coldata=self.coldata, rowdata=rowdata)
-        # self.table.delete_rows()
-        # self.table.insert_rows(
-        #     index="end",
-        #     rowdata=[
-        #         tuple(
-        #             (
-        #                 row["server_world"],
-        #                 self.translate[row["func"]],
-        #                 time.strftime(
-        #                     "%H:%M:%S %d.%m.%Y", time.localtime(row["start_time"])
-        #                 ),
-        #             )
-        #         )
-        #         for row in main_window.to_do
-        #     ],
-        # )
-        # self.table.load_table_data()
-        # self.table.configure()
 
 
 class PaymentWindow:
@@ -3571,10 +3791,10 @@ class PaymentWindow:
         self.text.insert("4.0", "- 75zł za trzy miesiące 90zł oszczędzasz 15zł\n")
         self.text.insert("5.0", "Dostępne metody płatności:\n", "bold_text")
         self.text.insert(
-            "6.0", "- blik na numer: 604 065 940 (nazwa odbiorcy: Klemens)\n"
+            "6.0", "- blik na numer: 511 163 955 (nazwa odbiorcy: Klemens)\n"
         )
         self.text.insert(
-            "7.0", "- przelew na numer: 83 1240 6117 1111 0010 7122 6836\n"
+            "7.0", "- przelew na numer: 95 1050 1025 1000 0097 5211 9777\n"
         )
         self.text.insert(
             "8.0",
@@ -3600,7 +3820,7 @@ class PaymentWindow:
 
         def copy_acc_number() -> None:
             self.text.clipboard_clear()
-            self.text.clipboard_append("83 1240 6117 1111 0010 7122 6836")
+            self.text.clipboard_append("95 1050 1025 1000 0097 5211 9777")
             self.text.config(state="normal")
             self.text.insert("7.end", "skopiowano do schowka")
             self.text.config(state="disabled")
@@ -3660,23 +3880,26 @@ class PaymentWindow:
 def check_for_updates() -> None:
     def if_downloaded() -> None:
         if not app_update.is_downloaded():
+            logger.debug("Downloading update")
             master.after(250, if_downloaded)
+        progress_bar["value"] = 100
+        description_progress_bar.config(text="Aktualizacja ukończona!")
+        logger.debug("File/patch downloaded")
         master.update_idletasks()
         master.after(500, master.destroy)
+        logger.debug("Master destroyd")
 
     def print_status_info(info):
         percent_complete = int(float(info.get("percent_complete")))
+        logger.debug(f"Downloaded in {percent_complete}%")
         progress_bar["value"] = percent_complete
         style.configure(
             "str_progress_in.Horizontal.TProgressbar", text=f"{percent_complete}%"
         )
-        if percent_complete == 100:
-            description_progress_bar.config(text="Aktualizacja ukończona!")
-            if_downloaded()
         master.update_idletasks()
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "0.2.5"
+    APP_VERSION = "0.3.9"
 
     client = Client(ClientConfig())
     client.refresh()
@@ -3711,6 +3934,8 @@ def check_for_updates() -> None:
 
         client.add_progress_hook(print_status_info)
         app_update.download(background=True)
+        logger.debug("Started downloading in background")
+        master.after(250, if_downloaded)
         master.mainloop()
         app_update.extract_restart()
 
@@ -3852,44 +4077,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-
-    # master = tk.Tk()
-    # master.withdraw()
-
-    # style = ttk.Style(theme="darkly")
-    # configure_style(style=style)
-    # custom_error(message=f"Dostępna jest nowa aktualizacja!")
-
-    # def update_pb():
-    #     for _ in range(101):
-    #         progress_bar["value"] += 1
-    #         if _ == 100:
-    #             text_progessbar.config(text="Ponowne uruchamianie aplikacji..")
-    #             style.configure(
-    #                 "str_progress_in.Horizontal.TProgressbar",
-    #                 text="Aktualizacja ukończona!",
-    #             )
-    #         style.configure("str_progress_in.Horizontal.TProgressbar", text=f"{_}%")
-    #         master.update_idletasks()
-    #         time.sleep(0.025)
-
-    # update_window = TopLevel(title_text="TribalWarsBot")
-    # text_progessbar = ttk.Label(
-    #     update_window.content_frame, text="Aktualizowanie aplikacji. Proszę czekać.."
-    # )
-    # text_progessbar.pack(anchor="center", pady=(5, 0))
-    # progress_bar = ttk.Progressbar(
-    #     update_window.content_frame,
-    #     orient="horizontal",
-    #     mode="determinate",
-    #     length=280,
-    #     style="str_progress_in.Horizontal.TProgressbar",
-    # )
-    # progress_bar.pack(ipady=2, padx=5, pady=5)
-    # center(window=update_window)
-    # update_window.attributes("-alpha", 1.0)
-    # master.after(100, update_pb)
-    # master.mainloop()
 
     if hasattr(sys, "frozen"):
         check_for_updates()
