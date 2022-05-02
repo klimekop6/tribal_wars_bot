@@ -906,6 +906,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                     "start_time": time.time() + journey_time + 3,
                     "server_world": settings["server_world"],
                     "settings": settings,
+                    "errors_number": 0,
                 }
             ]
 
@@ -937,6 +938,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 "start_time": time.time() + journey_time + 3,
                 "server_world": settings["server_world"],
                 "settings": settings,
+                "errors_number": 0,
             }
         )
 
@@ -1730,7 +1732,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
     It can be attack or help.
     You can also use it for fakes.
     """
-    # to_do = settings["temp"]["to_do"]
+
     send_time = settings["scheduler"]["ready_schedule"][0]["send_time"]
     list_to_send = []
     for cell_in_list in settings["scheduler"]["ready_schedule"]:
@@ -1979,13 +1981,14 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
         # Add snoob
         if send_info["template_type"] == "send_all":
             if "snob_amount" in send_info:
-                add_snoob = driver.find_element(By.ID, "troop_confirm_train")
+                try:
+                    add_snoob = driver.find_element(By.ID, "troop_confirm_train")
+                except:
+                    if len(list_to_send) > 1:
+                        continue
+                    return 1, attacks_list_to_repeat
                 for _ in range(send_info["snob_amount"]):
                     driver.execute_script("arguments[0].click()", add_snoob)
-
-    # Sort all added attacks in scheduler
-    if attacks_list_to_repeat:
-        settings["scheduler"]["ready_schedule"].sort(key=lambda x: x["send_time"])
 
     if len(list_to_send) > 1:
         driver.switch_to.window(origin_tab)
@@ -1993,8 +1996,8 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
     for index, send_info in enumerate(list_to_send):
         if index > 0:
             driver.switch_to.window(new_tabs[index - 1])
-
         current_time = driver.find_elements(By.XPATH, '//*[@id="date_arrival"]/span')
+        # Skip to next if didn't find element with id="date_arrival"
         if not current_time:
             continue
         current_time = current_time[0]
@@ -2004,11 +2007,11 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
         ).group()
 
         if current_time.text[-8:] < arrival_time:
-            ms = int(send_info["arrival_time"][-3:]) - 10
+            ms = int(send_info["arrival_time"][-3:])
             if ms <= 10:
                 sec = 0
             else:
-                sec = ms / 1000
+                sec = (ms + 10) / 1000
             while True:
                 current_arrival_time = current_time.text[-8:]
                 if current_arrival_time == arrival_time:
@@ -2059,9 +2062,13 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
         )
     except BaseException:
         unwanted_page_content(driver=driver, settings=settings)
-        (send_number_times, attacks_to_repeat) = send_troops(
-            driver=driver, settings=settings
-        )
+        try:
+            (send_number_times, attacks_to_repeat) = send_troops(
+                driver=driver, settings=settings
+            )
+        except BaseException:
+            send_number_times = 1
+            attacks_to_repeat = []
     finally:
         # Close current tab and switch to original one
         driver.close()
@@ -2072,15 +2079,19 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
 
     index_to_del = []
     for index, row_data in enumerate(to_do):
-        if row_data["func"] == "send_troops":
-            index_to_del.append(index)
-            if len(index_to_del) == send_number_times:
-                break
+        if row_data["func"] != "send_troops":
+            continue
+        if row_data["server_world"] != settings["server_world"]:
+            continue
+        index_to_del.append(index)
+        if len(index_to_del) == send_number_times:
+            break
     for index in sorted(index_to_del, reverse=True):
         del to_do[index]
 
-    # Attacks is already added in settings
+    # Sort all added attacks in scheduler and add them in to_do
     if attacks_to_repeat:
+        settings["scheduler"]["ready_schedule"].sort(key=lambda x: x["send_time"])
         for attack in attacks_to_repeat:
             to_do.append(attack)
         to_do.sort(key=lambda sort_by: sort_by["start_time"])

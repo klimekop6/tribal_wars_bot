@@ -418,24 +418,64 @@
             "patch_hash": "2465ab2b4bed166a730199c6276bcba66217ffa3ad901effa98e43d303e79ba6",
             "patch_size": 1778302
           }
+        },
+        "0.4.0.2.0": {
+          "win": {
+            "file_hash": "ed999a18f194db8aef984e2e43fa90b5f87653dee2576045cb5deea091d6dd53",
+            "file_size": 26633420,
+            "filename": "TribalWarsBot-win-0.4.0.zip",
+            "patch_name": "TribalWarsBot-win-stable-40",
+            "patch_hash": "a4cc864ee136d66e9ec6efca3aab2fa6e40551e7fc2b35269e1df16c188062a6",
+            "patch_size": 1754605
+          }
+        },
+        "0.4.1.2.0": {
+          "win": {
+            "file_hash": "479e62c8f3c0c4cdc8c99ea80f3adb76557af80d76b4a47826c3f6683c631cf7",
+            "file_size": 26633322,
+            "filename": "TribalWarsBot-win-0.4.1.zip",
+            "patch_name": "TribalWarsBot-win-stable-41",
+            "patch_hash": "7455abe3cef49eec2f569f882044d7d9a1b0e243c89e7273a0973b7e86f48ca7",
+            "patch_size": 1366605
+          }
+        },
+        "0.4.2.2.0": {
+          "win": {
+            "file_hash": "765759b7bda768355fcc1b576e48169200058562185d951714115194763d597e",
+            "file_size": 26635579,
+            "filename": "TribalWarsBot-win-0.4.2.zip",
+            "patch_name": "TribalWarsBot-win-stable-42",
+            "patch_hash": "88517d71d044a64f5c5107ceb44adb2ab95c33c1a381d0426e3142e5e80cc33c",
+            "patch_size": 1267944
+          }
+        },
+        "0.4.3.2.0": {
+          "win": {
+            "file_hash": "282b7833579dd4606f24cd9e885a33e422d0ce91380bd4e105ba336330f1c0cc",
+            "file_size": 26597223,
+            "filename": "TribalWarsBot-win-0.4.3.zip",
+            "patch_name": "TribalWarsBot-win-stable-43",
+            "patch_hash": "bada421d3926dc1fde62f79a0307696b80ea6e0197db75522da9afbe610169b9",
+            "patch_size": 1557675
+          }
         }
       }
     },
     "latest": {
       "TribalWarsBot": {
         "stable": {
-          "win": "0.3.9.2.0"
+          "win": "0.4.3.2.0"
         }
       }
     }
   },
   "py_repo_config": {
     "patches": {
-      "TribalWarsBot": 39
+      "TribalWarsBot": 43
     },
     "package": {
       "TribalWarsBot": {
-        "win": "0.3.9.2.0"
+        "win": "0.4.3.2.0"
       }
     }
   }

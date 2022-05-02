@@ -38,9 +38,7 @@ class TopLevel(tk.Toplevel):
             self.title_timer = ttk.Label(self.custom_bar, textvariable=timer)
             self.title_timer.grid(row=0, column=2, padx=5)
 
-        self.photo = tk.PhotoImage(file="icons//minimize.png")
-        self.minimize = self.photo.subsample(2, 2)
-
+        self.minimize = tk.PhotoImage(file="icons//minimize.png")
         self.minimize_button = ttk.Button(
             self.custom_bar,
             bootstyle="primary.Link.TButton",
@@ -49,9 +47,7 @@ class TopLevel(tk.Toplevel):
         )
         self.minimize_button.grid(row=0, column=4, padx=(5, 0), pady=5, sticky="E")
 
-        self.photo = tk.PhotoImage(file="icons//exit.png")
-        self.exit = self.photo.subsample(8, 8)
-
+        self.exit = tk.PhotoImage(file="icons//exit.png")
         self.exit_button = ttk.Button(
             self.custom_bar,
             bootstyle="primary.Link.TButton",

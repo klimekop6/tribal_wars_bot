@@ -91,14 +91,10 @@ class NotebookSchedul:
         parent.columnconfigure(0, weight=1)
         parent.rowconfigure(0, weight=1)
 
-        photo = tk.PhotoImage(file="icons//minimize.png")
-        self.minus = photo.subsample(2, 2)
-        photo = tk.PhotoImage(file="icons//plus.png")
-        self.plus = photo.subsample(2, 2)
-        photo = tk.PhotoImage(file="icons//exit.png")
-        self.exit = photo.subsample(8, 8)
-        photo = tk.PhotoImage(file="icons//info.png")
-        self.info = photo.subsample(2, 2)
+        self.minus = tk.PhotoImage(file="icons//minimize.png")
+        self.plus = tk.PhotoImage(file="icons//plus.png")
+        self.exit = tk.PhotoImage(file="icons//exit.png")
+        self.info = tk.PhotoImage(file="icons//info.png")
 
         entries_content["scheduler"] = {}
 
@@ -963,9 +959,9 @@ class NotebookSchedul:
                 )  # sec since epoch
 
             # Test purpose
-            print(
-                f"arrival_time_in_sec = {arrival_time_in_sec} extra_time = {extra_time} travel_time_in_sec = {travel_time_in_sec} "
-            )
+            # print(
+            #     f"arrival_time_in_sec = {arrival_time_in_sec} extra_time = {extra_time} travel_time_in_sec = {travel_time_in_sec} "
+            # )
 
             if send_info["send_time"] - 3 < current_time:
                 sends_from.append(send_from)
@@ -988,6 +984,7 @@ class NotebookSchedul:
                         "start_time": cell["send_time"] - 8,
                         "server_world": server_world,
                         "settings": main_window.settings_by_worlds[server_world],
+                        "errors_number": 0,
                     }
                 )
         else:
@@ -1720,8 +1717,7 @@ class MainWindow:
         )
         self.title_world.grid(row=0, column=3, padx=(5, 0), sticky="E")
 
-        self.photo = tk.PhotoImage(file="icons//minimize.png")
-        self.minimize = self.photo.subsample(2, 2)
+        self.minimize = tk.PhotoImage(file="icons//minimize.png")
 
         self.minimize_button = ttk.Button(
             self.custom_bar,
@@ -1731,8 +1727,7 @@ class MainWindow:
         )
         self.minimize_button.grid(row=0, column=4, padx=(5, 0), pady=5, sticky="E")
 
-        self.photo = tk.PhotoImage(file="icons//exit.png")
-        self.exit = self.photo.subsample(8, 8)
+        self.exit = tk.PhotoImage(file="icons//exit.png")
 
         def on_exit() -> None:
             self.master.withdraw()
@@ -2802,7 +2797,7 @@ class MainWindow:
 
         # Ustawienia pierwszego świata
         elif len(self.settings_by_worlds) == 0 and entry_change:
-            print("Ustawienie pierwszego świata")
+            # print("Ustawienie pierwszego świata")
             self.entries_content["world_in_title"].set(
                 f"{country_code.upper()}{world_number}"
             )
@@ -2817,7 +2812,7 @@ class MainWindow:
 
         # Zmiana świata w obrębie wybranej konfiguracji ustawień
         elif entry_change:
-            print("Zmiana świata w obrębie wybranej konfiguracji ustawień")
+            # print("Zmiana świata w obrębie wybranej konfiguracji ustawień")
             del self.settings_by_worlds[settings["server_world"]]
             if os.path.exists(f'settings/{settings["server_world"]}.json'):
                 os.remove(f'settings/{settings["server_world"]}.json')
@@ -2838,7 +2833,7 @@ class MainWindow:
 
         # Dodanie nowych ustawień nieistniejącego jeszcze świata
         else:
-            print("Dodanie całkowicie nowego świata")
+            # print("Dodanie całkowicie nowego świata")
 
             def set_default_entry_values(entries: dict | tk.StringVar) -> None:
                 """Ustawia domyślne wartości elementów GUI (entries_content)"""
@@ -2889,12 +2884,12 @@ class MainWindow:
             self.settings_by_worlds[server_world] = deepcopy(settings)
             settings.update(self.settings_by_worlds[server_world])
 
-            print("SETTINGS")
-            print("ID = ", id(settings))
-            print(settings)
-            print(f"\nSETTINGS_BY_WORLDS {server_world} \n")
-            print("ID = ", id(self.settings_by_worlds[server_world]))
-            print(self.settings_by_worlds[server_world])
+            # print("SETTINGS")
+            # print("ID = ", id(settings))
+            # print(settings)
+            # print(f"\nSETTINGS_BY_WORLDS {server_world} \n")
+            # print("ID = ", id(self.settings_by_worlds[server_world]))
+            # print(self.settings_by_worlds[server_world])
             return True
 
     def check_groups(self, settings: dict):
@@ -3103,6 +3098,7 @@ class MainWindow:
                 func["start_time"] = time.time()
                 func["server_world"] = server_world
                 func["settings"] = _settings
+                func["errors_number"] = 0
 
             # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
             if _settings["scheduler"]["ready_schedule"]:
@@ -3120,6 +3116,7 @@ class MainWindow:
                             "start_time": send_info["send_time"] - 8,
                             "server_world": _settings["server_world"],
                             "settings": _settings,
+                            "errors_number": 0,
                         }
                     )
 
@@ -3161,7 +3158,6 @@ class MainWindow:
                         if current_settings_send_amount > settings_send_amount:
                             settings_send_amount = current_settings_send_amount
                             continue
-                        time_check = time.perf_counter()
                         index_to_del = []
                         amount_to_del = (
                             settings_send_amount - current_settings_send_amount
@@ -3182,7 +3178,6 @@ class MainWindow:
                         for index in reversed(index_to_del):
                             del self.to_do[index]
                         settings_send_amount = current_settings_send_amount
-                        print(time.perf_counter() - time_check)
 
                     if not paid(str(self.user_data["active_until"])):
                         self.user_data = get_user_data(settings=settings, update=True)
@@ -3209,9 +3204,6 @@ class MainWindow:
                 continue
 
             self.time.set("Running..")
-
-            if "errors_number" not in self.to_do[0]:
-                self.to_do[0]["errors_number"] = 0
 
             _settings = self.to_do[0]["settings"]
 
@@ -3370,7 +3362,6 @@ class MainWindow:
         self.time.set("")
         self.title_timer.grid_remove()
         self.run_button.config(text="Uruchom")
-        # self.save_each_schedule_to_settings(settings=settings)
 
     def show_jobs_to_do_window(self, event) -> None:
 
@@ -3455,6 +3446,7 @@ class MainWindow:
                 master.content_frame, text="Dodaj", command=on_add_new_world
             ).grid(row=2, column=0, columnspan=2, padx=5, pady=(15, 5), sticky=ttk.EW)
 
+            master.bind("<Return>", lambda _: on_add_new_world())
             center(window=master, parent=self.master)
             master.attributes("-alpha", 1.0)
 
@@ -3471,9 +3463,9 @@ class MainWindow:
                 self.world_chooser_window.destroy()
                 return
 
-            print(f"Change from = {settings['server_world']}")
-            print(f"Change to = {server_world}")
-            print(f"Available server_world's: {self.settings_by_worlds.keys()}")
+            # print(f"Change from = {settings['server_world']}")
+            # print(f"Change to = {server_world}")
+            # print(f"Available server_world's: {self.settings_by_worlds.keys()}")
 
             # Change if already exist in self.settings_by_worlds
             if server_world in self.settings_by_worlds:
@@ -3484,20 +3476,20 @@ class MainWindow:
                         settings=settings,
                         settings_by_worlds=self.settings_by_worlds,
                     )
-                print(f"ID BEFORE = {id(settings)}")
+                # print(f"ID BEFORE = {id(settings)}")
                 settings.update(self.settings_by_worlds[server_world])
-                print(f"ID AFTER = {id(settings)}")
+                # print(f"ID AFTER = {id(settings)}")
 
-                print("\nREADY SCHEDULE ID")
-                print(f"ID BEFORE = {id(settings['scheduler']['ready_schedule'])}")
-                print(
-                    f"ID AFTER = {id(self.settings_by_worlds[server_world]['scheduler']['ready_schedule'])}\n"
-                )
+                # print("\nREADY SCHEDULE ID")
+                # print(f"ID BEFORE = {id(settings['scheduler']['ready_schedule'])}")
+                # print(
+                #     f"ID AFTER = {id(self.settings_by_worlds[server_world]['scheduler']['ready_schedule'])}\n"
+                # )
 
-                print(f'\nID SETTINGS GROUP {id(settings["groups"])}')
-                print(
-                    f'\nID SETTINGS_BY_WORLDS GROUP {id(self.settings_by_worlds[server_world]["groups"])}'
-                )
+                # print(f'\nID SETTINGS GROUP {id(settings["groups"])}')
+                # print(
+                #     f'\nID SETTINGS_BY_WORLDS GROUP {id(self.settings_by_worlds[server_world]["groups"])}'
+                # )
 
                 # Set available groups
                 self.farm_group_A["values"] = settings["groups"]
@@ -3592,8 +3584,7 @@ class MainWindow:
         self.world_chooser_window.attributes("-topmost", 1)
 
         if not hasattr(self, "plus"):
-            photo = tk.PhotoImage(file="icons//plus.png")
-            self.plus = photo.subsample(2, 2)
+            self.plus = tk.PhotoImage(file="icons//plus.png")
 
         if not self.settings_by_worlds and "server_world" in settings:
             save_entry_to_settings(entries=self.entries_content, settings=settings)
@@ -3815,8 +3806,7 @@ class PaymentWindow:
             "Na tej podstawie mogę dokonać aktywacji konta niezwłocznie po odczytaniu wiadomości.",
         )
 
-        photo = tk.PhotoImage(file="icons//copy.png")
-        self.copy_icon = photo.subsample(2, 2)
+        self.copy_icon = tk.PhotoImage(file="icons//copy.png")
 
         def copy_acc_number() -> None:
             self.text.clipboard_clear()
@@ -3880,11 +3870,12 @@ class PaymentWindow:
 def check_for_updates() -> None:
     def if_downloaded() -> None:
         if not app_update.is_downloaded():
-            logger.debug("Downloading update")
+            logger.debug("Downloading update..")
             master.after(250, if_downloaded)
+            return
         progress_bar["value"] = 100
         description_progress_bar.config(text="Aktualizacja ukończona!")
-        logger.debug("File/patch downloaded")
+        logger.debug("Downloaded file/patch")
         master.update_idletasks()
         master.after(500, master.destroy)
         logger.debug("Master destroyd")
@@ -3899,7 +3890,7 @@ def check_for_updates() -> None:
         master.update_idletasks()
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "0.3.9"
+    APP_VERSION = "0.4.4"
 
     client = Client(ClientConfig())
     client.refresh()

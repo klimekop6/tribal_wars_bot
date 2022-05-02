@@ -327,9 +327,7 @@ def save_entry_to_settings(
             else:
                 settings[key] = value.get()
 
-    print(settings["server_world"])
     loop_over_entries(entries=entries, settings=settings)
-    print(settings["server_world"])
     if settings_by_worlds:
         loop_over_entries(
             entries=entries, settings=settings_by_worlds[settings["server_world"]]
