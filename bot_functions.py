@@ -3,7 +3,6 @@ import logging
 import os
 import random
 import re
-import threading
 import time
 import traceback
 from math import ceil, sqrt

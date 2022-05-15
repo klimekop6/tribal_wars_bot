@@ -1,6 +1,18 @@
+import logging
+
 import pyodbc
 
 from gui_functions import custom_error
+
+logger = logging.getLogger(__name__)
+f_handler = logging.FileHandler("logs/log.txt")
+f_format = logging.Formatter(
+    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+)
+f_handler.setFormatter(f_format)
+f_handler.setLevel(logging.ERROR)
+logger.addHandler(f_handler)
+logger.propagate = False
 
 
 class DataBaseConnection:
@@ -21,10 +33,13 @@ class DataBaseConnection:
             )
             self.cursor = self.cnxn.cursor()
             return self.cursor
-        except pyodbc.OperationalError:
+        except pyodbc.OperationalError as error:
+            logger.error("database_connection error", exc_info=True)
             return False
 
     def __exit__(self, exc_type, exc_value, exc_tracebac):
+        if exc_value:
+            logger.error(f"{exc_type}, {exc_value}, {exc_tracebac}")
         if self.ignore_errors and not self.cnxn:
             return True
         if not self.cnxn:

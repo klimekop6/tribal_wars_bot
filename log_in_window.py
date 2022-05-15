@@ -1,11 +1,16 @@
 import threading
 import tkinter as tk
-import uuid
 
 import ttkbootstrap as ttk
 
 from database_connection import DataBaseConnection
-from gui_functions import center, custom_error, get_pos, invoke_checkbuttons
+from gui_functions import (
+    center,
+    custom_error,
+    get_pos,
+    invoke_checkbuttons,
+    show_or_hide_password,
+)
 from register_window import RegisterWindow
 
 
@@ -31,14 +36,15 @@ class LogInWindow:
                     }
             if not db_answer:
                 custom_error(message="Automatyczne logowanie nie powiodło się.")
-            elif db_answer[6]:
-                custom_error(message="Konto jest już obecnie w użyciu.")
             else:
-                main_window.user_data = user_data
-                self.after_correct_log_in(
-                    main_window=main_window, settings=settings, user_data=user_data
-                )
-                return
+                if user_data["currently_running"]:
+                    custom_error(message="Konto jest już obecnie w użyciu.")
+                else:
+                    main_window.user_data = user_data
+                    self.after_correct_log_in(
+                        main_window=main_window, settings=settings, user_data=user_data
+                    )
+                    return
 
         self.master = tk.Toplevel(borderwidth=1, relief="groove")
         self.master.overrideredirect(True)
@@ -65,20 +71,36 @@ class LogInWindow:
         self.content.grid(row=2, column=0, sticky=("N", "S", "E", "W"))
 
         self.user_name = ttk.Label(self.content, text="Nazwa:")
+        self.user_name.grid(row=2, column=0, pady=4, padx=5, sticky="W")
+
         self.user_password = ttk.Label(self.content, text="Hasło:")
+        self.user_password.grid(row=3, column=0, pady=4, padx=5, sticky="W")
+
         self.register_label = ttk.Label(
             self.content, text="Nie posiadasz jeszcze konta?"
         )
-
-        self.user_name.grid(row=2, column=0, pady=4, padx=5, sticky="W")
-        self.user_password.grid(row=3, column=0, pady=4, padx=5, sticky="W")
         self.register_label.grid(row=6, column=0, columnspan=2, pady=(4, 0), padx=5)
 
         self.user_name_input = ttk.Entry(self.content)
-        self.user_password_input = ttk.Entry(self.content, show="*")
-
         self.user_name_input.grid(row=2, column=1, pady=(5, 5), padx=5)
+
+        self.show_image = ttk.PhotoImage(file="icons//view.png")
+        self.hide_image = ttk.PhotoImage(file="icons//hide.png")
+
+        self.user_password_input = ttk.Entry(self.content, show="*")
         self.user_password_input.grid(row=3, column=1, pady=4, padx=5)
+        self.show_or_hide_password = ttk.Button(
+            self.content,
+            image=self.hide_image,
+            command=lambda: show_or_hide_password(
+                parent=self,
+                entry=self.user_password_input,
+                button=self.show_or_hide_password,
+            ),
+            style="pure.TButton",
+            takefocus=False,
+        )
+        self.show_or_hide_password.grid(row=3, column=1, padx=(0, 12), sticky="E")
 
         self.remember_me = tk.StringVar()
         self.remember_me_button = ttk.Checkbutton(
@@ -108,7 +130,8 @@ class LogInWindow:
 
         self.user_name_input.focus()
         self.user_password_input.bind(
-            "<Return>", lambda _: self.log_in(main_window, settings)
+            "<Return>",
+            lambda _: self.log_in(main_window, settings),
         )
         self.custom_bar.bind(
             "<Button-1>", lambda event: get_pos(self, event, "custom_bar")
@@ -155,9 +178,9 @@ class LogInWindow:
         main_window.load_after_log_in(settings=settings)
         main_window.master.deiconify()
         main_window.master.attributes("-alpha", 1.0)
-        self.update_db_running_status(settings=settings, main_window=main_window)
+        self.update_db_running_status(main_window=main_window)
 
-    def log_in(self, main_window, settings: dict, event=None):
+    def log_in(self, main_window, settings: dict):
         db_answer = None
         user_data = None
         with DataBaseConnection() as cursor:
@@ -178,7 +201,7 @@ class LogInWindow:
         if not db_answer:
             custom_error(message="Wprowadzono nieprawidłowe dane", parent=self.master)
             return
-        if db_answer[6]:
+        if user_data["currently_running"]:
             custom_error(message="Konto jest już obecnie w użyciu", parent=self.master)
             return
 
@@ -198,57 +221,37 @@ class LogInWindow:
         self.master.destroy()
 
     def register(self):
-        with DataBaseConnection() as cursor:
-            # MAC address check
-            MAC_Address = "-".join(
-                [
-                    "{:02x}".format((uuid.getnode() >> ele) & 0xFF)
-                    for ele in range(0, 8 * 6, 8)
-                ][::-1]
-            )
-            cursor.execute(
-                "SELECT * FROM konta_plemiona WHERE address_mac='" + MAC_Address + "'"
-            )
-            db_answer = cursor.fetchone()
-            if db_answer != None:
-                custom_error("Utworzono już konto z tego komputera", parent=self.master)
-                return
-            else:
-                self.master.withdraw()
-                self.register_win = RegisterWindow(parent=self.master)
-        # self.master.withdraw()
-        # self.register_win = RegisterWindow(parent=self.master)
+        self.master.withdraw()
+        self.register_win = RegisterWindow(parent=self.master)
 
-    def update_db_running_status(self, settings: dict, main_window):
+    def update_db_running_status(self, main_window):
         """Inform database about account activity every 10min"""
 
-        def data_update(settings: dict, main_window) -> None:
+        def data_update(main_window) -> None:
             captcha_counter = main_window.captcha_counter.get()
             if captcha_counter > 0:
                 sql_str = (
                     f"UPDATE konta_plemiona "
                     f"SET currently_running=1, captcha_solved=captcha_solved + {captcha_counter} "
-                    f"WHERE user_name='{settings['user_name']}'"
+                    f"WHERE user_name='{main_window.user_data['user_name']}'"
                 )
                 main_window.captcha_counter.set(0)
             else:
                 sql_str = (
                     f"UPDATE konta_plemiona SET currently_running=1 "
-                    f"WHERE user_name='{settings['user_name']}'"
+                    f"WHERE user_name='{main_window.user_data['user_name']}'"
                 )
 
             with DataBaseConnection(ignore_erros=True) as cursor:
                 cursor.execute(sql_str)
 
         threading.Thread(
-            target=lambda: data_update(settings=settings, main_window=main_window),
+            target=lambda: data_update(main_window=main_window),
             name="status_running_update",
             daemon=True,
         ).start()
 
         main_window.master.after(
             ms=595000,
-            func=lambda: self.update_db_running_status(
-                settings=settings, main_window=main_window
-            ),
+            func=lambda: self.update_db_running_status(main_window=main_window),
         )

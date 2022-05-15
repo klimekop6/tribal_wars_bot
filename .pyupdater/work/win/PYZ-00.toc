@@ -4,30 +4,23 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\__init__.py',
    'PYMODULE'),
-  ('packaging._musllinux',
+  ('packaging.version',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\_musllinux.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\version.py',
    'PYMODULE'),
   ('typing',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\typing.py',
    'PYMODULE'),
-  ('struct',
-   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\struct.py',
-   'PYMODULE'),
   ('contextlib',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\contextlib.py',
-   'PYMODULE'),
-  ('packaging._structures',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\_structures.py',
    'PYMODULE'),
   ('packaging.specifiers',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\specifiers.py',
    'PYMODULE'),
-  ('packaging.requirements',
+  ('packaging.markers',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\requirements.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\markers.py',
    'PYMODULE'),
   ('pyparsing',
    'C:\\Users\\klime\\VS '
@@ -81,6 +74,9 @@
    'PYMODULE'),
   ('gettext',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\gettext.py',
+   'PYMODULE'),
+  ('struct',
+   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\struct.py',
    'PYMODULE'),
   ('pydoc',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\pydoc.py',
@@ -217,6 +213,9 @@
   ('tty',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\tty.py',
    'PYMODULE'),
+  ('urllib.parse',
+   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\urllib\\parse.py',
+   'PYMODULE'),
   ('importlib.util',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\importlib\\util.py',
    'PYMODULE'),
@@ -298,6 +297,9 @@
   ('cmd',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\cmd.py',
    'PYMODULE'),
+  ('string',
+   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\string.py',
+   'PYMODULE'),
   ('pyparsing.actions',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pyparsing\\actions.py',
@@ -310,11 +312,21 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pyparsing\\util.py',
    'PYMODULE'),
-  ('urllib.parse',
-   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\urllib\\parse.py',
+  ('packaging.requirements',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\requirements.py',
    'PYMODULE'),
-  ('string',
-   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\string.py',
+  ('packaging.utils',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\utils.py',
+   'PYMODULE'),
+  ('packaging.__about__',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\__about__.py',
+   'PYMODULE'),
+  ('packaging',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\__init__.py',
    'PYMODULE'),
   ('packaging._manylinux',
    'C:\\Users\\klime\\VS '
@@ -326,29 +338,61 @@
   ('ctypes._endian',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\ctypes\\_endian.py',
    'PYMODULE'),
-  ('packaging.markers',
+  ('packaging._structures',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\markers.py',
-   'PYMODULE'),
-  ('packaging.version',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\version.py',
-   'PYMODULE'),
-  ('packaging.__about__',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\__about__.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\_structures.py',
    'PYMODULE'),
   ('packaging.tags',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\tags.py',
    'PYMODULE'),
-  ('packaging',
+  ('packaging._musllinux',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\__init__.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\_musllinux.py',
    'PYMODULE'),
-  ('packaging.utils',
+  ('pkg_resources._vendor.packaging',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\packaging\\utils.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\__init__.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor.packaging.version',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\version.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\__init__.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor.packaging.specifiers',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\specifiers.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor.appdirs',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\appdirs.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor.packaging._typing',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\_typing.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor.packaging._structures',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\_structures.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor.packaging._compat',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\_compat.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor.packaging.markers',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\markers.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor.packaging.__about__',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\__about__.py',
+   'PYMODULE'),
+  ('pkg_resources._vendor.packaging.utils',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\utils.py',
    'PYMODULE'),
   ('pkg_resources._vendor.pyparsing',
    'C:\\Users\\klime\\VS '
@@ -360,13 +404,9 @@
   ('hashlib',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\hashlib.py',
    'PYMODULE'),
-  ('pkg_resources._vendor.packaging.__about__',
+  ('pkg_resources._vendor.packaging.requirements',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\__about__.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.appdirs',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\appdirs.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\requirements.py',
    'PYMODULE'),
   ('pkg_resources._vendor.packaging.tags',
    'C:\\Users\\klime\\VS '
@@ -428,46 +468,6 @@
    'PYMODULE'),
   ('distutils.fancy_getopt',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\distutils\\fancy_getopt.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.packaging.markers',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\markers.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.packaging.requirements',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\requirements.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.packaging',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\__init__.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.packaging.specifiers',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\specifiers.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.packaging._compat',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\_compat.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.packaging.version',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\version.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.packaging._typing',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\_typing.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.packaging.utils',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\utils.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\__init__.py',
-   'PYMODULE'),
-  ('pkg_resources._vendor.packaging._structures',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pkg_resources\\_vendor\\packaging\\_structures.py',
    'PYMODULE'),
   ('sysconfig',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\sysconfig.py',
@@ -843,14 +843,14 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\lxml\\__init__.py',
    'PYMODULE'),
-  ('tracemalloc',
-   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\tracemalloc.py',
+  ('stringprep',
+   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\stringprep.py',
    'PYMODULE'),
   ('_py_abc',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\_py_abc.py',
    'PYMODULE'),
-  ('stringprep',
-   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\stringprep.py',
+  ('tracemalloc',
+   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\tracemalloc.py',
    'PYMODULE'),
   ('my_widgets',
    'C:\\Users\\klime\\VS Code\\selenium_chrome\\my_widgets.py',
@@ -881,6 +881,10 @@
    'PYMODULE'),
   ('smtplib',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\smtplib.py',
+   'PYMODULE'),
+  ('ttkbootstrap.validation',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\ttkbootstrap\\validation.py',
    'PYMODULE'),
   ('geocoder',
    'C:\\Users\\klime\\VS '
@@ -1253,10 +1257,6 @@
   ('geocoder.distance',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\geocoder\\distance.py',
-   'PYMODULE'),
-  ('ttkbootstrap.validation',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\ttkbootstrap\\validation.py',
    'PYMODULE'),
   ('gui_functions',
    'C:\\Users\\klime\\VS Code\\selenium_chrome\\gui_functions.py',
@@ -2165,49 +2165,85 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\Image.py',
    'PYMODULE'),
+  ('PIL.CurImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\CurImagePlugin.py',
+   'PYMODULE'),
   ('PIL.GbrImagePlugin',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\GbrImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.MspImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\MspImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.BlpImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\BlpImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.PixarImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PixarImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.SgiImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\SgiImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.ImImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\ImImagePlugin.py',
    'PYMODULE'),
   ('PIL.MpoImagePlugin',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\MpoImagePlugin.py',
    'PYMODULE'),
+  ('PIL.XpmImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\XpmImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.MspImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\MspImagePlugin.py',
+   'PYMODULE'),
   ('PIL.Hdf5StubImagePlugin',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\Hdf5StubImagePlugin.py',
    'PYMODULE'),
-  ('PIL.PsdImagePlugin',
+  ('PIL.PixarImagePlugin',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PsdImagePlugin.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PixarImagePlugin.py',
    'PYMODULE'),
-  ('PIL.IcnsImagePlugin',
+  ('PIL.IptcImagePlugin',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\IcnsImagePlugin.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\IptcImagePlugin.py',
    'PYMODULE'),
-  ('PIL.TgaImagePlugin',
+  ('PIL.SunImagePlugin',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\TgaImagePlugin.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\SunImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.WmfImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\WmfImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.BlpImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\BlpImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.SpiderImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\SpiderImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.MicImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\MicImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.PcdImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PcdImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.FliImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\FliImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.SgiImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\SgiImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.GribStubImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\GribStubImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.Jpeg2KImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\Jpeg2KImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.DdsImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\DdsImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.EpsImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\EpsImagePlugin.py',
    'PYMODULE'),
   ('PIL.PdfImagePlugin',
    'C:\\Users\\klime\\VS '
@@ -2217,113 +2253,77 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PdfParser.py',
    'PYMODULE'),
-  ('PIL.McIdasImagePlugin',
+  ('PIL.DcxImagePlugin',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\McIdasImagePlugin.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\DcxImagePlugin.py',
    'PYMODULE'),
-  ('PIL.SpiderImagePlugin',
+  ('PIL.PsdImagePlugin',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\SpiderImagePlugin.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PsdImagePlugin.py',
    'PYMODULE'),
-  ('PIL.EpsImagePlugin',
+  ('PIL.TgaImagePlugin',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\EpsImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.IptcImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\IptcImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.XVThumbImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\XVThumbImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.XbmImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\XbmImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.WmfImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\WmfImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.CurImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\CurImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.FitsStubImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\FitsStubImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.SunImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\SunImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.DdsImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\DdsImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.BufrStubImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\BufrStubImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.Jpeg2KImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\Jpeg2KImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.GribStubImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\GribStubImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.FtexImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\FtexImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.XpmImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\XpmImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.FliImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\FliImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.WebPImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\WebPImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.ImtImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\ImtImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.PcdImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PcdImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.FpxImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\FpxImagePlugin.py',
-   'PYMODULE'),
-  ('PIL.MpegImagePlugin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\MpegImagePlugin.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\TgaImagePlugin.py',
    'PYMODULE'),
   ('PIL.IcoImagePlugin',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\IcoImagePlugin.py',
    'PYMODULE'),
-  ('PIL.MicImagePlugin',
+  ('PIL.McIdasImagePlugin',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\MicImagePlugin.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\McIdasImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.WebPImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\WebPImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.BufrStubImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\BufrStubImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.XVThumbImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\XVThumbImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.PcxImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PcxImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.FpxImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\FpxImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.XbmImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\XbmImagePlugin.py',
    'PYMODULE'),
   ('PIL.PalmImagePlugin',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PalmImagePlugin.py',
    'PYMODULE'),
-  ('PIL.DcxImagePlugin',
+  ('PIL.ImtImagePlugin',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\DcxImagePlugin.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\ImtImagePlugin.py',
    'PYMODULE'),
-  ('PIL.PcxImagePlugin',
+  ('PIL.FitsStubImagePlugin',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\PcxImagePlugin.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\FitsStubImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.ImImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\ImImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.IcnsImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\IcnsImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.FtexImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\FtexImagePlugin.py',
+   'PYMODULE'),
+  ('PIL.MpegImagePlugin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PIL\\MpegImagePlugin.py',
    'PYMODULE'),
   ('PIL.TiffImagePlugin',
    'C:\\Users\\klime\\VS '
@@ -2453,9 +2453,9 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\__init__.py',
    'PYMODULE'),
-  ('pygments.styles.fruity',
+  ('pygments.styles.colorful',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\fruity.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\colorful.py',
    'PYMODULE'),
   ('pygments.token',
    'C:\\Users\\klime\\VS '
@@ -2465,93 +2465,25 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\style.py',
    'PYMODULE'),
-  ('pygments.styles.pastie',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\pastie.py',
-   'PYMODULE'),
-  ('pygments.styles.borland',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\borland.py',
-   'PYMODULE'),
-  ('pygments.styles.xcode',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\xcode.py',
-   'PYMODULE'),
-  ('pygments.styles.trac',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\trac.py',
-   'PYMODULE'),
-  ('pygments.styles.monokai',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\monokai.py',
-   'PYMODULE'),
   ('pygments.styles.default',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\default.py',
    'PYMODULE'),
-  ('pygments.styles.bw',
+  ('pygments.styles.stata_dark',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\bw.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\stata_dark.py',
    'PYMODULE'),
-  ('pygments.styles.solarized',
+  ('pygments.styles.vs',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\solarized.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\vs.py',
    'PYMODULE'),
-  ('pygments.styles.rainbow_dash',
+  ('pygments.styles.sas',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\rainbow_dash.py',
-   'PYMODULE'),
-  ('pygments.styles.vim',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\vim.py',
-   'PYMODULE'),
-  ('pygments.styles.inkpot',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\inkpot.py',
-   'PYMODULE'),
-  ('pygments.styles.friendly',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\friendly.py',
-   'PYMODULE'),
-  ('pygments.styles.stata_light',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\stata_light.py',
-   'PYMODULE'),
-  ('pygments.styles.algol',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\algol.py',
-   'PYMODULE'),
-  ('pygments.styles.algol_nu',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\algol_nu.py',
-   'PYMODULE'),
-  ('pygments.styles.rrt',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\rrt.py',
-   'PYMODULE'),
-  ('pygments.styles.gruvbox',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\gruvbox.py',
-   'PYMODULE'),
-  ('pygments.styles.arduino',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\arduino.py',
-   'PYMODULE'),
-  ('pygments.styles.paraiso_light',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\paraiso_light.py',
-   'PYMODULE'),
-  ('pygments.styles.autumn',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\autumn.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\sas.py',
    'PYMODULE'),
   ('pygments.styles.tango',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\tango.py',
-   'PYMODULE'),
-  ('pygments.styles.stata_dark',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\stata_dark.py',
    'PYMODULE'),
   ('pygments.styles',
    'C:\\Users\\klime\\VS '
@@ -2565,65 +2497,133 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\plugin.py',
    'PYMODULE'),
-  ('pygments.styles.paraiso_dark',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\paraiso_dark.py',
-   'PYMODULE'),
-  ('pygments.styles.lovelace',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\lovelace.py',
-   'PYMODULE'),
-  ('pygments.styles.colorful',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\colorful.py',
-   'PYMODULE'),
-  ('pygments.styles.emacs',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\emacs.py',
-   'PYMODULE'),
-  ('pygments.styles.manni',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\manni.py',
-   'PYMODULE'),
-  ('pygments.styles.zenburn',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\zenburn.py',
-   'PYMODULE'),
-  ('pygments.styles.material',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\material.py',
-   'PYMODULE'),
-  ('pygments.styles.sas',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\sas.py',
-   'PYMODULE'),
-  ('pygments.styles.native',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\native.py',
-   'PYMODULE'),
-  ('pygments.styles.perldoc',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\perldoc.py',
-   'PYMODULE'),
   ('pygments.styles.murphy',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\murphy.py',
    'PYMODULE'),
-  ('pygments.styles.abap',
+  ('pygments.styles.pastie',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\abap.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\pastie.py',
    'PYMODULE'),
-  ('pygments.styles.vs',
+  ('pygments.styles.vim',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\vs.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\vim.py',
    'PYMODULE'),
   ('pygments.styles.igor',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\igor.py',
    'PYMODULE'),
-  ('pygments.lexers.trafficscript',
+  ('pygments.styles.perldoc',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\trafficscript.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\perldoc.py',
+   'PYMODULE'),
+  ('pygments.styles.paraiso_dark',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\paraiso_dark.py',
+   'PYMODULE'),
+  ('pygments.styles.fruity',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\fruity.py',
+   'PYMODULE'),
+  ('pygments.styles.emacs',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\emacs.py',
+   'PYMODULE'),
+  ('pygments.styles.lovelace',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\lovelace.py',
+   'PYMODULE'),
+  ('pygments.styles.rrt',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\rrt.py',
+   'PYMODULE'),
+  ('pygments.styles.native',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\native.py',
+   'PYMODULE'),
+  ('pygments.styles.autumn',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\autumn.py',
+   'PYMODULE'),
+  ('pygments.styles.algol',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\algol.py',
+   'PYMODULE'),
+  ('pygments.styles.bw',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\bw.py',
+   'PYMODULE'),
+  ('pygments.styles.borland',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\borland.py',
+   'PYMODULE'),
+  ('pygments.styles.trac',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\trac.py',
+   'PYMODULE'),
+  ('pygments.styles.monokai',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\monokai.py',
+   'PYMODULE'),
+  ('pygments.styles.paraiso_light',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\paraiso_light.py',
+   'PYMODULE'),
+  ('pygments.styles.gruvbox',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\gruvbox.py',
+   'PYMODULE'),
+  ('pygments.styles.abap',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\abap.py',
+   'PYMODULE'),
+  ('pygments.styles.solarized',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\solarized.py',
+   'PYMODULE'),
+  ('pygments.styles.inkpot',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\inkpot.py',
+   'PYMODULE'),
+  ('pygments.styles.manni',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\manni.py',
+   'PYMODULE'),
+  ('pygments.styles.rainbow_dash',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\rainbow_dash.py',
+   'PYMODULE'),
+  ('pygments.styles.arduino',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\arduino.py',
+   'PYMODULE'),
+  ('pygments.styles.friendly',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\friendly.py',
+   'PYMODULE'),
+  ('pygments.styles.zenburn',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\zenburn.py',
+   'PYMODULE'),
+  ('pygments.styles.stata_light',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\stata_light.py',
+   'PYMODULE'),
+  ('pygments.styles.xcode',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\xcode.py',
+   'PYMODULE'),
+  ('pygments.styles.algol_nu',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\algol_nu.py',
+   'PYMODULE'),
+  ('pygments.styles.material',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\styles\\material.py',
+   'PYMODULE'),
+  ('pygments.lexers.xorg',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\xorg.py',
    'PYMODULE'),
   ('pygments.lexer',
    'C:\\Users\\klime\\VS '
@@ -2789,237 +2789,149 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\filter.py',
    'PYMODULE'),
-  ('pygments.lexers.lisp',
+  ('pygments.lexers.eiffel',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\lisp.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\eiffel.py',
    'PYMODULE'),
-  ('pygments.lexers.teal',
+  ('pygments.lexers.c_cpp',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\teal.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\c_cpp.py',
+   'PYMODULE'),
+  ('pygments.lexers.ecl',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ecl.py',
+   'PYMODULE'),
+  ('pygments.lexers._php_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_php_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.math',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\math.py',
    'PYMODULE'),
   ('pygments.lexers.whiley',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\whiley.py',
    'PYMODULE'),
-  ('pygments.lexers.crystal',
+  ('pygments.lexers._julia_builtins',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\crystal.py',
-   'PYMODULE'),
-  ('pygments.lexers.dsls',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\dsls.py',
-   'PYMODULE'),
-  ('pygments.lexers.asc',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\asc.py',
-   'PYMODULE'),
-  ('pygments.lexers.webmisc',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\webmisc.py',
-   'PYMODULE'),
-  ('pygments.lexers._mql_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_mql_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.int_fiction',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\int_fiction.py',
-   'PYMODULE'),
-  ('pygments.lexers.parsers',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\parsers.py',
-   'PYMODULE'),
-  ('pygments.lexers.slash',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\slash.py',
-   'PYMODULE'),
-  ('pygments.lexers.graphics',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\graphics.py',
-   'PYMODULE'),
-  ('pygments.lexers.tcl',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\tcl.py',
-   'PYMODULE'),
-  ('pygments.lexers.supercollider',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\supercollider.py',
-   'PYMODULE'),
-  ('pygments.lexers.matlab',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\matlab.py',
-   'PYMODULE'),
-  ('pygments.lexers.usd',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\usd.py',
-   'PYMODULE'),
-  ('pygments.lexers.rebol',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\rebol.py',
-   'PYMODULE'),
-  ('pygments.lexers.foxpro',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\foxpro.py',
-   'PYMODULE'),
-  ('pygments.lexers._usd_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_usd_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.devicetree',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\devicetree.py',
-   'PYMODULE'),
-  ('pygments.lexers.ml',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ml.py',
-   'PYMODULE'),
-  ('pygments.lexers.installers',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\installers.py',
-   'PYMODULE'),
-  ('pygments.lexers.special',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\special.py',
-   'PYMODULE'),
-  ('pygments.lexers.actionscript',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\actionscript.py',
-   'PYMODULE'),
-  ('pygments.lexers.objective',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\objective.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_julia_builtins.py',
    'PYMODULE'),
   ('pygments.lexers.hdl',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\hdl.py',
    'PYMODULE'),
-  ('pygments.lexers.ncl',
+  ('pygments.lexers.thingsdb',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ncl.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\thingsdb.py',
    'PYMODULE'),
-  ('pygments.lexers.markup',
+  ('pygments.lexers.dalvik',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\markup.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\dalvik.py',
    'PYMODULE'),
-  ('pygments.lexers.apdlexer',
+  ('pygments.lexers.igor',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\apdlexer.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\igor.py',
    'PYMODULE'),
-  ('pygments.lexers.configs',
+  ('pygments.lexers.go',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\configs.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\go.py',
    'PYMODULE'),
-  ('pygments.lexers.python',
+  ('pygments.lexers._cocoa_builtins',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\python.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_cocoa_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.j',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\j.py',
+   'PYMODULE'),
+  ('pygments.lexers.basic',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\basic.py',
+   'PYMODULE'),
+  ('pygments.lexers._stata_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_stata_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.webassembly',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\webassembly.py',
+   'PYMODULE'),
+  ('pygments.lexers.typoscript',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\typoscript.py',
+   'PYMODULE'),
+  ('pygments.lexers.graph',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\graph.py',
+   'PYMODULE'),
+  ('pygments.lexers.matlab',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\matlab.py',
+   'PYMODULE'),
+  ('pygments.lexers.html',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\html.py',
+   'PYMODULE'),
+  ('pygments.lexers.varnish',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\varnish.py',
+   'PYMODULE'),
+  ('pygments.lexers._mql_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_mql_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.haskell',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\haskell.py',
    'PYMODULE'),
   ('pygments.unistring',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\unistring.py',
    'PYMODULE'),
-  ('pygments.lexers.gcodelexer',
+  ('pygments.lexers._lasso_builtins',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\gcodelexer.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_lasso_builtins.py',
    'PYMODULE'),
-  ('pygments.lexers.scripting',
+  ('pygments.lexers.iolang',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\scripting.py',
-   'PYMODULE'),
-  ('pygments.lexers.monte',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\monte.py',
-   'PYMODULE'),
-  ('pygments.lexers.testing',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\testing.py',
-   'PYMODULE'),
-  ('pygments.lexers.factor',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\factor.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\iolang.py',
    'PYMODULE'),
   ('pygments.lexers.erlang',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\erlang.py',
    'PYMODULE'),
-  ('pygments.lexers.rust',
+  ('pygments.lexers.qvt',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\rust.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\qvt.py',
    'PYMODULE'),
-  ('pygments.lexers.theorem',
+  ('pygments.lexers._asy_builtins',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\theorem.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_asy_builtins.py',
    'PYMODULE'),
-  ('pygments.lexers.pawn',
+  ('pygments.lexers.webmisc',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\pawn.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\webmisc.py',
    'PYMODULE'),
-  ('pygments.lexers.nimrod',
+  ('pygments.lexers.webidl',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\nimrod.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\webidl.py',
    'PYMODULE'),
-  ('pygments.lexers.jslt',
+  ('pygments.lexers.inferno',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\jslt.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\inferno.py',
    'PYMODULE'),
-  ('pygments.lexers.parasail',
+  ('pygments.lexers.nit',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\parasail.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\nit.py',
    'PYMODULE'),
-  ('pygments.lexers.stata',
+  ('pygments.lexers.email',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\stata.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\email.py',
    'PYMODULE'),
-  ('pygments.lexers.business',
+  ('pygments.lexers._csound_builtins',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\business.py',
-   'PYMODULE'),
-  ('pygments.lexers.sas',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\sas.py',
-   'PYMODULE'),
-  ('pygments.lexers.clean',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\clean.py',
-   'PYMODULE'),
-  ('pygments.lexers.apl',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\apl.py',
-   'PYMODULE'),
-  ('pygments.lexers.boa',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\boa.py',
-   'PYMODULE'),
-  ('pygments.lexers.smalltalk',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\smalltalk.py',
-   'PYMODULE'),
-  ('pygments.lexers.console',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\console.py',
-   'PYMODULE'),
-  ('pygments.lexers.zig',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\zig.py',
-   'PYMODULE'),
-  ('pygments.lexers.pointless',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\pointless.py',
-   'PYMODULE'),
-  ('pygments.lexers.chapel',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\chapel.py',
-   'PYMODULE'),
-  ('pygments.lexers.functional',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\functional.py',
-   'PYMODULE'),
-  ('pygments.lexers.web',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\web.py',
-   'PYMODULE'),
-  ('pygments.lexers.julia',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\julia.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_csound_builtins.py',
    'PYMODULE'),
   ('pygments.lexers',
    'C:\\Users\\klime\\VS '
@@ -3029,105 +2941,317 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\modeline.py',
    'PYMODULE'),
-  ('pygments.lexers.typoscript',
+  ('pygments.lexers.nix',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\typoscript.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\nix.py',
    'PYMODULE'),
-  ('pygments.lexers.r',
+  ('pygments.lexers.fortran',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\r.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\fortran.py',
    'PYMODULE'),
-  ('pygments.lexers._openedge_builtins',
+  ('pygments.lexers.data',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_openedge_builtins.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\data.py',
    'PYMODULE'),
-  ('pygments.lexers.procfile',
+  ('pygments.lexers.usd',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\procfile.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\usd.py',
    'PYMODULE'),
-  ('pygments.lexers.solidity',
+  ('pygments.lexers.snobol',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\solidity.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\snobol.py',
    'PYMODULE'),
-  ('pygments.lexers.esoteric',
+  ('pygments.lexers.smithy',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\esoteric.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\smithy.py',
    'PYMODULE'),
-  ('pygments.lexers.ride',
+  ('pygments.lexers._sourcemod_builtins',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ride.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_sourcemod_builtins.py',
    'PYMODULE'),
-  ('pygments.lexers.webidl',
+  ('pygments.lexers.slash',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\webidl.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\slash.py',
    'PYMODULE'),
-  ('pygments.lexers.css',
+  ('pygments.lexers.dsls',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\css.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\dsls.py',
    'PYMODULE'),
-  ('pygments.lexers.capnproto',
+  ('pygments.lexers.installers',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\capnproto.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\installers.py',
    'PYMODULE'),
-  ('pygments.lexers.basic',
+  ('pygments.lexers.compiled',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\basic.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\compiled.py',
    'PYMODULE'),
-  ('pygments.lexers.nit',
+  ('pygments.lexers.arrow',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\nit.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\arrow.py',
    'PYMODULE'),
-  ('pygments.lexers.archetype',
+  ('pygments.lexers.robotframework',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\archetype.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\robotframework.py',
    'PYMODULE'),
-  ('pygments.lexers._vim_builtins',
+  ('pygments.lexers.jslt',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_vim_builtins.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\jslt.py',
    'PYMODULE'),
-  ('pygments.lexers.varnish',
+  ('pygments.lexers.resource',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\varnish.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\resource.py',
    'PYMODULE'),
-  ('pygments.lexers.bibtex',
+  ('pygments.lexers.perl',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\bibtex.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\perl.py',
    'PYMODULE'),
-  ('pygments.lexers._stan_builtins',
+  ('pygments.lexers._mysql_builtins',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_stan_builtins.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_mysql_builtins.py',
    'PYMODULE'),
-  ('pygments.lexers.teraterm',
+  ('pygments.lexers.zig',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\teraterm.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\zig.py',
    'PYMODULE'),
-  ('pygments.lexers.d',
+  ('pygments.lexers.scripting',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\d.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\scripting.py',
    'PYMODULE'),
-  ('pygments.lexers._cl_builtins',
+  ('pygments.lexers.scdoc',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_cl_builtins.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\scdoc.py',
+   'PYMODULE'),
+  ('pygments.lexers.sql',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\sql.py',
+   'PYMODULE'),
+  ('pygments.lexers.functional',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\functional.py',
+   'PYMODULE'),
+  ('pygments.lexers.trafficscript',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\trafficscript.py',
+   'PYMODULE'),
+  ('pygments.lexers.monte',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\monte.py',
    'PYMODULE'),
   ('pygments.lexers.textfmts',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\textfmts.py',
    'PYMODULE'),
+  ('pygments.lexers.ml',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ml.py',
+   'PYMODULE'),
+  ('pygments.lexers.gsql',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\gsql.py',
+   'PYMODULE'),
+  ('pygments.lexers._mapping',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_mapping.py',
+   'PYMODULE'),
+  ('pygments.lexers.boa',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\boa.py',
+   'PYMODULE'),
+  ('pygments.lexers.pawn',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\pawn.py',
+   'PYMODULE'),
+  ('pygments.lexers.bare',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\bare.py',
+   'PYMODULE'),
+  ('pygments.lexers.asc',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\asc.py',
+   'PYMODULE'),
+  ('pygments.lexers.parasail',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\parasail.py',
+   'PYMODULE'),
+  ('pygments.lexers.teal',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\teal.py',
+   'PYMODULE'),
+  ('pygments.lexers.procfile',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\procfile.py',
+   'PYMODULE'),
+  ('pygments.lexers._stan_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_stan_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.julia',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\julia.py',
+   'PYMODULE'),
+  ('pygments.lexers.crystal',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\crystal.py',
+   'PYMODULE'),
+  ('pygments.lexers.algebra',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\algebra.py',
+   'PYMODULE'),
+  ('pygments.lexers.other',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\other.py',
+   'PYMODULE'),
+  ('pygments.lexers._tsql_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_tsql_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.smalltalk',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\smalltalk.py',
+   'PYMODULE'),
+  ('pygments.lexers._lua_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_lua_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.felix',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\felix.py',
+   'PYMODULE'),
+  ('pygments.lexers.tcl',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\tcl.py',
+   'PYMODULE'),
+  ('pygments.lexers._vim_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_vim_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.objective',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\objective.py',
+   'PYMODULE'),
+  ('pygments.lexers.gcodelexer',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\gcodelexer.py',
+   'PYMODULE'),
+  ('pygments.lexers.pointless',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\pointless.py',
+   'PYMODULE'),
+  ('pygments.lexers.special',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\special.py',
+   'PYMODULE'),
+  ('pygments.lexers.mosel',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\mosel.py',
+   'PYMODULE'),
+  ('pygments.lexers.css',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\css.py',
+   'PYMODULE'),
   ('pygments.lexers.php',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\php.py',
+   'PYMODULE'),
+  ('pygments.lexers.kuin',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\kuin.py',
+   'PYMODULE'),
+  ('pygments.lexers.ooc',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ooc.py',
+   'PYMODULE'),
+  ('pygments.lexers.graphics',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\graphics.py',
+   'PYMODULE'),
+  ('pygments.lexers.tnt',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\tnt.py',
+   'PYMODULE'),
+  ('pygments.lexers.sieve',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\sieve.py',
+   'PYMODULE'),
+  ('pygments.lexers.foxpro',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\foxpro.py',
+   'PYMODULE'),
+  ('pygments.lexers.sgf',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\sgf.py',
+   'PYMODULE'),
+  ('pygments.lexers.markup',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\markup.py',
+   'PYMODULE'),
+  ('pygments.lexers.ezhil',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ezhil.py',
    'PYMODULE'),
   ('pygments.lexers.dylan',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\dylan.py',
    'PYMODULE'),
-  ('pygments.lexers.haskell',
+  ('pygments.lexers.yang',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\haskell.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\yang.py',
    'PYMODULE'),
-  ('pygments.lexers.rdf',
+  ('pygments.lexers.c_like',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\rdf.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\c_like.py',
+   'PYMODULE'),
+  ('pygments.lexers.graphviz',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\graphviz.py',
+   'PYMODULE'),
+  ('pygments.lexers._scilab_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_scilab_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.cddl',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\cddl.py',
+   'PYMODULE'),
+  ('pygments.lexers.bibtex',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\bibtex.py',
+   'PYMODULE'),
+  ('pygments.lexers.promql',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\promql.py',
+   'PYMODULE'),
+  ('pygments.lexers.futhark',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\futhark.py',
+   'PYMODULE'),
+  ('pygments.lexers.r',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\r.py',
+   'PYMODULE'),
+  ('pygments.lexers.chapel',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\chapel.py',
+   'PYMODULE'),
+  ('pygments.lexers.rebol',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\rebol.py',
+   'PYMODULE'),
+  ('pygments.lexers.modeling',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\modeling.py',
+   'PYMODULE'),
+  ('pygments.lexers.idl',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\idl.py',
+   'PYMODULE'),
+  ('pygments.lexers.archetype',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\archetype.py',
+   'PYMODULE'),
+  ('pygments.lexers.configs',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\configs.py',
    'PYMODULE'),
   ('pygments.lexers.pascal',
    'C:\\Users\\klime\\VS '
@@ -3137,253 +3261,49 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\scanner.py',
    'PYMODULE'),
-  ('pygments.lexers._mysql_builtins',
+  ('pygments.lexers.make',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_mysql_builtins.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\make.py',
    'PYMODULE'),
-  ('pygments.lexers.yang',
+  ('pygments.lexers.int_fiction',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\yang.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\int_fiction.py',
    'PYMODULE'),
-  ('pygments.lexers.promql',
+  ('pygments.lexers.devicetree',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\promql.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\devicetree.py',
    'PYMODULE'),
-  ('pygments.lexers.j',
+  ('pygments.lexers.nimrod',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\j.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\nimrod.py',
    'PYMODULE'),
-  ('pygments.lexers.idl',
+  ('pygments.lexers.clean',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\idl.py',
-   'PYMODULE'),
-  ('pygments.lexers.ambient',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ambient.py',
-   'PYMODULE'),
-  ('pygments.lexers.resource',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\resource.py',
-   'PYMODULE'),
-  ('pygments.lexers._postgres_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_postgres_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.ooc',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ooc.py',
-   'PYMODULE'),
-  ('pygments.lexers.arrow',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\arrow.py',
-   'PYMODULE'),
-  ('pygments.lexers.c_like',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\c_like.py',
-   'PYMODULE'),
-  ('pygments.lexers.kuin',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\kuin.py',
-   'PYMODULE'),
-  ('pygments.lexers.verification',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\verification.py',
-   'PYMODULE'),
-  ('pygments.lexers.praat',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\praat.py',
-   'PYMODULE'),
-  ('pygments.lexers.automation',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\automation.py',
-   'PYMODULE'),
-  ('pygments.lexers.diff',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\diff.py',
-   'PYMODULE'),
-  ('pygments.lexers.felix',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\felix.py',
-   'PYMODULE'),
-  ('pygments.lexers.compiled',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\compiled.py',
-   'PYMODULE'),
-  ('pygments.lexers.go',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\go.py',
-   'PYMODULE'),
-  ('pygments.lexers._scilab_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_scilab_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.gdscript',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\gdscript.py',
-   'PYMODULE'),
-  ('pygments.lexers.math',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\math.py',
-   'PYMODULE'),
-  ('pygments.lexers.asm',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\asm.py',
-   'PYMODULE'),
-  ('pygments.lexers.other',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\other.py',
-   'PYMODULE'),
-  ('pygments.lexers.html',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\html.py',
-   'PYMODULE'),
-  ('pygments.lexers.ecl',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ecl.py',
-   'PYMODULE'),
-  ('pygments.lexers.futhark',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\futhark.py',
-   'PYMODULE'),
-  ('pygments.lexers.fantom',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\fantom.py',
-   'PYMODULE'),
-  ('pygments.lexers.smv',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\smv.py',
-   'PYMODULE'),
-  ('pygments.lexers._lasso_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_lasso_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.graphviz',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\graphviz.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\clean.py',
    'PYMODULE'),
   ('pygments.lexers.rnc',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\rnc.py',
    'PYMODULE'),
-  ('pygments.lexers.algebra',
+  ('pygments.lexers.ruby',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\algebra.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ruby.py',
    'PYMODULE'),
-  ('pygments.lexers._stata_builtins',
+  ('pygments.lexers.fantom',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_stata_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.graph',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\graph.py',
-   'PYMODULE'),
-  ('pygments.lexers.email',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\email.py',
-   'PYMODULE'),
-  ('pygments.lexers.nix',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\nix.py',
-   'PYMODULE'),
-  ('pygments.lexers.mime',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\mime.py',
-   'PYMODULE'),
-  ('pygments.lexers.freefem',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\freefem.py',
-   'PYMODULE'),
-  ('pygments.lexers._lua_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_lua_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.fortran',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\fortran.py',
-   'PYMODULE'),
-  ('pygments.lexers.dalvik',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\dalvik.py',
-   'PYMODULE'),
-  ('pygments.lexers.xorg',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\xorg.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\fantom.py',
    'PYMODULE'),
   ('pygments.lexers.textedit',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\textedit.py',
    'PYMODULE'),
-  ('pygments.lexers.pony',
+  ('pygments.lexers.mime',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\pony.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\mime.py',
    'PYMODULE'),
-  ('pygments.lexers.hexdump',
+  ('pygments.lexers.forth',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\hexdump.py',
-   'PYMODULE'),
-  ('pygments.lexers.haxe',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\haxe.py',
-   'PYMODULE'),
-  ('pygments.lexers.c_cpp',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\c_cpp.py',
-   'PYMODULE'),
-  ('pygments.lexers.eiffel',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\eiffel.py',
-   'PYMODULE'),
-  ('pygments.lexers.shell',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\shell.py',
-   'PYMODULE'),
-  ('pygments.lexers.sgf',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\sgf.py',
-   'PYMODULE'),
-  ('pygments.lexers.meson',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\meson.py',
-   'PYMODULE'),
-  ('pygments.lexers._mapping',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_mapping.py',
-   'PYMODULE'),
-  ('pygments.lexers.scdoc',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\scdoc.py',
-   'PYMODULE'),
-  ('pygments.lexers.cddl',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\cddl.py',
-   'PYMODULE'),
-  ('pygments.lexers.ezhil',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ezhil.py',
-   'PYMODULE'),
-  ('pygments.lexers.unicon',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\unicon.py',
-   'PYMODULE'),
-  ('pygments.lexers.dotnet',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\dotnet.py',
-   'PYMODULE'),
-  ('pygments.lexers._csound_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_csound_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.amdgpu',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\amdgpu.py',
-   'PYMODULE'),
-  ('pygments.lexers.data',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\data.py',
-   'PYMODULE'),
-  ('pygments.lexers.snobol',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\snobol.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\forth.py',
    'PYMODULE'),
   ('pygments.lexers.elm',
    'C:\\Users\\klime\\VS '
@@ -3393,165 +3313,273 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\templates.py',
    'PYMODULE'),
+  ('pygments.lexers.esoteric',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\esoteric.py',
+   'PYMODULE'),
+  ('pygments.lexers.praat',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\praat.py',
+   'PYMODULE'),
+  ('pygments.lexers.teraterm',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\teraterm.py',
+   'PYMODULE'),
   ('pygments.lexers.grammar_notation',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\grammar_notation.py',
    'PYMODULE'),
-  ('pygments.lexers.bare',
+  ('pygments.lexers.actionscript',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\bare.py',
-   'PYMODULE'),
-  ('pygments.lexers._sourcemod_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_sourcemod_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.webassembly',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\webassembly.py',
-   'PYMODULE'),
-  ('pygments.lexers.agile',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\agile.py',
-   'PYMODULE'),
-  ('pygments.lexers.mosel',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\mosel.py',
-   'PYMODULE'),
-  ('pygments.lexers.robotframework',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\robotframework.py',
-   'PYMODULE'),
-  ('pygments.lexers.perl',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\perl.py',
-   'PYMODULE'),
-  ('pygments.lexers.prolog',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\prolog.py',
-   'PYMODULE'),
-  ('pygments.lexers.modeling',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\modeling.py',
-   'PYMODULE'),
-  ('pygments.lexers.smithy',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\smithy.py',
-   'PYMODULE'),
-  ('pygments.lexers.iolang',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\iolang.py',
-   'PYMODULE'),
-  ('pygments.lexers.forth',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\forth.py',
-   'PYMODULE'),
-  ('pygments.lexers.igor',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\igor.py',
-   'PYMODULE'),
-  ('pygments.lexers.csound',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\csound.py',
-   'PYMODULE'),
-  ('pygments.lexers.sql',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\sql.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\actionscript.py',
    'PYMODULE'),
   ('pygments.lexers.urbi',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\urbi.py',
    'PYMODULE'),
-  ('pygments.lexers.ruby',
+  ('pygments.lexers._vbscript_builtins',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ruby.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_vbscript_builtins.py',
    'PYMODULE'),
-  ('pygments.lexers.oberon',
+  ('pygments.lexers.asm',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\oberon.py',
-   'PYMODULE'),
-  ('pygments.lexers._julia_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_julia_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.inferno',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\inferno.py',
-   'PYMODULE'),
-  ('pygments.lexers.qvt',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\qvt.py',
-   'PYMODULE'),
-  ('pygments.lexers._php_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_php_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.jvm',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\jvm.py',
-   'PYMODULE'),
-  ('pygments.lexers.roboconf',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\roboconf.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\asm.py',
    'PYMODULE'),
   ('pygments.lexers.x10',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\x10.py',
    'PYMODULE'),
-  ('pygments.lexers.tnt',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\tnt.py',
-   'PYMODULE'),
-  ('pygments.lexers._asy_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_asy_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.make',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\make.py',
-   'PYMODULE'),
-  ('pygments.lexers.floscript',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\floscript.py',
-   'PYMODULE'),
   ('pygments.lexers.text',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\text.py',
-   'PYMODULE'),
-  ('pygments.lexers.thingsdb',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\thingsdb.py',
-   'PYMODULE'),
-  ('pygments.lexers._tsql_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_tsql_builtins.py',
-   'PYMODULE'),
-  ('pygments.lexers.modula2',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\modula2.py',
-   'PYMODULE'),
-  ('pygments.lexers._cocoa_builtins',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_cocoa_builtins.py',
    'PYMODULE'),
   ('pygments.lexers.javascript',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\javascript.py',
    'PYMODULE'),
-  ('pygments.lexers.gsql',
+  ('pygments.lexers.d',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\gsql.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\d.py',
+   'PYMODULE'),
+  ('pygments.lexers.automation',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\automation.py',
+   'PYMODULE'),
+  ('pygments.lexers._usd_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_usd_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.theorem',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\theorem.py',
+   'PYMODULE'),
+  ('pygments.lexers._openedge_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_openedge_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.diff',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\diff.py',
    'PYMODULE'),
   ('pygments.lexers.ampl',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ampl.py',
    'PYMODULE'),
-  ('pygments.lexers.sieve',
+  ('pygments.lexers.gdscript',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\sieve.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\gdscript.py',
    'PYMODULE'),
-  ('pygments.lexers._vbscript_builtins',
+  ('pygments.lexers.verification',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_vbscript_builtins.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\verification.py',
+   'PYMODULE'),
+  ('pygments.lexers.ride',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ride.py',
+   'PYMODULE'),
+  ('pygments.lexers.ncl',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ncl.py',
+   'PYMODULE'),
+  ('pygments.lexers.supercollider',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\supercollider.py',
+   'PYMODULE'),
+  ('pygments.lexers.solidity',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\solidity.py',
+   'PYMODULE'),
+  ('pygments.lexers.agile',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\agile.py',
+   'PYMODULE'),
+  ('pygments.lexers.console',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\console.py',
+   'PYMODULE'),
+  ('pygments.lexers.roboconf',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\roboconf.py',
+   'PYMODULE'),
+  ('pygments.lexers.factor',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\factor.py',
+   'PYMODULE'),
+  ('pygments.lexers.testing',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\testing.py',
+   'PYMODULE'),
+  ('pygments.lexers.dotnet',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\dotnet.py',
+   'PYMODULE'),
+  ('pygments.lexers.rdf',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\rdf.py',
+   'PYMODULE'),
+  ('pygments.lexers.stata',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\stata.py',
+   'PYMODULE'),
+  ('pygments.lexers.unicon',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\unicon.py',
+   'PYMODULE'),
+  ('pygments.lexers.lisp',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\lisp.py',
+   'PYMODULE'),
+  ('pygments.lexers.shell',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\shell.py',
+   'PYMODULE'),
+  ('pygments.lexers.meson',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\meson.py',
+   'PYMODULE'),
+  ('pygments.lexers.ambient',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\ambient.py',
+   'PYMODULE'),
+  ('pygments.lexers.freefem',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\freefem.py',
+   'PYMODULE'),
+  ('pygments.lexers.smv',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\smv.py',
+   'PYMODULE'),
+  ('pygments.lexers.apl',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\apl.py',
+   'PYMODULE'),
+  ('pygments.lexers.python',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\python.py',
+   'PYMODULE'),
+  ('pygments.lexers.prolog',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\prolog.py',
+   'PYMODULE'),
+  ('pygments.lexers.parsers',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\parsers.py',
+   'PYMODULE'),
+  ('pygments.lexers.web',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\web.py',
+   'PYMODULE'),
+  ('pygments.lexers.amdgpu',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\amdgpu.py',
+   'PYMODULE'),
+  ('pygments.lexers.jvm',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\jvm.py',
+   'PYMODULE'),
+  ('pygments.lexers.pony',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\pony.py',
+   'PYMODULE'),
+  ('pygments.lexers.hexdump',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\hexdump.py',
+   'PYMODULE'),
+  ('pygments.lexers._cl_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_cl_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.business',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\business.py',
+   'PYMODULE'),
+  ('pygments.lexers._postgres_builtins',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\_postgres_builtins.py',
+   'PYMODULE'),
+  ('pygments.lexers.capnproto',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\capnproto.py',
+   'PYMODULE'),
+  ('pygments.lexers.modula2',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\modula2.py',
+   'PYMODULE'),
+  ('pygments.lexers.csound',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\csound.py',
+   'PYMODULE'),
+  ('pygments.lexers.oberon',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\oberon.py',
+   'PYMODULE'),
+  ('pygments.lexers.rust',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\rust.py',
+   'PYMODULE'),
+  ('pygments.lexers.sas',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\sas.py',
+   'PYMODULE'),
+  ('pygments.lexers.haxe',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\haxe.py',
+   'PYMODULE'),
+  ('pygments.lexers.floscript',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\floscript.py',
+   'PYMODULE'),
+  ('pygments.lexers.apdlexer',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\lexers\\apdlexer.py',
+   'PYMODULE'),
+  ('pygments.formatters.html',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\html.py',
+   'PYMODULE'),
+  ('pygments.formatter',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatter.py',
+   'PYMODULE'),
+  ('pygments.formatters.latex',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\latex.py',
+   'PYMODULE'),
+  ('pygments.formatters.img',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\img.py',
+   'PYMODULE'),
+  ('pygments.formatters.pangomarkup',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\pangomarkup.py',
+   'PYMODULE'),
+  ('pygments.formatters.rtf',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\rtf.py',
+   'PYMODULE'),
+  ('pygments.formatters._mapping',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\_mapping.py',
    'PYMODULE'),
   ('pygments.formatters.other',
    'C:\\Users\\klime\\VS '
@@ -3561,57 +3589,29 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\console.py',
    'PYMODULE'),
-  ('pygments.formatter',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatter.py',
-   'PYMODULE'),
-  ('pygments.formatters.html',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\html.py',
-   'PYMODULE'),
-  ('pygments.formatters.img',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\img.py',
-   'PYMODULE'),
-  ('pygments.formatters.rtf',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\rtf.py',
-   'PYMODULE'),
   ('pygments.formatters.svg',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\svg.py',
+   'PYMODULE'),
+  ('pygments.formatters.terminal256',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\terminal256.py',
    'PYMODULE'),
   ('pygments.formatters',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\__init__.py',
    'PYMODULE'),
-  ('pygments.formatters.latex',
+  ('pygments.formatters.terminal',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\latex.py',
-   'PYMODULE'),
-  ('pygments.formatters.pangomarkup',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\pangomarkup.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\terminal.py',
    'PYMODULE'),
   ('pygments.formatters.irc',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\irc.py',
    'PYMODULE'),
-  ('pygments.formatters.terminal',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\terminal.py',
-   'PYMODULE'),
   ('pygments.formatters.bbcode',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\bbcode.py',
-   'PYMODULE'),
-  ('pygments.formatters._mapping',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\_mapping.py',
-   'PYMODULE'),
-  ('pygments.formatters.terminal256',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\pygments\\formatters\\terminal256.py',
    'PYMODULE'),
   ('IPython.utils.coloransi',
    'C:\\Users\\klime\\VS '
@@ -6224,61 +6224,53 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\__init__.py',
    'PYMODULE'),
-  ('setuptools._vendor.packaging.utils',
+  ('setuptools._vendor.packaging._compat',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\utils.py',
-   'PYMODULE'),
-  ('setuptools._vendor.packaging.tags',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\tags.py',
-   'PYMODULE'),
-  ('setuptools._vendor.packaging.markers',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\markers.py',
-   'PYMODULE'),
-  ('setuptools._vendor.packaging._typing',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\_typing.py',
-   'PYMODULE'),
-  ('setuptools._vendor',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\__init__.py',
-   'PYMODULE'),
-  ('setuptools._vendor.packaging',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\__init__.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\_compat.py',
    'PYMODULE'),
   ('setuptools._vendor.more_itertools.more',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\more_itertools\\more.py',
    'PYMODULE'),
+  ('setuptools._vendor.pyparsing',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\pyparsing.py',
+   'PYMODULE'),
+  ('setuptools._vendor.more_itertools',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\more_itertools\\__init__.py',
+   'PYMODULE'),
+  ('setuptools._vendor.packaging._typing',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\_typing.py',
+   'PYMODULE'),
   ('setuptools._vendor.packaging.requirements',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\requirements.py',
+   'PYMODULE'),
+  ('setuptools._vendor.packaging.specifiers',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\specifiers.py',
+   'PYMODULE'),
+  ('setuptools._vendor.packaging.utils',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\utils.py',
    'PYMODULE'),
   ('setuptools._vendor.packaging._structures',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\_structures.py',
    'PYMODULE'),
-  ('setuptools._vendor.packaging._compat',
+  ('setuptools._vendor.packaging.tags',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\_compat.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\tags.py',
    'PYMODULE'),
-  ('setuptools._vendor.pyparsing',
+  ('setuptools._vendor.packaging',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\pyparsing.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\__init__.py',
    'PYMODULE'),
-  ('setuptools._vendor.packaging.version',
+  ('setuptools._vendor',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\version.py',
-   'PYMODULE'),
-  ('setuptools._vendor.more_itertools.recipes',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\more_itertools\\recipes.py',
-   'PYMODULE'),
-  ('setuptools._vendor.packaging.specifiers',
-   'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\specifiers.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\__init__.py',
    'PYMODULE'),
   ('setuptools._vendor.ordered_set',
    'C:\\Users\\klime\\VS '
@@ -6288,9 +6280,17 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\__about__.py',
    'PYMODULE'),
-  ('setuptools._vendor.more_itertools',
+  ('setuptools._vendor.packaging.markers',
    'C:\\Users\\klime\\VS '
-   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\more_itertools\\__init__.py',
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\markers.py',
+   'PYMODULE'),
+  ('setuptools._vendor.packaging.version',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\packaging\\version.py',
+   'PYMODULE'),
+  ('setuptools._vendor.more_itertools.recipes',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\setuptools\\_vendor\\more_itertools\\recipes.py',
    'PYMODULE'),
   ('setuptools.msvc',
    'C:\\Users\\klime\\VS '
@@ -7021,9 +7021,6 @@
    'PYMODULE'),
   ('subprocess',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\subprocess.py',
-   'PYMODULE'),
-  ('sched',
-   'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\sched.py',
    'PYMODULE'),
   ('random',
    'C:\\Users\\klime\\AppData\\Local\\Programs\\Python\\Python310\\lib\\random.py',

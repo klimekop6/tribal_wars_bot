@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 import tkinter as tk
+import winreg
 
 import ttkbootstrap as ttk
 from selenium import webdriver
@@ -118,8 +119,6 @@ def chrome_profile_path(settings: dict) -> None:
     path = os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\User Data\TribalWars")
     settings["path"] = path
     settings["first_lunch"] = False
-    settings["first_logon"] = True
-    settings["last_opened_daily_bonus"] = time.strftime("%d.%m.%Y", time.localtime())
 
     with open("settings.json", "w") as settings_json_file:
         json.dump(settings, settings_json_file)
@@ -138,7 +137,6 @@ def custom_error(message: str, auto_hide: bool = False, parent=None) -> None:
     master.bell()
 
     message = message.splitlines()
-
     if not auto_hide:
         if len(message) == 1:
             message_label = ttk.Label(master, text=message[0])
@@ -199,8 +197,12 @@ def first_app_lunch(settings: dict) -> None:
             return False
 
     if is_admin():
-        # Code of your program here
+        # Code to run if has admin rights
         subprocess.run("regedit /s anticaptcha-plugin.reg")
+        # Create app folder in registry to keep keys and data
+        # HKEY_CURRENT_USER\Software\TribalWarsBot
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software") as key:
+            winreg.CreateKey(key, "TribalWarsBot")
         chrome_profile_path(settings)
     else:
         # Re-run the program with admin rights
@@ -347,3 +349,15 @@ def save_entry_to_settings(
 
     # with open(f'settings/{settings["server_world"]}.json', "w") as settings_json_file:
     #     json.dump(settings, settings_json_file)
+
+
+def show_or_hide_password(parent, entry: ttk.Entry, button: ttk.Button) -> None:
+    """Show or hide password after user click eye icon"""
+
+    if entry.cget("show") == "":
+        entry.config(show="*")
+        button.config(image=parent.hide_image)
+    else:
+        entry.config(show="")
+        button.config(image=parent.show_image)
+    entry.focus_set()

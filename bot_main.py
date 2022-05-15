@@ -3,7 +3,6 @@ import logging
 import os
 import random
 import re
-import sched
 import subprocess
 import sys
 import threading
@@ -694,13 +693,23 @@ class NotebookSchedul:
             )
 
         for index, template_name in enumerate(fake_templates):
-            ttk.Radiobutton(
+            template_button = ttk.Radiobutton(
                 self.scroll_able.frame,
                 text=f"{template_name}",
                 value=fake_templates[template_name],
                 variable=self.choosed_fake_template,
                 command=lambda: self.fake_troops_radiobutton.invoke(),
-            ).grid(row=20 + index, column=0, padx=(65, 5), sticky=tk.W)
+            )
+            template_button.grid(
+                row=20 + index, column=0, columnspan=2, padx=(65, 5), sticky=tk.W
+            )
+            text = "\n".join(
+                f'{troop["priority_number"]} {troop_name.upper()}  Min={troop["min_value"]}  Max={troop["max_value"]}'
+                for troop_name, troop in fake_templates[
+                    list(fake_templates)[index]
+                ].items()
+            )
+            ToolTip(template_button, text=text, topmost=True)
             ttk.Button(
                 self.scroll_able.frame,
                 image=self.exit,
@@ -827,7 +836,7 @@ class NotebookSchedul:
                 )
                 sorted_choosed_fake_template = sorted(
                     choosed_fake_template.items(),
-                    key=lambda x: x[1]["priority_nubmer"],
+                    key=lambda x: x[1]["priority_number"],
                 )
                 army_speed = max(
                     troops_speed[troop_name]
@@ -958,11 +967,6 @@ class NotebookSchedul:
                     arrival_time_in_sec - travel_time_in_sec
                 )  # sec since epoch
 
-            # Test purpose
-            # print(
-            #     f"arrival_time_in_sec = {arrival_time_in_sec} extra_time = {extra_time} travel_time_in_sec = {travel_time_in_sec} "
-            # )
-
             if send_info["send_time"] - 3 < current_time:
                 sends_from.append(send_from)
                 continue
@@ -970,6 +974,10 @@ class NotebookSchedul:
             send_info_list.append(send_info)
 
         if not send_info_list:
+            custom_error(
+                message="Termin wysyłki wojsk już minął", parent=self.scroll_able.canvas
+            )
+            self.scroll_able.canvas.yview_moveto(0)
             return
 
         # Changed to settings["scheduler"]["ready_schedule"] also changes
@@ -1019,7 +1027,7 @@ class NotebookSchedul:
                 forget_row(frame, row_number)
                 del template[troop_name]
 
-            priority = priority_nubmer.get()
+            priority = priority_number.get()
             troop = troop_type.get()
             min = min_value.get()
             max = max_value.get()
@@ -1069,7 +1077,7 @@ class NotebookSchedul:
             ).grid(row=last_row_number, column=4, padx=(0, 10))
 
             template[troop] = {
-                "priority_nubmer": priority,
+                "priority_number": priority,
                 "min_value": min,
                 "max_value": max,
                 "population": troop_population,
@@ -1090,7 +1098,7 @@ class NotebookSchedul:
         frame = template_window.content_frame
 
         template_name = tk.StringVar()
-        priority_nubmer = tk.StringVar()
+        priority_number = tk.StringVar()
         troop_type = tk.StringVar()
         min_value = tk.StringVar()
         max_value = tk.StringVar()
@@ -1143,12 +1151,12 @@ class NotebookSchedul:
         ttk.Label(frame, text="Min").grid(row=2, column=2, padx=5)
         ttk.Label(frame, text="Max").grid(row=2, column=3, padx=(5, 10))
 
-        choose_priority_nubmer = ttk.Combobox(
-            frame, textvariable=priority_nubmer, width=3, justify=tk.CENTER
+        choose_priority_number = ttk.Combobox(
+            frame, textvariable=priority_number, width=3, justify=tk.CENTER
         )
-        choose_priority_nubmer.grid(row=3, column=0, padx=(10, 5), pady=(0, 5))
-        choose_priority_nubmer["state"] = "readonly"
-        choose_priority_nubmer["values"] = tuple(num for num in range(1, 10))
+        choose_priority_number.grid(row=3, column=0, padx=(10, 5), pady=(0, 5))
+        choose_priority_number["state"] = "readonly"
+        choose_priority_number["values"] = tuple(num for num in range(1, 10))
 
         choose_troop_type = ttk.Combobox(
             frame, textvariable=troop_type, width=14, justify=tk.CENTER
@@ -1741,9 +1749,12 @@ class MainWindow:
                     f"UPDATE konta_plemiona SET "
                     f"currently_running=0, "
                     f"captcha_solved=captcha_solved + {self.captcha_counter.get()} "
-                    f"WHERE user_name='{settings['user_name']}'"
+                    f"WHERE user_name='{self.user_data['user_name']}'"
                 )
-            if settings["server_world"] in self.settings_by_worlds:
+            if (
+                "server_world" in settings
+                and settings["server_world"] in self.settings_by_worlds
+            ):
                 save_entry_to_settings(
                     entries=self.entries_content,
                     settings=settings,
@@ -1751,6 +1762,9 @@ class MainWindow:
                 )
             else:
                 save_entry_to_settings(entries=self.entries_content, settings=settings)
+            settings["user_name"] = self.user_data["user_name"]
+            if "user_password" in settings:
+                settings["user_password"] = self.user_data["password"]
             self.save_settings_to_files(settings=settings)
             self.master.destroy()
 
@@ -2894,6 +2908,11 @@ class MainWindow:
 
     def check_groups(self, settings: dict):
 
+        if "server_world" not in settings:
+            custom_error(
+                message="Najpierw wybierz serwer i numer świata", parent=self.master
+            )
+            return
         self.farm_group_A.set("updating...")
         self.farm_group_B.set("updating...")
         self.farm_group_C.set("updating...")
@@ -2928,11 +2947,14 @@ class MainWindow:
         """Used to load some things only after user log in correctly"""
 
         # Load settings into settings_by_worlds[server_world]
-        for settings_file_name in os.listdir("settings"):
-            server_world = settings_file_name[: settings_file_name.find(".")]
-            self.settings_by_worlds[server_world] = load_settings(
-                f"settings//{settings_file_name}"
-            )
+        try:
+            for settings_file_name in os.listdir("settings"):
+                server_world = settings_file_name[: settings_file_name.find(".")]
+                self.settings_by_worlds[server_world] = load_settings(
+                    f"settings//{settings_file_name}"
+                )
+        except FileNotFoundError:
+            os.mkdir("settings")
 
         # Add reference to deeper lists and dicts between settings and settings_by_worlds[server_world]
         if (
@@ -2947,6 +2969,12 @@ class MainWindow:
     @log_missed_erros
     def run(self, settings: dict):
         """Uruchamia całego bota"""
+
+        def on_func_stop() -> None:
+            """Change few things on function quit/stop"""
+
+            self.running = False
+            self.run_button.config(text="Uruchom")
 
         # E-mail verification
         if not self.user_data["verified_email"]:
@@ -2970,8 +2998,17 @@ class MainWindow:
                     with DataBaseConnection() as cursor:
                         cursor.execute(
                             f"UPDATE konta_plemiona SET verified_email=1"
-                            f"WHERE user_name='{settings['user_name']}'"
+                            f"WHERE user_name='{self.user_data['user_name']}'"
                         )
+                        if (
+                            not self.user_data["bonus_email"]
+                            and self.user_data["invited_by"]
+                        ):
+                            cursor.execute(
+                                f"exec add_bonus_email "
+                                f"'{self.user_data['user_name']}', "
+                                f"'{self.user_data['invited_by']}'"
+                            )
                     self.user_data["verified_email"] = True
                     self.verified_email_label.config(
                         text="Zweryfikowany adres e-mail: Tak"
@@ -3012,8 +3049,7 @@ class MainWindow:
             self.verify_window.attributes("-alpha", 1.0)
             # verify_button.wait_window(self.verify_window)
 
-            self.running = False
-            self.run_button.config(text="Uruchom")
+            on_func_stop()
             return
 
         # Check if_paid
@@ -3025,29 +3061,36 @@ class MainWindow:
                     "Przejdź do ustawień i kliknij przedłuż ważność konta.",
                     parent=self.master,
                 )
-                self.running = False
-                self.run_button.config(text="Uruchom")
+                on_func_stop()
                 return
             self.acc_expire_time.config(
                 text=f'Konto ważne do {self.user_data["active_until"]}'
             )
 
+        # Check if user choosed/set any game server
+        if "server_world" not in settings:
+            custom_error(
+                message="Najpierw wybierz serwer i numer świata", parent=self.master
+            )
+            self.notebook.select(4)
+            on_func_stop()
+            return
+
         # Check if group was choosed
+        # Farm group
         if self.entries_content["farm_group"].get() == "Wybierz grupę":
             if any(
                 int(self.entries_content[letter]["active"].get())
                 for letter in ("A", "B", "C")
             ):
                 custom_error(message="Nie wybrano grupy wiosek do farmienia.")
-                self.running = False
-                self.run_button.config(text="Uruchom")
+                on_func_stop()
                 return
-
+        # Gathering group
         if self.entries_content["gathering_group"].get() == "Wybierz grupę":
             if int(self.entries_content["gathering"]["active"].get()):
                 custom_error(message="Nie wybrano grupy wiosek do zbieractwa.")
-                self.running = False
-                self.run_button.config(text="Uruchom")
+                on_func_stop()
                 return
 
         self.to_do = []
@@ -3060,9 +3103,6 @@ class MainWindow:
             settings=settings,
             settings_by_worlds=self.settings_by_worlds,
         )
-
-        if not self.driver:
-            self.driver = run_driver(settings=settings)
 
         # Add functions into to_do list
         for server_world in self.settings_by_worlds:  # server_world = de199, pl173 etc.
@@ -3122,10 +3162,14 @@ class MainWindow:
 
             self.to_do.extend(to_do)
         if not len(self.to_do):
-            self.running = False
+            on_func_stop()
             custom_error(message="Brak zadań do wykonania", parent=self.master)
             return
         self.to_do.sort(key=lambda sort_by: sort_by["start_time"])
+
+        # Open browser if not already opend
+        if not self.driver:
+            self.driver = run_driver(settings=settings)
 
         # Grid and set timer in custombar
         self.title_timer.grid(row=0, column=2, padx=5)
@@ -3463,10 +3507,6 @@ class MainWindow:
                 self.world_chooser_window.destroy()
                 return
 
-            # print(f"Change from = {settings['server_world']}")
-            # print(f"Change to = {server_world}")
-            # print(f"Available server_world's: {self.settings_by_worlds.keys()}")
-
             # Change if already exist in self.settings_by_worlds
             if server_world in self.settings_by_worlds:
                 # Save current settings before changing to other
@@ -3476,20 +3516,7 @@ class MainWindow:
                         settings=settings,
                         settings_by_worlds=self.settings_by_worlds,
                     )
-                # print(f"ID BEFORE = {id(settings)}")
                 settings.update(self.settings_by_worlds[server_world])
-                # print(f"ID AFTER = {id(settings)}")
-
-                # print("\nREADY SCHEDULE ID")
-                # print(f"ID BEFORE = {id(settings['scheduler']['ready_schedule'])}")
-                # print(
-                #     f"ID AFTER = {id(self.settings_by_worlds[server_world]['scheduler']['ready_schedule'])}\n"
-                # )
-
-                # print(f'\nID SETTINGS GROUP {id(settings["groups"])}')
-                # print(
-                #     f'\nID SETTINGS_BY_WORLDS GROUP {id(self.settings_by_worlds[server_world]["groups"])}'
-                # )
 
                 # Set available groups
                 self.farm_group_A["values"] = settings["groups"]
@@ -3659,28 +3686,6 @@ class MainWindow:
         ):
 
             on_focus_out()
-
-    def save_each_schedule_to_settings(self, settings: dict) -> None:
-        """Save each ready_schedule list into suitable settings"""
-
-        for settings_file_name in os.listdir("settings"):
-            server_world = settings_file_name[: settings_file_name.find(".")]
-            server_world_ready_schedule = self.settings_by_worlds[server_world][
-                "scheduler"
-            ]["ready_schedule"].copy()
-            # For each settings without current
-            # if settings["server_world"] != server_world:
-            _settings = load_settings(f"settings//{settings_file_name}")
-            _settings["scheduler"][
-                "ready_schedule"
-            ] = server_world_ready_schedule.copy()
-            # Save settings in file
-            with open(f"settings/{server_world}.json", "w") as settings_json_file:
-                json.dump(_settings, settings_json_file)
-            # else:
-            #     settings["scheduler"][
-            #         "ready_schedule"
-            #     ] = server_world_ready_schedule.copy()
 
     def save_settings_to_files(self, settings: dict) -> None:
         # Initial/global settings
@@ -3890,7 +3895,7 @@ def check_for_updates() -> None:
         master.update_idletasks()
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "0.4.4"
+    APP_VERSION = "0.5.5"
 
     client = Client(ClientConfig())
     client.refresh()
@@ -4016,9 +4021,19 @@ def configure_style(style: ttk.Style) -> None:
         anchor="center",
         foreground="white",
     )
+    # hide_or_show_password register_window
+    style.configure(
+        "pure.TButton", background="#2f2f2f", bordercolor="", padding=(4, 2)
+    )
+    style.map(
+        "pure.TButton",
+        background=[("active", "#2f2f2f")],
+    )
 
 
 def style_info(style: ttk.Style, style_name: str) -> None:
+    """Print all style options and its current config"""
+
     for _ in ("border", "focus", "padding", "label"):
         print("\n========================================")
         print(_)

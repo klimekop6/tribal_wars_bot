@@ -23,3 +23,54 @@ ERROR:root:someinfo
 ERROR:root:someinfo
 WARNING:root:someinfo
 DEBUG:root:someinfo
+
+ERROR:database_connection:09-05-2022 18:37:24 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x0000017A69361140>
+
+ERROR:database_connection:09-05-2022 18:42:40 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293CE7D9C40>
+
+ERROR:database_connection:09-05-2022 18:42:59 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293CFDF2E80>
+
+ERROR:database_connection:09-05-2022 18:47:02 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D076E5C0>
+
+ERROR:database_connection:09-05-2022 18:47:09 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D076F1C0>
+
+ERROR:database_connection:09-05-2022 18:47:16 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D0DB0180>
+
+ERROR:database_connection:09-05-2022 18:47:21 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D0DB1180>
+
+ERROR:database_connection:09-05-2022 18:47:29 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D0DB17C0>
+
+ERROR:database_connection:09-05-2022 18:47:39 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D0DB2C80>
+
+ERROR:database_connection:09-05-2022 19:06:49 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D0DB3B40>
+
+ERROR:database_connection:09-05-2022 19:06:55 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D01CCAC0>
+
+ERROR:database_connection:09-05-2022 19:07:26 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293CEC06640>
+
+ERROR:database_connection:09-05-2022 19:07:36 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D01CE880>
+
+ERROR:database_connection:09-05-2022 19:07:50 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D01CF300>
+
+ERROR:database_connection:09-05-2022 19:08:42 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Incorrect syntax near 'klimekop6'. (102) (SQLExecDirectW)"), <traceback object at 0x00000293D076E980>
+
+ERROR:database_connection:09-05-2022 19:08:58 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Incorrect syntax near 'klimekop6'. (102) (SQLExecDirectW)"), <traceback object at 0x00000293D0DC4E40>
+
+ERROR:database_connection:09-05-2022 19:09:08 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D01CFD80>
+
+ERROR:database_connection:09-05-2022 19:11:56 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]The EXECUTE permission was denied on the object 'add_bonus_email', database 'Plemiona', schema 'dbo'. (229) (SQLExecDirectW)"), <traceback object at 0x00000293D076D400>
+
+ERROR:bot_functions:11-05-2022 20:21:02 
+
+bot_functions -> log_in error raised
+
+chrome://new-tab-page/
+
+Traceback (most recent call last):
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_functions.py", line 1024, in log_in
+    f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
+KeyError: 'server_world'
+-----------------------------------------------------------------------------------
+
+
+ERROR:database_connection:12-05-2022 13:27:59 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Incorrect syntax near 'invited_by'. (102) (SQLExecDirectW)"), <traceback object at 0x0000028BCE203980>
