@@ -74,3 +74,108 @@ KeyError: 'server_world'
 
 
 ERROR:database_connection:12-05-2022 13:27:59 <class 'pyodbc.ProgrammingError'>, ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Incorrect syntax near 'invited_by'. (102) (SQLExecDirectW)"), <traceback object at 0x0000028BCE203980>
+
+ERROR:__main__:17-05-2022 14:25:58 Called empty settings['scheduler']['ready_schedule']
+Stack (most recent call last):
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "c:\Users\klime\.vscode\extensions\ms-python.python-2022.6.2\pythonFiles\lib\python\debugpy\__main__.py", line 45, in <module>
+    cli.main()
+  File "c:\Users\klime\.vscode\extensions\ms-python.python-2022.6.2\pythonFiles\lib\python\debugpy/..\debugpy\server\cli.py", line 444, in main
+    run()
+  File "c:\Users\klime\.vscode\extensions\ms-python.python-2022.6.2\pythonFiles\lib\python\debugpy/..\debugpy\server\cli.py", line 285, in run_file
+    runpy.run_path(target_as_str, run_name=compat.force_str("__main__"))
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 269, in run_path
+    return _run_module_code(code, init_globals, run_name,
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 96, in _run_module_code
+    _run_code(code, mod_globals, init_globals,
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_main.py", line 4097, in <module>
+    main()
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_main.py", line 4090, in main
+    main_window.master.mainloop()
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\tkinter\__init__.py", line 1458, in mainloop
+    self.tk.mainloop(n)
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\tkinter\__init__.py", line 1921, in __call__
+    return self.func(*args)
+  File "c:\Users\klime\VS Code\selenium_chrome\log_in_window.py", line 134, in <lambda>
+    lambda _: self.log_in(main_window, settings),
+  File "c:\Users\klime\VS Code\selenium_chrome\log_in_window.py", line 217, in log_in
+    self.after_correct_log_in(
+
+ERROR:__main__:17-05-2022 14:27:08 Called empty settings['scheduler']['ready_schedule']
+Stack (most recent call last):
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "c:\Users\klime\.vscode\extensions\ms-python.python-2022.6.2\pythonFiles\lib\python\debugpy\__main__.py", line 45, in <module>
+    cli.main()
+  File "c:\Users\klime\.vscode\extensions\ms-python.python-2022.6.2\pythonFiles\lib\python\debugpy/..\debugpy\server\cli.py", line 444, in main
+    run()
+  File "c:\Users\klime\.vscode\extensions\ms-python.python-2022.6.2\pythonFiles\lib\python\debugpy/..\debugpy\server\cli.py", line 285, in run_file
+    runpy.run_path(target_as_str, run_name=compat.force_str("__main__"))
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 269, in run_path
+    return _run_module_code(code, init_globals, run_name,
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 96, in _run_module_code
+    _run_code(code, mod_globals, init_globals,
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_main.py", line 4097, in <module>
+    main()
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_main.py", line 4090, in main
+    main_window.master.mainloop()
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\tkinter\__init__.py", line 1458, in mainloop
+    self.tk.mainloop(n)
+  File "C:\Users\klime\AppData\Local\Programs\Python\Python310\lib\tkinter\__init__.py", line 1921, in __call__
+    return self.func(*args)
+  File "c:\Users\klime\VS Code\selenium_chrome\log_in_window.py", line 134, in <lambda>
+    lambda _: self.log_in(main_window, settings),
+  File "c:\Users\klime\VS Code\selenium_chrome\log_in_window.py", line 217, in log_in
+    self.after_correct_log_in(
+  File "c:\Users\klime\VS Code\selenium_chrome\log_in_window.py", line 178, in after_correct_log_in
+    main_window.load_after_log_in(settings=settings)
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_main.py", line 2949, in load_after_log_in
+    logger.error(
+
+ERROR:__main__:17-05-2022 14:31:21 Called empty settings['scheduler']['ready_schedule']
+['  File "c:\\Users\\klime\\VS Code\\selenium_chrome\\log_in_window.py", line 217, in log_in\n    self.after_correct_log_in(\n', '  File "c:\\Users\\klime\\VS Code\\selenium_chrome\\log_in_window.py", line 178, in after_correct_log_in\n    main_window.load_after_log_in(settings=settings)\n', '  File "c:\\Users\\klime\\VS Code\\selenium_chrome\\bot_main.py", line 2942, in load_after_log_in\n    f"Called empty settings[\'scheduler\'][\'ready_schedule\']\\n{traceback.format_stack(limit=3)}"\n']
+
+ERROR:__main__:17-05-2022 14:33:57 Called empty settings['scheduler']['ready_schedule']
+  File "c:\Users\klime\VS Code\selenium_chrome\log_in_window.py", line 217, in log_in
+    self.after_correct_log_in(
+  File "c:\Users\klime\VS Code\selenium_chrome\log_in_window.py", line 178, in after_correct_log_in
+    main_window.load_after_log_in(settings=settings)
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_main.py", line 2951, in load_after_log_in
+    stack_message += "".join(line for line in traceback.format_stack(limit=3))
+
+
+ERROR:decorators:18-05-2022 13:30:00 
+Traceback (most recent call last):
+  File "c:\Users\klime\VS Code\selenium_chrome\decorators.py", line 19, in wrapper
+    func(*args, **kwargs)
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_main.py", line 3129, in run
+    ].get() == "0" and int(self.entries_content["check_incoming_attacks"].get()):
+KeyError: 'check_incoming_attacks'
+
+
+ERROR:decorators:18-05-2022 13:31:06 
+Traceback (most recent call last):
+  File "c:\Users\klime\VS Code\selenium_chrome\decorators.py", line 19, in wrapper
+    func(*args, **kwargs)
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_main.py", line 3129, in run
+    ].get() == "0" and int(self.entries_content["check_incoming_attacks"].get()):
+KeyError: 'check_incoming_attacks'
+
+
+ERROR:decorators:18-05-2022 13:31:14 
+Traceback (most recent call last):
+  File "c:\Users\klime\VS Code\selenium_chrome\decorators.py", line 19, in wrapper
+    func(*args, **kwargs)
+  File "c:\Users\klime\VS Code\selenium_chrome\bot_main.py", line 3129, in run
+    ].get() == "0" and int(self.entries_content["check_incoming_attacks"].get()):
+KeyError: 'check_incoming_attacks'
+

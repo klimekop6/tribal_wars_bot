@@ -128,7 +128,7 @@ class LogInWindow:
             row=7, columnspan=2, pady=5, padx=5, sticky=("W", "E")
         )
 
-        self.user_name_input.focus()
+        self.user_name_input.focus_force()
         self.user_password_input.bind(
             "<Return>",
             lambda _: self.log_in(main_window, settings),
@@ -178,6 +178,8 @@ class LogInWindow:
         main_window.load_after_log_in(settings=settings)
         main_window.master.deiconify()
         main_window.master.attributes("-alpha", 1.0)
+        main_window.master.attributes("-topmost", 1)
+        main_window.master.focus_force()
         self.update_db_running_status(main_window=main_window)
 
     def log_in(self, main_window, settings: dict):

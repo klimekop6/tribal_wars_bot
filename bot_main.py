@@ -456,9 +456,13 @@ class NotebookSchedul:
             command=lambda: self.create_template(settings=settings),
         ).grid(row=18, column=0, columnspan=2, padx=(0, 27), pady=5, sticky=tk.E)
 
+        button_info_frame = ttk.Frame(self.scroll_able.frame)
+        button_info_frame.grid(
+            row=41, column=0, columnspan=2, padx=(25, 5), pady=10, sticky=tk.W
+        )
         # Własny szablon
         self.own_template_radiobutton = ttk.Radiobutton(
-            self.scroll_able.frame,
+            button_info_frame,
             text="Własny szablon",
             value="send_my_template",
             variable=self.template_type,
@@ -472,8 +476,17 @@ class NotebookSchedul:
                 self.choose_slowest_troop.config(state="disabled"),
             ],
         )
-        self.own_template_radiobutton.grid(
-            row=41, column=0, columnspan=2, padx=(25, 5), pady=10, sticky=tk.W
+        self.own_template_radiobutton.grid(row=0, column=0, sticky=tk.W)
+
+        info = ttk.Label(button_info_frame, image=self.info)
+        info.grid(row=0, column=1, padx=(5, 0), sticky=ttk.W)
+
+        ToolTip(
+            info,
+            text="W poniższych polach można podać konkretną liczbę jednostek bądź wpisać słowo max "
+            "które oznacza wstawienie maksymalnej ilości danej jednostki.",
+            wraplength=350,
+            topmost=True,
         )
 
         army_frame = ttk.Frame(self.scroll_able.frame)
@@ -628,16 +641,16 @@ class NotebookSchedul:
             row=43, columnspan=2, padx=(45, 0), pady=(15, 0), sticky=tk.W
         )
 
-        self.repeat_attack_number = tk.StringVar()
-        self.repeat_attack_number_label = ttk.Label(
-            self.scroll_able.frame, text="Liczba powtórzeń"
+        self.number_of_attacks = tk.StringVar()
+        self.number_of_attacks_label = ttk.Label(
+            self.scroll_able.frame, text="Łączna liczba ataków"
         )
-        self.repeat_attack_number_label.grid(
+        self.number_of_attacks_label.grid(
             row=44, column=0, padx=(65, 0), pady=10, sticky=tk.W
         )
         self.repeat_attack_number_entry = ttk.Entry(
             self.scroll_able.frame,
-            textvariable=self.repeat_attack_number,
+            textvariable=self.number_of_attacks,
             width=4,
             justify=tk.CENTER,
             state="disabled",
@@ -849,7 +862,6 @@ class NotebookSchedul:
                 for troop_name, troop_value in self.troops.items():
                     troop_value = troop_value.get()
                     if troop_value:
-                        troop_value = int(troop_value)
                         troops[troop_name] = troop_value
                 army_speed = max(
                     troops_speed[troop_name] for troop_name in troops.keys()
@@ -861,7 +873,7 @@ class NotebookSchedul:
                 ):
                     army_speed = 10
                 repeat_attack = self.repeat_attack.get()
-                repeat_attack_number = self.repeat_attack_number.get()
+                number_of_attacks = self.number_of_attacks.get()
 
         villages = get_villages_id(settings=settings)
 
@@ -889,12 +901,16 @@ class NotebookSchedul:
                         :-1
                     ]  # It returns village ID
                 except KeyError:
-                    custom_error(message=f"Wioska {send_from} nie istnieje.")
+                    custom_error(
+                        message=f"Wioska {send_from} nie istnieje.", parent=self.parent
+                    )
                     continue
                 try:
                     send_to_village_id = villages[send_to][:-1]  # It returns village ID
                 except KeyError:
-                    custom_error(message=f"Wioska {send_to} nie istnieje.")
+                    custom_error(
+                        message=f"Wioska {send_to} nie istnieje.", parent=self.parent
+                    )
                     continue
 
             send_info["url"] = (
@@ -940,7 +956,7 @@ class NotebookSchedul:
                 case "send_my_template":
                     send_info["troops"] = troops
                     send_info["repeat_attack"] = repeat_attack
-                    send_info["repeat_attack_number"] = repeat_attack_number
+                    send_info["number_of_attacks"] = number_of_attacks
 
             distance = sqrt(
                 pow(int(send_from[:3]) - int(send_to[:3]), 2)
@@ -974,9 +990,7 @@ class NotebookSchedul:
             send_info_list.append(send_info)
 
         if not send_info_list:
-            custom_error(
-                message="Termin wysyłki wojsk już minął", parent=self.scroll_able.canvas
-            )
+            custom_error(message="Termin wysyłki wojsk już minął", parent=self.parent)
             self.scroll_able.canvas.yview_moveto(0)
             return
 
@@ -1012,9 +1026,8 @@ class NotebookSchedul:
         self.scroll_able.canvas.yview_moveto(0)
         self.villages_to_use.delete("1.0", tk.END)
         self.villages_destiny.delete("1.0", tk.END)
-        custom_error(
-            message="Dodano do planera!", auto_hide=True, parent=self.scroll_able.canvas
-        )
+
+        custom_error(message="Dodano do planera!", auto_hide=True, parent=self.parent)
 
     def create_template(self, settings: dict) -> None:
         """As named it creates fake template to use"""
@@ -2932,6 +2945,60 @@ class MainWindow:
             ],
         )
 
+    def change_world(
+        self, server_world: str, world_in_title: str, settings: dict
+    ) -> None:
+
+        # Skip if user clicked/choose the same world as he is now
+        if (
+            # re.search(r"\d+", server_world).group()
+            # == self.entries_content["world_number"].get()
+            server_world
+            == settings["server_world"]
+        ):
+            if hasattr(self, "world_chooser_window"):
+                self.world_chooser_window.destroy()
+            return
+
+        # Change if already exist in self.settings_by_worlds
+        if server_world in self.settings_by_worlds:
+            # Save current settings before changing to other
+            if settings["server_world"] in self.settings_by_worlds:
+                save_entry_to_settings(
+                    entries=self.entries_content,
+                    settings=settings,
+                    settings_by_worlds=self.settings_by_worlds,
+                )
+            settings.update(self.settings_by_worlds[server_world])
+
+            # Set available groups
+            self.farm_group_A["values"] = settings["groups"]
+            self.farm_group_B["values"] = settings["groups"]
+            self.farm_group_C["values"] = settings["groups"]
+            self.gathering.gathering_group["values"] = settings["groups"]
+            self.villages_groups["values"] = settings["groups"]
+
+            # Odświeża okno planera
+            self.schedule.redraw_availabe_templates(settings=settings)
+
+            fill_entry_from_settings(entries=self.entries_content, settings=settings)
+
+            # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
+            schedule = self.settings_by_worlds[server_world]["scheduler"][
+                "ready_schedule"
+            ]
+            if schedule:
+                current_time = time.time()
+                schedule = [
+                    value for value in schedule if value["send_time"] > current_time
+                ]
+
+            invoke_checkbuttons(parent=self.master)
+            self.schedule.template_type.set("")
+
+            self.entries_content["world_in_title"].set(f"{world_in_title}")
+            self.world_chooser_window.destroy()
+
     def hide(self):
         self.master.attributes("-alpha", 0.0)
         self.master.overrideredirect(False)
@@ -2975,6 +3042,12 @@ class MainWindow:
 
             self.running = False
             self.run_button.config(text="Uruchom")
+
+        save_entry_to_settings(
+            entries=self.entries_content,
+            settings=settings,
+            settings_by_worlds=self.settings_by_worlds,
+        )
 
         # E-mail verification
         if not self.user_data["verified_email"]:
@@ -3069,27 +3142,96 @@ class MainWindow:
 
         # Check if user choosed/set any game server
         if "server_world" not in settings:
+            self.notebook.select(4)
             custom_error(
                 message="Najpierw wybierz serwer i numer świata", parent=self.master
             )
-            self.notebook.select(4)
             on_func_stop()
             return
 
-        # Check if group was choosed
-        # Farm group
-        if self.entries_content["farm_group"].get() == "Wybierz grupę":
-            if any(
-                int(self.entries_content[letter]["active"].get())
-                for letter in ("A", "B", "C")
+        # Check if user set properly settings
+        for (
+            server_world,
+            _settings,
+        ) in self.settings_by_worlds.items():  # server_world = de199, pl173 etc.
+            # Check if group was choosed
+            # Farm group
+            if _settings["farm_group"] == "Wybierz grupę":
+                if any(int(_settings[letter]["active"]) for letter in ("A", "B", "C")):
+                    self.change_world(
+                        server_world=server_world,
+                        world_in_title=_settings["world_in_title"],
+                        settings=settings,
+                    )
+                    self.notebook.select(0)
+                    custom_error(
+                        message="Nie wybrano grupy wiosek do farmienia.",
+                        parent=self.master,
+                    )
+                    on_func_stop()
+                    return
+            # Gathering group
+            if _settings["gathering_group"] == "Wybierz grupę":
+                if int(_settings["gathering"]["active"]):
+                    self.change_world(
+                        server_world=server_world,
+                        world_in_title=_settings["world_in_title"],
+                        settings=settings,
+                    )
+                    self.notebook.select(1)
+                    custom_error(
+                        message="Nie wybrano grupy wiosek do zbieractwa.",
+                        parent=self.master,
+                    )
+                    on_func_stop()
+                    return
+
+            # Check if user set sleep value bigger than 0 in choosed functions
+            # Auto farm sleep time
+            if _settings["farm_sleep_time"] == "0" and any(
+                int(_settings[template]["active"]) for template in ("A", "B", "C")
             ):
-                custom_error(message="Nie wybrano grupy wiosek do farmienia.")
+                self.notebook.select(0)
+                self.change_world(
+                    server_world=server_world,
+                    world_in_title=_settings["world_in_title"],
+                    settings=settings,
+                )
+                custom_error(
+                    message='Ustaw pole "Powtarzaj ataki w odstępach [min]".',
+                    parent=self.master,
+                )
                 on_func_stop()
                 return
-        # Gathering group
-        if self.entries_content["gathering_group"].get() == "Wybierz grupę":
-            if int(self.entries_content["gathering"]["active"].get()):
-                custom_error(message="Nie wybrano grupy wiosek do zbieractwa.")
+            # Market sleep time between each function call/run
+            if _settings["market"]["check_every"] == "0" and int(
+                _settings["market"]["premium_exchange"]
+            ):
+                self.change_world(
+                    server_world=server_world,
+                    world_in_title=_settings["world_in_title"],
+                    settings=settings,
+                )
+                self.notebook.select(3)
+                custom_error(
+                    message='Ustaw pole "Sprawdzaj kurs co [min]".', parent=self.master
+                )
+                on_func_stop()
+                return
+            # Check incoming attacks sleep time
+            if _settings["notifications"][
+                "check_incoming_attacks_sleep_time"
+            ] == "0" and int(_settings["notifications"]["check_incoming_attacks"]):
+                self.change_world(
+                    server_world=server_world,
+                    world_in_title=_settings["world_in_title"],
+                    settings=settings,
+                )
+                self.notebook.select(5)
+                custom_error(
+                    message='Ustaw pole "Twórz etykiety ataków co [min]".',
+                    parent=self.master,
+                )
                 on_func_stop()
                 return
 
@@ -3097,12 +3239,6 @@ class MainWindow:
 
         incoming_attacks = False
         logged = False
-
-        save_entry_to_settings(
-            entries=self.entries_content,
-            settings=settings,
-            settings_by_worlds=self.settings_by_worlds,
-        )
 
         # Add functions into to_do list
         for server_world in self.settings_by_worlds:  # server_world = de199, pl173 etc.
@@ -3112,6 +3248,8 @@ class MainWindow:
                 "captcha_counter": self.captcha_counter,
             }
             to_do = []
+            # Add daily bonus check
+            to_do.append({"func": "daily_bonus"})
             # Add farm
             if (
                 int(_settings["A"]["active"])
@@ -3166,6 +3304,21 @@ class MainWindow:
             custom_error(message="Brak zadań do wykonania", parent=self.master)
             return
         self.to_do.sort(key=lambda sort_by: sort_by["start_time"])
+
+        # Functions to use in main loop
+        def log_out_when_free_time(_settings: dict) -> bool:
+            """Log out if there won't be anything to do soon.
+
+            Return False on log out or True if not
+            """
+
+            if len(self.to_do) and (
+                self.to_do[0]["start_time"] > time.time() + 300
+                or _settings["server_world"] != self.to_do[0]["server_world"]
+            ):
+                self.driver.get("chrome://newtab")
+                return False
+            return True
 
         # Open browser if not already opend
         if not self.driver:
@@ -3263,6 +3416,38 @@ class MainWindow:
                         self.to_do[0]["start_time"] = time.time() + int(
                             _settings["farm_sleep_time"]
                         ) * random.uniform(55, 65)
+                        self.to_do[0]["errors_number"] = 0
+                        self.to_do.append(self.to_do[0])
+
+                    case "check_incoming_attacks":
+                        bot_functions.attacks_labels(
+                            self.driver,
+                            _settings,
+                            int(_settings["notifications"]["email_notifications"]),
+                        )
+                        self.to_do[0]["start_time"] = (
+                            time.time()
+                            + int(
+                                _settings["notifications"][
+                                    "check_incoming_attacks_sleep_time"
+                                ]
+                            )
+                            * 60
+                        )
+                        self.to_do[0]["errors_number"] = 0
+                        self.to_do.append(self.to_do[0])
+
+                    case "daily_bonus":
+                        bot_functions.open_daily_bonus(self.driver, _settings)
+                        current_time = datetime.today()
+                        sec_to_midnight = (
+                            (23 - current_time.hour) * 3600
+                            + (59 - current_time.minute) * 60
+                            + (59 - current_time.second)
+                            + 2
+                        )
+                        self.to_do[0]["start_time"] = time.time() + sec_to_midnight
+                        self.to_do[0]["errors_number"] = 0
                         self.to_do.append(self.to_do[0])
 
                     case "gathering":
@@ -3283,21 +3468,12 @@ class MainWindow:
                             for _dict in list_of_dicts:
                                 self.to_do.append(_dict)
 
-                    case "check_incoming_attacks":
-                        bot_functions.attacks_labels(
-                            self.driver,
-                            _settings,
-                            int(_settings["notifications"]["email_notifications"]),
+                    case "mine_coin":
+                        bot_functions.mine_coin(driver=self.driver)
+                        self.to_do[0]["start_time"] = time.time() + 5 * random.uniform(
+                            50, 70
                         )
-                        self.to_do[0]["start_time"] = (
-                            time.time()
-                            + int(
-                                _settings["notifications"][
-                                    "check_incoming_attacks_sleep_time"
-                                ]
-                            )
-                            * 60
-                        )
+                        self.to_do[0]["errors_number"] = 0
                         self.to_do.append(self.to_do[0])
 
                     case "premium_exchange":
@@ -3305,6 +3481,7 @@ class MainWindow:
                         self.to_do[0]["start_time"] = time.time() + int(
                             _settings["market"]["check_every"]
                         ) * random.uniform(50, 70)
+                        self.to_do[0]["errors_number"] = 0
                         self.to_do.append(self.to_do[0])
 
                     case "send_troops":
@@ -3330,13 +3507,6 @@ class MainWindow:
                         for attack in attacks_to_repeat:
                             self.to_do.append(attack)
 
-                    case "mine_coin":
-                        bot_functions.mine_coin(driver=self.driver)
-                        self.to_do[0]["start_time"] = time.time() + 5 * random.uniform(
-                            50, 70
-                        )
-                        self.to_do.append(self.to_do[0])
-
                 del self.to_do[0]
                 self.to_do.sort(key=lambda sort_by: sort_by["start_time"])
                 # Aktualizacja listy zadań jeśli okno zadań jest aktualnie wyświetlone
@@ -3346,28 +3516,23 @@ class MainWindow:
                             self.jobs_info.update_table(main_window=self)
 
             except BaseException:
-                # Skip 1st func in self.to_do if can't run properly after two attempts
+                # Skip 1st func in self.to_do if can't run it properly
                 self.to_do[0]["errors_number"] += 1
-
+                # Only for func send_troops
                 if (
                     self.to_do[0]["errors_number"] > 1
                     and self.to_do[0]["func"] == "send_troops"
                 ):
                     del self.to_do[0]
-                    if len(self.to_do) and (
-                        self.to_do[0]["start_time"] > time.time() + 300
-                        or _settings["server_world"] != self.to_do[0]["server_world"]
-                    ):
-                        self.driver.get("chrome://newtab")
-                        logged = False
+                    logged = log_out_when_free_time(_settings)
+                    if not logged:
+                        continue
+                # For all other funcs than send_troops
                 if self.to_do[0]["errors_number"] > 9:
                     del self.to_do[0]
-                    if len(self.to_do) and (
-                        self.to_do[0]["start_time"] > time.time() + 300
-                        or _settings["server_world"] != self.to_do[0]["server_world"]
-                    ):
-                        self.driver.get("chrome://newtab")
-                        logged = False
+                    logged = log_out_when_free_time(_settings)
+                    if not logged:
+                        continue
 
                 html = self.driver.page_source
                 # If disconected/sesion expired
@@ -3395,12 +3560,7 @@ class MainWindow:
                 continue
 
             # Zamyka stronę plemion jeśli do następnej czynności pozostało więcej niż 5min
-            if len(self.to_do) and (
-                self.to_do[0]["start_time"] > time.time() + 300
-                or _settings["server_world"] != self.to_do[0]["server_world"]
-            ):
-                self.driver.get("chrome://newtab")
-                logged = False
+            logged = log_out_when_free_time(_settings)
 
         # Zapis ustawień gdy bot zostanie ręcznie zatrzymany
         self.time.set("")
@@ -3494,60 +3654,6 @@ class MainWindow:
             center(window=master, parent=self.master)
             master.attributes("-alpha", 1.0)
 
-        def change_world(server_world: str, world_in_title: str) -> None:
-            nonlocal settings
-
-            # Skip if user clicked/choose the same world as he is now
-            if (
-                # re.search(r"\d+", server_world).group()
-                # == self.entries_content["world_number"].get()
-                server_world
-                == settings["server_world"]
-            ):
-                self.world_chooser_window.destroy()
-                return
-
-            # Change if already exist in self.settings_by_worlds
-            if server_world in self.settings_by_worlds:
-                # Save current settings before changing to other
-                if settings["server_world"] in self.settings_by_worlds:
-                    save_entry_to_settings(
-                        entries=self.entries_content,
-                        settings=settings,
-                        settings_by_worlds=self.settings_by_worlds,
-                    )
-                settings.update(self.settings_by_worlds[server_world])
-
-                # Set available groups
-                self.farm_group_A["values"] = settings["groups"]
-                self.farm_group_B["values"] = settings["groups"]
-                self.farm_group_C["values"] = settings["groups"]
-                self.gathering.gathering_group["values"] = settings["groups"]
-                self.villages_groups["values"] = settings["groups"]
-
-                # Odświeża okno planera
-                self.schedule.redraw_availabe_templates(settings=settings)
-
-                fill_entry_from_settings(
-                    entries=self.entries_content, settings=settings
-                )
-
-                # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
-                schedule = self.settings_by_worlds[server_world]["scheduler"][
-                    "ready_schedule"
-                ]
-                if schedule:
-                    current_time = time.time()
-                    schedule = [
-                        value for value in schedule if value["send_time"] > current_time
-                    ]
-
-                invoke_checkbuttons(parent=self.master)
-                self.schedule.template_type.set("")
-
-                self.entries_content["world_in_title"].set(f"{world_in_title}")
-                self.world_chooser_window.destroy()
-
         def delete_world(server_world: str) -> None:
 
             master = TopLevel(title_text="Tribal Wars Bot")
@@ -3625,7 +3731,9 @@ class MainWindow:
                 self.world_chooser_window,
                 bootstyle="primary.Link.TButton",
                 text=f"{world_in_title}",
-                command=partial(change_world, server_world, world_in_title),
+                command=partial(
+                    self.change_world, server_world, world_in_title, settings
+                ),
             ).grid(row=index * 2, column=0, sticky=ttk.NSEW)
 
             ttk.Button(
@@ -3718,6 +3826,7 @@ class JobsToDoWindow:
         "premium_exchange": "giełda premium",
         "send_troops": "planer",
         "mine_coin": "wybijanie monet",
+        "daily_bonus": "bonus dzienny",
     }
 
     def __init__(self, main_window: MainWindow) -> None:
@@ -3895,7 +4004,7 @@ def check_for_updates() -> None:
         master.update_idletasks()
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "0.5.5"
+    APP_VERSION = "0.6.3"
 
     client = Client(ClientConfig())
     client.refresh()
@@ -3909,7 +4018,10 @@ def check_for_updates() -> None:
         style = ttk.Style(theme="darkly")
         configure_style(style=style)
 
-        custom_error(message=f"Dostępna jest nowa aktualizacja!")
+        custom_error(
+            message="Dostępna jest nowa aktualizacja!\n"
+            "Po jej zakończeniu poczekaj cierpliwie aż aplikacja sama się uruchomi!"
+        )
 
         update_window = TopLevel(title_text="TribalWarsBot")
         description_progress_bar = ttk.Label(

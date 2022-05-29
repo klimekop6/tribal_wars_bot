@@ -100,6 +100,7 @@ class RegisterWindow:
         self.password_repeat.grid(
             row=5, column=1, padx=(5, 5), pady=5, sticky=("E", "W")
         )
+        # self.master.
         self.password_repeat_button = ttk.Button(
             self.content_frame,
             image=self.hide_image,

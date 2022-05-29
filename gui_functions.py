@@ -142,7 +142,7 @@ def custom_error(message: str, auto_hide: bool = False, parent=None) -> None:
             message_label = ttk.Label(master, text=message[0])
             message_label.grid(row=0, column=0, padx=5, pady=5)
 
-            ok_button = ttk.Button(master, text="ok", command=master.destroy)
+            ok_button = ttk.Button(master, text="Ok", command=master.destroy)
             ok_button.grid(row=1, column=0, pady=(5, 8))
         else:
             for index, text_line in enumerate(message):
@@ -152,10 +152,9 @@ def custom_error(message: str, auto_hide: bool = False, parent=None) -> None:
                 else:
                     message_label = ttk.Label(master, text=text_line)
                     message_label.grid(row=index, column=0, padx=10, pady=(0, 5))
-            ok_button = ttk.Button(master, text="ok", command=master.destroy)
+            ok_button = ttk.Button(master, text="Ok", command=master.destroy)
             ok_button.grid(row=len(message), column=0, pady=(5, 10))
 
-        # message_label.bind("<Button-1>", lambda event: get_pos(event, "message_label"))
         master.focus_force()
         master.bind("<Return>", lambda event: master.destroy())
         center(master, parent=parent)

@@ -1261,6 +1261,31 @@ def mark_villages_on_map(driver: webdriver.Chrome) -> None:
         element.click()
 
 
+def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
+    """Check and open once a day daily bonus"""
+
+    if "bonus_opened" in settings:
+        if settings["bonus_opened"] == time.strftime("%d.%m.%Y", time.localtime()):
+            return
+
+    # Daily bonus page address
+    daily_bonus_url = (
+        f"https://{settings['server_world']}.plemiona.pl/game.php?village="
+    )
+    village_id = driver.execute_script("return game_data.village.id;")
+    daily_bonus_url += str(village_id) + "&screen=info_player&mode=daily_bonus"
+    driver.get(daily_bonus_url)
+    bonuses = driver.find_elements(
+        By.XPATH,
+        '//*[@id="daily_bonus_content"]/div/div/div/div/div[@class="db-chest unlocked"]/../div[3]/a',
+    )
+    for bonus in bonuses:
+        driver.execute_script("return arguments[0].scrollIntoView(true);", bonus)
+        bonus.click()
+
+    settings["bonus_opened"] = time.strftime("%d.%m.%Y", time.localtime())
+
+
 def player_villages(driver: webdriver.Chrome) -> dict:
     """Tworzy i zwraca słownik z id i koordynatami wiosek gracza"""
 
@@ -1391,7 +1416,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
         ):
             continue
 
-        saved_market_history = False
+        # saved_market_history = False
         for village in village_list:
             village_url, village_coords = village.values()
 
@@ -1453,22 +1478,24 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     resource_rate
                 )
 
-            if not saved_market_history:
-                market_history_file = open(
-                    f'market_history_{settings["server_world"]}.txt', "a"
-                )
-                market_history_file.write(
-                    f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())} '
-                )
-                market_history_file.writelines(
-                    f'{resource_name} {value["current_resource_rate"]} '
-                    for resource_name, value in exchange_resources.items()
-                )
-                market_history_file.write(f"K{continent}")
-                market_history_file.write("\n")
-                market_history_file.close()
-                saved_market_history = True
+            # Currently not used anywhere
+            # if not saved_market_history:
+            #     market_history_file = open(
+            #         f'market_history_{settings["server_world"]}.txt', "a"
+            #     )
+            #     market_history_file.write(
+            #         f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())} '
+            #     )
+            #     market_history_file.writelines(
+            #         f'{resource_name} {value["current_resource_rate"]} '
+            #         for resource_name, value in exchange_resources.items()
+            #     )
+            #     market_history_file.write(f"K{continent}")
+            #     market_history_file.write("\n")
+            #     market_history_file.close()
+            #     saved_market_history = True
 
+            # If market is full break current loop and go to next continent
             if all(
                 not exchange_resources[resource_name][
                     "max_exchange_resource_can_receive"
@@ -1476,6 +1503,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                 for resource_name in exchange_resources
             ):
                 break
+            # If all exchange rate is bigger than all max exchange rate user settings
             if all(
                 exchange_resources[resource_name]["current_resource_rate"]
                 > int(settings["market"][resource_name]["max_exchange_rate"])
@@ -1546,7 +1574,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                         or current_exchange_rate >= resources_available[resource_name]
                     ):  # Pomiń jeśli kurs jest wyższy od dostępnych surowców
                         continue
-
+                    # For the lowest exchange rate
                     if exchange_rate == min_exchange_rate:
                         if resource_to_sell > round(
                             max_exchange_rate
@@ -1558,6 +1586,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                                 / SUM_EXCHANGE_RATE
                                 * STARTING_TRANSPORT_CAPACITY
                             )
+                    # For the highest exchange rate
                     elif exchange_rate == max_exchange_rate:
                         if resource_to_sell > round(
                             min_exchange_rate
@@ -1569,6 +1598,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                                 / SUM_EXCHANGE_RATE
                                 * STARTING_TRANSPORT_CAPACITY
                             )
+                    # For medium exchange rate
                     else:
                         if resource_to_sell > round(
                             exchange_rate
@@ -1582,6 +1612,10 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                             )
                     resource_to_sell -= current_exchange_rate
                     if resource_to_sell < 1:
+                        # Check if still can sell cheaper than exchange rate
+                        # which is available when market is almost full
+                        if current_exchange_rate < max_resource_to_sell:
+                            continue
                         resource_to_sell = 1
 
                     input = driver.find_element_by_xpath(
@@ -1634,6 +1668,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     if (
                         resource_to_sell == 1
                         and final_resource_amount_to_sell > transport_capacity
+                    ) or (
+                        resource_to_sell == 1
                         and final_resource_amount_to_sell
                         > resources_available[resource_name]
                     ):
@@ -1663,6 +1699,9 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                             resources_available[resource_name] - current_exchange_rate
                         )
                         if final_resource_amount_to_sell < 1:
+                            if current_exchange_rate < max_resource_to_sell:
+                                input.clear()
+                                continue
                             final_resource_amount_to_sell = 1
                         input.clear()
                         input.send_keys(  # Correct resources amount
@@ -1732,6 +1771,11 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
     You can also use it for fakes.
     """
 
+    if not settings["scheduler"]["ready_schedule"]:
+        stack_message = "Called empty settings['scheduler']['ready_schedule']\n"
+        stack_message += "".join(line for line in traceback.format_stack(limit=3))
+        logger.error(stack_message)
+        return 0, []
     send_time = settings["scheduler"]["ready_schedule"][0]["send_time"]
     list_to_send = []
     for cell_in_list in settings["scheduler"]["ready_schedule"]:
@@ -1743,7 +1787,8 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
         origin_tab = driver.current_window_handle
         new_tabs = []
 
-    attacks_list_to_repeat = []
+    attacks_to_repeat_to_do = []  # Add to main to_do list -> self.to_do
+    attacks_to_repeat_scheduler = []  #  Add to ["scheduler"]["ready_schedule"]
     for index, send_info in enumerate(list_to_send):
 
         if index > 0:
@@ -1917,30 +1962,34 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 * template_data["population"]
                             )
                     else:
-                        return len(list_to_send), attacks_list_to_repeat
+                        return len(list_to_send), attacks_to_repeat_to_do
                     troop_input.send_keys(troop_number)
                     if current_population >= min_population:
                         break
                 else:
                     if len(list_to_send) == 1:
-                        return 1, attacks_list_to_repeat
+                        return 1, attacks_to_repeat_to_do
                     continue
 
             case "send_my_template":
                 # Choose troops to send
                 for troop_name, troop_number in send_info["troops"].items():
-                    if troop_number:
-                        troop_input = driver.find_element(
-                            By.ID, f"unit_input_{troop_name}"
+                    if not troop_number:
+                        continue
+                    if troop_number == "max":
+                        driver.execute_script(
+                            f'document.getElementById("units_entry_all_{troop_name}").click();'
                         )
-                        troop_input.send_keys(troop_number)
+                        continue
+                    troop_input = driver.find_element(By.ID, f"unit_input_{troop_name}")
+                    troop_input.send_keys(troop_number)
 
                 if send_info["repeat_attack"] and int(send_info["repeat_attack"]):
-                    if send_info["repeat_attack_number"]:
-                        repeat_attack_number = int(send_info["repeat_attack_number"])
-                        if repeat_attack_number > 0:
+                    if send_info["number_of_attacks"]:
+                        number_of_attacks = int(send_info["number_of_attacks"])
+                        if number_of_attacks > 1:
                             # Add dict to list of attacks to repeat and in the end add to self.to_do
-                            attacks_list_to_repeat.append(
+                            attacks_to_repeat_to_do.append(
                                 {
                                     "func": "send_troops",
                                     "start_time": send_info["send_time"]
@@ -1948,15 +1997,14 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                     + 1,
                                     "server_world": settings["server_world"],
                                     "settings": settings,
+                                    "errors_number": 0,
                                 }
                             )
                             # Add the same attack to scheduler with changed send_time etc.
                             attack_to_add = send_info.copy()
-                            if repeat_attack_number == 1:
+                            if number_of_attacks == 1:
                                 attack_to_add["repeat_attack"] = 0
-                            attack_to_add["repeat_attack_number"] = (
-                                repeat_attack_number - 1
-                            )
+                            attack_to_add["number_of_attacks"] = number_of_attacks - 1
                             attack_to_add["send_time"] += (
                                 2 * send_info["travel_time"] + 9
                             )
@@ -1968,9 +2016,8 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 f"%d.%m.%Y %H:%M:%S:{round(random.random()*100000):0<6}",
                                 arrival_time,
                             )
-                            settings["scheduler"]["ready_schedule"].append(
-                                attack_to_add
-                            )
+                            attack_to_add["errors_number"] = 0
+                            attacks_to_repeat_scheduler.append(attack_to_add)
 
         # Click command_type button (attack or support)
         driver.execute_script(
@@ -1985,7 +2032,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                 except:
                     if len(list_to_send) > 1:
                         continue
-                    return 1, attacks_list_to_repeat
+                    return 1, attacks_to_repeat_to_do
                 for _ in range(send_info["snob_amount"]):
                     driver.execute_script("arguments[0].click()", add_snoob)
 
@@ -2031,7 +2078,10 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
             driver.close()
         driver.switch_to.window(origin_tab)
 
-    return len(list_to_send), attacks_list_to_repeat
+    for attack_to_repeat in attacks_to_repeat_scheduler:
+        settings["scheduler"]["ready_schedule"].append(attack_to_repeat)
+
+    return len(list_to_send), attacks_to_repeat_to_do
 
 
 def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
@@ -2083,7 +2133,7 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
         if row_data["server_world"] != settings["server_world"]:
             continue
         index_to_del.append(index)
-        if len(index_to_del) == send_number_times:
+        if len(index_to_del) >= send_number_times:
             break
     for index in sorted(index_to_del, reverse=True):
         del to_do[index]
