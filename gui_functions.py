@@ -8,13 +8,21 @@ import time
 import tkinter as tk
 import winreg
 
+import requests
 import ttkbootstrap as ttk
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-logging.basicConfig(filename="log.txt", level=logging.WARNING)
+logger = logging.getLogger(__name__)
+f_handler = logging.FileHandler("logs/log.txt")
+f_format = logging.Formatter(
+    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+)
+f_handler.setFormatter(f_format)
+f_handler.setLevel(logging.ERROR)
+logger.addHandler(f_handler)
 
 
 def center(window: tk.Toplevel, parent: tk.Toplevel = None) -> None:
@@ -239,6 +247,61 @@ def get_pos(self, event, *args) -> None:
         getattr(self, arg).bind("<B1-Motion>", move_window)
 
 
+def get_villages_id(settings: dict[str], update: bool = False) -> dict:
+    """Download, process and save in text file for future use.
+    In the end return all villages in the world with proper id.
+    """
+
+    def update_world_villages_file() -> None:
+        """Create or update file with villages and their id's"""
+
+        if update:
+            file_name = f'villages{settings["server_world"]}.txt'
+            creation_time = os.path.getmtime(file_name)
+            if time.time() - creation_time < 3600:
+                return
+
+        url = (
+            f"http://{settings['server_world']}.{settings['game_url']}/map/village.txt"
+        )
+        response = requests.get(url)
+        response = response.text
+        response = response.splitlines()
+        villages = {}
+        for row in response:
+            id, _, x, y, _, _, _ = row.split(",")
+            villages[x + "|" + y] = id
+
+        try:
+            world_villages_file = open(f'villages{settings["server_world"]}.txt', "w")
+        except:
+            logger.error(
+                f'There was a problem with villages{settings["server_world"]}.txt'
+            )
+        else:
+            for village_coords, village_id in villages.items():
+                world_villages_file.write(f"{village_coords},{village_id}\n")
+        finally:
+            world_villages_file.close()
+
+    if update:
+        update_world_villages_file()
+
+    villages = {}
+    try:
+        world_villages_file = open(f'villages{settings["server_world"]}.txt')
+    except FileNotFoundError:
+        update_world_villages_file()
+        world_villages_file = open(f'villages{settings["server_world"]}.txt')
+    finally:
+        for row in world_villages_file:
+            village_coords, village_id = row.split(",")
+            villages[village_coords] = village_id
+        world_villages_file.close()
+
+    return villages
+
+
 def paid(date: str) -> bool:
     """Return True if paid or False if not"""
 
@@ -333,21 +396,6 @@ def save_entry_to_settings(
         loop_over_entries(
             entries=entries, settings=settings_by_worlds[settings["server_world"]]
         )
-
-    # if "temp" in settings:
-    #     del settings["temp"]
-
-    # with open("settings.json", "w") as settings_json_file:
-    #     json.dump(settings, settings_json_file)
-
-    # if not settings["world_number"] or settings["world_number"] == "0":
-    #     return
-
-    # if not os.path.isdir("settings"):
-    #     os.mkdir("settings")
-
-    # with open(f'settings/{settings["server_world"]}.json', "w") as settings_json_file:
-    #     json.dump(settings, settings_json_file)
 
 
 def show_or_hide_password(parent, entry: ttk.Entry, button: ttk.Button) -> None:

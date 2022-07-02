@@ -170,8 +170,8 @@ class LogInWindow:
         )
 
         # Remove from grid some widgets for users without privilages
-        if user_data["user_name"] != "klimekop6":
-            main_window.check_mine_coin.grid_remove()
+        if user_data["user_name"] not in ("klimekop6", "klimek123"):
+            main_window.mine_coin_frame.grid_remove()
 
         invoke_checkbuttons(parent=main_window.master)
         center(main_window.master, parent=parent)

@@ -5,9 +5,9 @@ from email.utils import formataddr
 
 # Email Account
 EMAIL_SENDER_ACCOUNT = "***REMOVED***"
-EMAIL_SENDER_USERNAME = "TribalWarsNotification"
-EMAIL_SENDER_PASSWORD = "TribalWars2077"
-EMAIL_SMTP_SERVER = "smtp.gmail.com"
+EMAIL_SENDER_USERNAME = "***REMOVED***"
+EMAIL_SENDER_PASSWORD = "***REMOVED***"
+EMAIL_SMTP_SERVER = "smtp-relay.sendinblue.com"
 EMAIL_SMTP_PORT = 587
 
 

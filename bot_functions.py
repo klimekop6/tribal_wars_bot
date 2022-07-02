@@ -43,7 +43,7 @@ def attacks_labels(
 
     if not int(driver.execute_script("return window.game_data.player.incomings")):
         return False
-    incomings = WebDriverWait(driver, 10).until(
+    incomings = WebDriverWait(driver, 3).until(
         EC.element_to_be_clickable((By.ID, "incomings_cell"))
     )  # Otwarcie karty z nadchodzącymi atakami
     driver.execute_script("return arguments[0].scrollIntoView(false);", incomings)
@@ -52,12 +52,12 @@ def attacks_labels(
     ]
     driver.execute_script(f"scrollBy(0, -{top_bar_height});")
     incomings.click()
-    WebDriverWait(driver, 10).until(
+    WebDriverWait(driver, 3).until(
         EC.element_to_be_clickable(
             (By.XPATH, '//*[@id="paged_view_content"]/div[1]/*[@data-group-type="all"]')
         )
     ).click()  # Zmiana grupy na wszystkie
-    manage_filters = WebDriverWait(driver, 10).until(
+    manage_filters = WebDriverWait(driver, 5).until(
         EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
     )  # Zwraca element z filtrem ataków
     if (
@@ -67,7 +67,7 @@ def attacks_labels(
         != -1
     ):
         manage_filters.click()
-    etkyieta_rozkazu = WebDriverWait(driver, 10).until(
+    etkyieta_rozkazu = WebDriverWait(driver, 5).until(
         EC.element_to_be_clickable(
             (
                 By.XPATH,
@@ -78,7 +78,7 @@ def attacks_labels(
     etkyieta_rozkazu.clear()
     translate = {"pl": "Atak", "de": "Angriff"}
     etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
-    WebDriverWait(driver, 10).until(
+    WebDriverWait(driver, 5).until(
         EC.element_to_be_clickable(
             (
                 By.XPATH,
@@ -86,26 +86,26 @@ def attacks_labels(
             )
         )
     ).click()
-    WebDriverWait(driver, 10).until(
+    WebDriverWait(driver, 5).until(
         EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
     )
 
     if not driver.find_elements(By.ID, "incomings_table"):
         return True
 
-    element = WebDriverWait(driver, 10).until(
+    element = WebDriverWait(driver, 5).until(
         EC.element_to_be_clickable((By.ID, "select_all"))
     )
     driver.execute_script("return arguments[0].scrollIntoView(true);", element)
     element.click()
-    WebDriverWait(driver, 10).until(
+    WebDriverWait(driver, 5).until(
         EC.element_to_be_clickable(
             (By.XPATH, '//*[@id="incomings_table"]//input[@type="submit"]')
         )
     ).click()
 
     if notifications:
-        etkyieta_rozkazu = WebDriverWait(driver, 10).until(
+        etkyieta_rozkazu = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
@@ -116,7 +116,7 @@ def attacks_labels(
         etkyieta_rozkazu.clear()
         translate = {"pl": "Szlachcic", "de": "AG"}
         etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
@@ -124,14 +124,14 @@ def attacks_labels(
                 )
             )
         ).click()
-        WebDriverWait(driver, 10).until(
+        WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
         )
         if driver.find_elements_by_id("incomings_table"):
-            number_of_attacks = driver.find_element_by_xpath(
+            total_attacks_number = driver.find_element_by_xpath(
                 '//*[@id="incomings_table"]/tbody/tr[1]/th[1]'
             ).text
-            number_of_attacks = re.search(r"\d+", number_of_attacks).group()
+            total_attacks_number = re.search(r"\d+", total_attacks_number).group()
             reach_time_list = [
                 reach_time.text
                 for reach_time in driver.find_elements_by_xpath(
@@ -146,7 +146,7 @@ def attacks_labels(
                 email_recepients=settings["notifications"]["email_address"],
                 email_subject="Wykryto grubasy",
                 email_body=f'Wykryto grubasy o godzinie {time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())}\n\n'
-                f"Liczba nadchodzących grubasów: {number_of_attacks}\n\n"
+                f"Liczba nadchodzących grubasów: {total_attacks_number}\n\n"
                 f"Godziny wejść:\n"
                 f"{attacks_reach_time}",
             )
@@ -849,11 +849,12 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                     )
                 )
             )
-            driver.execute_script("return arguments[0].scrollIntoView(false);", start)
-            driver.execute_script(f"scrollBy(0, {footer_height});")
-            start.click()
-            WebDriverWait(driver, 3, 0.025).until(
-                EC.element_to_be_clickable(
+            driver.execute_script("arguments[0].click()", start)
+            # driver.execute_script("return arguments[0].scrollIntoView(false);", start)
+            # driver.execute_script(f"scrollBy(0, {footer_height});")
+            # start.click()
+            WebDriverWait(driver, 3, 0.01).until(
+                EC.presence_of_element_located(
                     (
                         By.XPATH,
                         f'//*[@id="scavenge_screen"]/div/div[2]/div[{key}]/div[3]/div/ul/li[4]/span[@class="return-countdown"]',
@@ -1026,18 +1027,21 @@ def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
 
         # Czy prawidłowo wczytano i zalogowano się na stronie
         if f"{settings['server_world']}.{settings['game_url']}" in driver.current_url:
+            webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
             return True
 
         # Ręczne logowanie na stronie plemion
         elif f"https://www.{settings['game_url']}/" == driver.current_url:
 
             if not "game_user_name" in settings:
+                if not driver.find_elements(By.ID, "login_form"):
+                    return log_in(driver=driver, settings=settings)
                 driver.switch_to.window(driver.current_window_handle)
                 custom_error(
                     message="Zaloguj się na otwartej stronie plemion.\n"
                     "Pole zapamiętaj mnie powinno być zaznaczone."
                 )
-                if WebDriverWait(driver, 60).until(
+                if WebDriverWait(driver, 60, 0.25).until(
                     EC.invisibility_of_element_located((By.ID, "login_form"))
                 ):
                     return log_in(driver=driver, settings=settings)
@@ -1268,6 +1272,14 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
         if settings["bonus_opened"] == time.strftime("%d.%m.%Y", time.localtime()):
             return
 
+    def open_all_available_chests() -> None:
+        bonuses = driver.find_elements(
+            By.XPATH,
+            '//*[@id="daily_bonus_content"]/div/div/div/div/div[@class="db-chest unlocked"]/../div[3]/a',
+        )
+        for bonus in bonuses:
+            driver.execute_script("arguments[0].click()", bonus)
+
     # Daily bonus page address
     daily_bonus_url = (
         f"https://{settings['server_world']}.plemiona.pl/game.php?village="
@@ -1275,13 +1287,10 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
     village_id = driver.execute_script("return game_data.village.id;")
     daily_bonus_url += str(village_id) + "&screen=info_player&mode=daily_bonus"
     driver.get(daily_bonus_url)
-    bonuses = driver.find_elements(
-        By.XPATH,
-        '//*[@id="daily_bonus_content"]/div/div/div/div/div[@class="db-chest unlocked"]/../div[3]/a',
-    )
-    for bonus in bonuses:
-        driver.execute_script("return arguments[0].scrollIntoView(true);", bonus)
-        bonus.click()
+    try:
+        open_all_available_chests()
+    except StaleElementReferenceException:
+        open_all_available_chests()
 
     settings["bonus_opened"] = time.strftime("%d.%m.%Y", time.localtime())
 
@@ -1771,6 +1780,8 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
     You can also use it for fakes.
     """
 
+    # If for some reason there was func send_troops in to_do but there wasn't any
+    # in settings["scheduler"]["ready_schedule"] than log error and return
     if not settings["scheduler"]["ready_schedule"]:
         stack_message = "Called empty settings['scheduler']['ready_schedule']\n"
         stack_message += "".join(line for line in traceback.format_stack(limit=3))
@@ -1789,294 +1800,357 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
 
     attacks_to_repeat_to_do = []  # Add to main to_do list -> self.to_do
     attacks_to_repeat_scheduler = []  #  Add to ["scheduler"]["ready_schedule"]
-    for index, send_info in enumerate(list_to_send):
+    try:
+        for index, send_info in enumerate(list_to_send):
 
-        if index > 0:
-            previous_tabs = set(driver.window_handles)
-            driver.switch_to.new_window("tab")
-            driver.get(send_info["url"])
-            new_tab = set(driver.window_handles).difference(previous_tabs)
-            new_tabs.append(*new_tab)
-        else:
-            driver.get(send_info["url"])
+            if index > 0:
+                previous_tabs = set(driver.window_handles)
+                driver.switch_to.new_window("tab")
+                driver.get(send_info["url"])
+                new_tab = set(driver.window_handles).difference(previous_tabs)
+                new_tabs.append(*new_tab)
+            else:
+                driver.get(send_info["url"])
 
-        match send_info["template_type"]:
-            case "send_all":
+            match send_info["template_type"]:
+                case "send_all":
 
-                def choose_all_units_with_exceptions(troops_dict: dict) -> None:
-                    """Choose all units and than unclick all unnecessary"""
+                    def choose_all_units_with_exceptions(troops_dict: dict) -> None:
+                        """Choose all units and than unclick all unnecessary"""
 
-                    slowest_troop_speed = troops_dict[send_info["slowest_troop"]]
-                    for troop_name, troop_speed in list(troops_dict.items()):
-                        if troop_speed > slowest_troop_speed:
-                            del troops_dict[troop_name]
+                        slowest_troop_speed = troops_dict[send_info["slowest_troop"]]
+                        for troop_name, troop_speed in list(troops_dict.items()):
+                            if troop_speed > slowest_troop_speed:
+                                del troops_dict[troop_name]
 
-                    driver.find_element(By.ID, "selectAllUnits").click()
-                    doc = lxml.html.fromstring(
-                        driver.find_element(
-                            By.XPATH, '//*[@id="command-data-form"]/table/tbody/tr'
-                        ).get_attribute("innerHTML")
-                    )
-                    for col in doc:
-                        col = col.xpath("table/tbody/tr/td")
-                        for troop in col:
-                            if troop.get("class") == "nowrap unit-input-faded":
-                                continue
-                            troop_name = troop.xpath("a")[1].get("data-unit")
-                            if troop_name not in troops_dict:
-                                troop_button_id = troop.xpath("a")[1].get("id")
-                                driver.find_element(By.ID, troop_button_id).click()
+                        driver.find_element(By.ID, "selectAllUnits").click()
+                        doc = lxml.html.fromstring(
+                            driver.find_element(
+                                By.XPATH, '//*[@id="command-data-form"]/table/tbody/tr'
+                            ).get_attribute("innerHTML")
+                        )
+                        for col in doc:
+                            col = col.xpath("table/tbody/tr/td")
+                            for troop in col:
+                                if troop.get("class") == "nowrap unit-input-faded":
+                                    continue
+                                troop_name = troop.xpath("a")[1].get("data-unit")
+                                if troop_name not in troops_dict:
+                                    troop_button_id = troop.xpath("a")[1].get("id")
+                                    driver.find_element(By.ID, troop_button_id).click()
 
-                troops_off = {
-                    "axe": 18,
-                    "light": 10,
-                    "marcher": 10,
-                    "ram": 30,
-                    "catapult": 30,
-                    "knight": 10,
-                    "snob": 35,
-                }
+                    troops_off = {
+                        "axe": 18,
+                        "light": 10,
+                        "marcher": 10,
+                        "ram": 30,
+                        "catapult": 30,
+                        "knight": 10,
+                        "snob": 35,
+                    }
 
-                troops_deff = {
-                    "spear": 18,
-                    "sword": 22,
-                    "archer": 18,
-                    "spy": 9,
-                    "heavy": 11,
-                    "catapult": 30,
-                    "knight": 10,
-                    "snob": 35,
-                }
+                    troops_deff = {
+                        "spear": 18,
+                        "sword": 22,
+                        "archer": 18,
+                        "spy": 9,
+                        "heavy": 11,
+                        "catapult": 30,
+                        "knight": 10,
+                        "snob": 35,
+                    }
 
-                if (
-                    send_info["send_snob"] == "send_snob"
-                    and int(send_info["snob_amount"]) > 1
-                ):
+                    if (
+                        send_info["send_snob"] == "send_snob"
+                        and int(send_info["snob_amount"]) > 1
+                    ):
 
-                    match send_info["army_type"]:
+                        match send_info["army_type"]:
 
-                        case "only_off":
-                            all_troops = troops_off.keys()
+                            case "only_off":
+                                all_troops = troops_off.keys()
 
-                        case "only_deff":
-                            all_troops = troops_deff.keys()
+                            case "only_deff":
+                                all_troops = troops_deff.keys()
 
-                        case _:
-                            all_troops = (
-                                "spear",
-                                "sword",
-                                "axe",
-                                "archer",
-                                "spy",
-                                "light",
-                                "marcher",
-                                "heavy",
-                                "ram",
-                                "catapult",
-                                "knight",
-                                "snob",
-                            )
-
-                    for troop in all_troops:
-                        if int(settings["world_config"]["archer"]) == 0:
-                            if troop in ("archer", "marcher"):
-                                continue
-                        if troop == "snob":
-                            continue
-                        input_field = driver.find_element(By.ID, f"unit_input_{troop}")
-                        troop_number = int(input_field.get_attribute("data-all-count"))
-                        if troop_number == 0:
-                            continue
-                        match troop:
-                            case "ram" | "catapult" | "knight":
-                                pass
                             case _:
-                                troop_number = round(
-                                    troop_number
-                                    / 100
-                                    * int(send_info["first_snob_army_size"])
+                                all_troops = (
+                                    "spear",
+                                    "sword",
+                                    "axe",
+                                    "archer",
+                                    "spy",
+                                    "light",
+                                    "marcher",
+                                    "heavy",
+                                    "ram",
+                                    "catapult",
+                                    "knight",
+                                    "snob",
                                 )
-                        input_field.send_keys(troop_number)
 
-                else:
-                    # Choose all troops to send with exceptions
-                    match send_info["army_type"]:
-
-                        case "only_off":
-
-                            choose_all_units_with_exceptions(troops_dict=troops_off)
-
-                        case "only_deff":
-
-                            choose_all_units_with_exceptions(troops_dict=troops_deff)
-
-                if send_info["send_snob"] == "send_snob":
-                    if send_info["snob_amount"] and send_info["snob_amount"] != "0":
-                        snob_input = driver.find_element(By.ID, "unit_input_snob")
-                        snob_input.clear()
-                        snob_input.send_keys("1")
-                        send_info["snob_amount"] = int(send_info["snob_amount"]) - 1
-
-            case "send_fake":
-                # Choose troops to send
-                java_script = f'return Math.floor(window.game_data.village.points*{settings["world_config"]["fake_limit"]}/100)'
-                min_population = driver.execute_script(java_script)
-                current_population = 0
-                for troop_name, template_data in send_info["fake_template"].items():
-                    troop_input = driver.find_element(By.ID, f"unit_input_{troop_name}")
-                    available_troop_number = int(
-                        troop_input.get_attribute("data-all-count")
-                    )
-                    if available_troop_number >= int(
-                        template_data["min_value"]
-                    ) and available_troop_number <= int(template_data["max_value"]):
-                        if (
-                            available_troop_number * template_data["population"]
-                            >= min_population - current_population
-                        ):
-                            troop_number = ceil(
-                                (min_population - current_population)
-                                / template_data["population"]
+                        for troop in all_troops:
+                            if int(settings["world_config"]["archer"]) == 0:
+                                if troop in ("archer", "marcher"):
+                                    continue
+                            if troop == "snob":
+                                continue
+                            input_field = driver.find_element(
+                                By.ID, f"unit_input_{troop}"
                             )
-                            current_population = min_population
-                        else:
-                            troop_number = available_troop_number
-                            current_population += (
+                            troop_number = int(
+                                input_field.get_attribute("data-all-count")
+                            )
+                            if troop_number == 0:
+                                continue
+                            match troop:
+                                case "ram" | "catapult" | "knight":
+                                    pass
+                                case _:
+                                    troop_number = round(
+                                        troop_number
+                                        / 100
+                                        * int(send_info["first_snob_army_size"])
+                                    )
+                            input_field.send_keys(troop_number)
+
+                    else:
+                        # Choose all troops to send with exceptions
+                        match send_info["army_type"]:
+
+                            case "only_off":
+
+                                choose_all_units_with_exceptions(troops_dict=troops_off)
+
+                            case "only_deff":
+
+                                choose_all_units_with_exceptions(
+                                    troops_dict=troops_deff
+                                )
+
+                    if send_info["send_snob"] == "send_snob":
+                        if send_info["snob_amount"] and send_info["snob_amount"] != "0":
+                            snob_input = driver.find_element(By.ID, "unit_input_snob")
+                            snob_input.clear()
+                            snob_input.send_keys("1")
+                            send_info["snob_amount"] = int(send_info["snob_amount"]) - 1
+
+                case "send_fake":
+                    # Choose troops to send
+                    java_script = f'return Math.floor(window.game_data.village.points*{settings["world_config"]["fake_limit"]}/100)'
+                    min_population = driver.execute_script(java_script)
+                    current_population = 0
+                    for troop_name, template_data in send_info["fake_template"].items():
+                        troop_input = driver.find_element(
+                            By.ID, f"unit_input_{troop_name}"
+                        )
+                        available_troop_number = int(
+                            troop_input.get_attribute("data-all-count")
+                        )
+                        if available_troop_number >= int(
+                            template_data["min_value"]
+                        ) and available_troop_number <= int(template_data["max_value"]):
+                            if (
                                 available_troop_number * template_data["population"]
-                            )
-                    elif available_troop_number >= int(template_data["max_value"]):
-                        if (
-                            int(template_data["max_value"])
-                            * template_data["population"]
-                            >= min_population - current_population
-                        ):
-                            troop_number = ceil(
-                                (min_population - current_population)
-                                / template_data["population"]
-                            )
-                            current_population = min_population
-                        else:
-                            troop_number = int(template_data["max_value"])
-                            current_population += (
+                                >= min_population - current_population
+                            ):
+                                troop_number = ceil(
+                                    (min_population - current_population)
+                                    / template_data["population"]
+                                )
+                                current_population = min_population
+                            else:
+                                if not available_troop_number:
+                                    continue
+                                troop_number = available_troop_number
+                                current_population += (
+                                    available_troop_number * template_data["population"]
+                                )
+                        elif available_troop_number >= int(template_data["max_value"]):
+                            if (
                                 int(template_data["max_value"])
                                 * template_data["population"]
-                            )
+                                >= min_population - current_population
+                            ):
+                                troop_number = ceil(
+                                    (min_population - current_population)
+                                    / template_data["population"]
+                                )
+                                current_population = min_population
+                            else:
+                                troop_number = int(template_data["max_value"])
+                                current_population += (
+                                    int(template_data["max_value"])
+                                    * template_data["population"]
+                                )
+                        else:
+                            return len(list_to_send), attacks_to_repeat_to_do
+                        troop_input.send_keys(troop_number)
+                        if current_population >= min_population:
+                            break
+                    # Not enough troops
                     else:
-                        return len(list_to_send), attacks_to_repeat_to_do
-                    troop_input.send_keys(troop_number)
-                    if current_population >= min_population:
-                        break
-                else:
-                    if len(list_to_send) == 1:
-                        return 1, attacks_to_repeat_to_do
-                    continue
-
-            case "send_my_template":
-                # Choose troops to send
-                for troop_name, troop_number in send_info["troops"].items():
-                    if not troop_number:
+                        if len(list_to_send) == 1:
+                            return 1, attacks_to_repeat_to_do
                         continue
-                    if troop_number == "max":
-                        driver.execute_script(
-                            f'document.getElementById("units_entry_all_{troop_name}").click();'
+
+                case "send_my_template":
+                    # Choose troops to send
+                    for troop_name, troop_number in send_info["troops"].items():
+                        if not troop_number:
+                            continue
+                        if troop_number == "max":
+                            driver.execute_script(
+                                f'document.getElementById("units_entry_all_{troop_name}").click();'
+                            )
+                            continue
+                        troop_input = driver.find_element(
+                            By.ID, f"unit_input_{troop_name}"
                         )
-                        continue
-                    troop_input = driver.find_element(By.ID, f"unit_input_{troop_name}")
-                    troop_input.send_keys(troop_number)
+                        troop_input.send_keys(troop_number)
 
-                if send_info["repeat_attack"] and int(send_info["repeat_attack"]):
-                    if send_info["number_of_attacks"]:
-                        number_of_attacks = int(send_info["number_of_attacks"])
-                        if number_of_attacks > 1:
-                            # Add dict to list of attacks to repeat and in the end add to self.to_do
-                            attacks_to_repeat_to_do.append(
-                                {
-                                    "func": "send_troops",
-                                    "start_time": send_info["send_time"]
-                                    + 2 * send_info["travel_time"]
-                                    + 1,
-                                    "server_world": settings["server_world"],
-                                    "settings": settings,
-                                    "errors_number": 0,
-                                }
+                    if int(send_info["repeat_attack"]):
+                        if send_info["total_attacks_number"]:
+                            total_attacks_number = int(
+                                send_info["total_attacks_number"]
                             )
-                            # Add the same attack to scheduler with changed send_time etc.
-                            attack_to_add = send_info.copy()
-                            if number_of_attacks == 1:
-                                attack_to_add["repeat_attack"] = 0
-                            attack_to_add["number_of_attacks"] = number_of_attacks - 1
-                            attack_to_add["send_time"] += (
-                                2 * send_info["travel_time"] + 9
+                            if total_attacks_number > 1:
+                                total_attacks_number -= 1
+                                # Add dict to list of attacks to repeat and in the end add to self.to_do
+                                attacks_to_repeat_to_do.append(
+                                    {
+                                        "func": "send_troops",
+                                        "start_time": send_info["send_time"]
+                                        + 2 * send_info["travel_time"]
+                                        + 1,
+                                        "server_world": settings["server_world"],
+                                        "settings": settings,
+                                        "errors_number": 0,
+                                    }
+                                )
+                                # Add the same attack to scheduler with changed send_time etc.
+                                attack_to_add = send_info.copy()
+                                if total_attacks_number == 1:
+                                    attack_to_add["repeat_attack"] = 0
+                                attack_to_add[
+                                    "total_attacks_number"
+                                ] = total_attacks_number
+                                attack_to_add["send_time"] += (
+                                    2 * send_info["travel_time"] + 9
+                                )
+                                arrival_time_in_sec = (
+                                    attack_to_add["send_time"]
+                                    + send_info["travel_time"]
+                                )
+                                arrival_time = time.localtime(arrival_time_in_sec)
+                                attack_to_add["arrival_time"] = time.strftime(
+                                    f"%d.%m.%Y %H:%M:%S:{round(random.random()*1000):0>3}",
+                                    arrival_time,
+                                )
+                                attack_to_add["errors_number"] = 0
+                                attacks_to_repeat_scheduler.append(attack_to_add)
+
+            # Click command_type button (attack or support)
+            driver.execute_script(
+                f'document.getElementById("{send_info["command"]}").click();'
+            )
+
+            # Add snoob -> send_all
+            if send_info["template_type"] == "send_all":
+                if "snob_amount" in send_info:
+                    try:
+                        add_snoob = driver.find_element(By.ID, "troop_confirm_train")
+                    except:
+                        # Go to next attack if current can't be send
+                        if len(list_to_send) > 1:
+                            continue
+                        # If it's only one attack which can't be send, return and delete it
+                        return 1, attacks_to_repeat_to_do
+                    for _ in range(send_info["snob_amount"]):
+                        driver.execute_script("arguments[0].click()", add_snoob)
+
+            # Split attacks -> own_template
+            elif send_info["template_type"] == "send_my_template":
+                if (
+                    "split_attacks_number" in send_info
+                    and send_info["split_attacks_number"] != "1"
+                ):
+                    split_attacks_number = int(send_info["split_attacks_number"])
+                    try:
+                        add_attack = driver.find_element(By.ID, "troop_confirm_train")
+                    except:
+                        # Go to next attack if current can't be send
+                        if len(list_to_send) > 1:
+                            continue
+                        # If it's only one attack which can't be send, return and delete it
+                        return 1, attacks_to_repeat_to_do
+                    for _ in range(split_attacks_number - 1):
+                        driver.execute_script("arguments[0].click()", add_attack)
+                    all_troops = (
+                        "axe",
+                        "light",
+                        "snob",
+                    )
+                    for troop_name in all_troops:
+                        if troop_name not in send_info["troops"]:
+                            send_info["troops"][troop_name] = "0"
+                    for troop_name, troop_number in send_info["troops"].items():
+                        if troop_name == "snob" and int(troop_number) == 1:
+                            continue
+                        for index in range(2, split_attacks_number + 1):
+                            troop_input = driver.find_element(
+                                By.NAME, f"train[{index}][{troop_name}]"
                             )
-                            arrival_time_in_sec = (
-                                attack_to_add["send_time"] + send_info["travel_time"]
+                            driver.execute_script(
+                                f'arguments[0].value = "";', troop_input
                             )
-                            arrival_time = time.localtime(arrival_time_in_sec)
-                            attack_to_add["arrival_time"] = time.strftime(
-                                f"%d.%m.%Y %H:%M:%S:{round(random.random()*100000):0<6}",
-                                arrival_time,
-                            )
-                            attack_to_add["errors_number"] = 0
-                            attacks_to_repeat_scheduler.append(attack_to_add)
+                            if troop_number:
+                                troop_input.send_keys(troop_number)
 
-        # Click command_type button (attack or support)
-        driver.execute_script(
-            f'document.getElementById("{send_info["command"]}").click();'
-        )
+        if len(list_to_send) > 1:
+            driver.switch_to.window(origin_tab)
 
-        # Add snoob
-        if send_info["template_type"] == "send_all":
-            if "snob_amount" in send_info:
-                try:
-                    add_snoob = driver.find_element(By.ID, "troop_confirm_train")
-                except:
-                    if len(list_to_send) > 1:
-                        continue
-                    return 1, attacks_to_repeat_to_do
-                for _ in range(send_info["snob_amount"]):
-                    driver.execute_script("arguments[0].click()", add_snoob)
+        for index, send_info in enumerate(list_to_send):
+            if index > 0:
+                driver.switch_to.window(new_tabs[index - 1])
+            current_time = driver.find_elements(
+                By.XPATH, '//*[@id="date_arrival"]/span'
+            )
+            # Skip to next if didn't find element with id="date_arrival"
+            if not current_time:
+                continue
+            current_time = current_time[0]
+            send_button = driver.find_element(By.ID, "troop_confirm_submit")
+            arrival_time = re.search(
+                r"\d{2}:\d{2}:\d{2}", send_info["arrival_time"]
+            ).group()
 
-    if len(list_to_send) > 1:
-        driver.switch_to.window(origin_tab)
-
-    for index, send_info in enumerate(list_to_send):
-        if index > 0:
-            driver.switch_to.window(new_tabs[index - 1])
-        current_time = driver.find_elements(By.XPATH, '//*[@id="date_arrival"]/span')
-        # Skip to next if didn't find element with id="date_arrival"
-        if not current_time:
-            continue
-        current_time = current_time[0]
-        send_button = driver.find_element(By.ID, "troop_confirm_submit")
-        arrival_time = re.search(
-            r"\d{2}:\d{2}:\d{2}", send_info["arrival_time"]
-        ).group()
-
-        if current_time.text[-8:] < arrival_time:
-            ms = int(send_info["arrival_time"][-3:])
-            if ms <= 10:
-                sec = 0
+            if current_time.text[-8:] < arrival_time:
+                ms = int(send_info["arrival_time"][-3:])
+                if ms <= 10:
+                    sec = 0
+                else:
+                    sec = (ms + 10) / 1000
+                while True:
+                    current_arrival_time = current_time.text[-8:]
+                    if current_arrival_time == arrival_time:
+                        if sec:
+                            time.sleep(sec)
+                        driver.execute_script("arguments[0].click()", send_button)
+                        break
+                    elif current_arrival_time > arrival_time:
+                        driver.execute_script("arguments[0].click()", send_button)
+                        break
             else:
-                sec = (ms + 10) / 1000
-            while True:
-                current_arrival_time = current_time.text[-8:]
-                if current_arrival_time == arrival_time:
-                    if sec:
-                        time.sleep(sec)
-                    driver.execute_script("arguments[0].click()", send_button)
-                    break
-                elif current_arrival_time > arrival_time:
-                    driver.execute_script("arguments[0].click()", send_button)
-                    break
-        else:
-            driver.execute_script("arguments[0].click()", send_button)
+                driver.execute_script("arguments[0].click()", send_button)
 
-    if len(list_to_send) > 1:
-        time.sleep(0.5)
-        for new_tab in new_tabs:
-            driver.switch_to.window(new_tab)
-            driver.close()
-        driver.switch_to.window(origin_tab)
+    finally:
+        if len(list_to_send) > 1:
+            time.sleep(0.5)
+            for new_tab in new_tabs:
+                driver.switch_to.window(new_tab)
+                driver.close()
+            driver.switch_to.window(origin_tab)
 
     for attack_to_repeat in attacks_to_repeat_scheduler:
         settings["scheduler"]["ready_schedule"].append(attack_to_repeat)
@@ -2126,6 +2200,7 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
     # Clean from settings and to_do
     del settings["scheduler"]["ready_schedule"][0:send_number_times]
 
+    # Variable send_number_times have to be equal or greater than 1
     index_to_del = []
     for index, row_data in enumerate(to_do):
         if row_data["func"] != "send_troops":
@@ -2261,9 +2336,7 @@ def unwanted_page_content(
 
             # Zamknij wszystkie popup_boxy które nie dotyczą bonusu dziennego
             else:
-                driver.find_element(
-                    By.CLASS_NAME, "popup_box_close.tooltip-delayed"
-                ).click()
+                webdriver.ActionChains(driver).send_keys(Keys.ESCAPE).perform()
                 try:
                     WebDriverWait(driver, 3, 0.05).until(
                         EC.invisibility_of_element_located(

@@ -33,6 +33,7 @@ from gui_functions import (
     first_app_lunch,
     forget_row,
     get_pos,
+    get_villages_id,
     invoke_checkbuttons,
     load_settings,
     paid,
@@ -188,8 +189,15 @@ class NotebookSchedul:
                 text_widget.delete("1.0", "end")
                 text_widget.unbind("<Button>")
 
+        def text_hint(text_widget: ttk.Text) -> None:
+            text_widget.insert(
+                "1.0",
+                "Współrzędne wiosek w formacie XXX|YYY "
+                "oddzielone spacją, tabulatorem lub enterem.",
+            )
+
         def text_mouse_scroll(text_widget: ttk.Text) -> None:
-            def text_exceed() -> None:
+            def text_exceed(event=None) -> None:
                 if text_widget.yview() != (0.0, 1.0):
                     self.scroll_able._unbound_to_mousewheel()
                     return
@@ -197,20 +205,33 @@ class NotebookSchedul:
 
             text_exceed()
             text_widget.bind("<Key>", lambda event: text_widget.after(25, text_exceed))
-
-        def text_hint(text_widget: ttk.Text) -> None:
-            # if len(text_widget.get("1.0", "end-1c")) == 0:
-            text_widget.insert(
-                "1.0",
-                "Współrzędne wiosek w formacie XXX|YYY "
-                "oddzielone spacją, tabulatorem lub enterem.",
+            text_widget.bind(
+                "<<Paste>>", lambda event: text_widget.after(50, text_exceed), add="+"
             )
+
+        def split_text(event=None) -> str | None:
+            """Split to new rows if text is to long -> speedup tkinter Text widget"""
+
+            clipboard_text = main_window.master.clipboard_get()
+            if len(clipboard_text) > 200:
+                splited_clipboard_text = clipboard_text.split()
+                splited_clipboard_text = " ".join(
+                    "\n" + text if not index % 20 and index else text
+                    for index, text in enumerate(splited_clipboard_text)
+                )
+                main_window.master.clipboard_clear()
+                main_window.master.clipboard_append(splited_clipboard_text + " ")
+            else:
+                if clipboard_text[-1] != " ":
+                    main_window.master.clipboard_clear()
+                    main_window.master.clipboard_append(clipboard_text + " ")
 
         # Text1
         self.villages_to_use = tk.Text(
             self.scroll_able.frame, wrap="word", height=5, width=28
         )
         self.villages_to_use.grid(row=1, column=0, padx=5, pady=(0, 5), sticky=ttk.EW)
+        self.villages_to_use.bind("<<Paste>>", split_text)
         self.villages_to_use.bind(
             "<Enter>", lambda event: text_mouse_scroll(self.villages_to_use)
         )
@@ -226,6 +247,7 @@ class NotebookSchedul:
             self.scroll_able.frame, wrap="word", height=5, width=28
         )
         self.villages_destiny.grid(row=1, column=1, padx=5, pady=(0, 5), sticky=ttk.EW)
+        self.villages_destiny.bind("<<Paste>>", split_text)
         self.villages_destiny.bind(
             "<Enter>", lambda event: text_mouse_scroll(self.villages_destiny)
         )
@@ -275,7 +297,9 @@ class NotebookSchedul:
             enable = False
             if self.template_type.get() == "send_my_template":
                 enable = True
-            for child in army_frame.winfo_children():
+            for child in (
+                army_frame.winfo_children() + attacks_number_frame.winfo_children()
+            ):
                 wtype = child.winfo_class()
                 if wtype == "TEntry":
                     if enable:
@@ -293,7 +317,7 @@ class NotebookSchedul:
                 self.choosed_fake_template.set(""),
                 self.choose_slowest_troop.config(state="readonly"),
                 self.repeat_attack.set("0"),
-                self.repeat_attack_number_entry.config(state="disabled"),
+                self.total_attacks_number_entry.config(state="disabled"),
             ],
         )
         self.all_troops_radiobutton.grid(
@@ -431,7 +455,7 @@ class NotebookSchedul:
                 self.slowest_troop.set(""),
                 self.choose_slowest_troop.config(state="disabled"),
                 self.repeat_attack.set("0"),
-                self.repeat_attack_number_entry.config(state="disabled"),
+                self.total_attacks_number_entry.config(state="disabled"),
             ],
         )
         self.fake_troops_radiobutton.grid(
@@ -460,21 +484,26 @@ class NotebookSchedul:
         button_info_frame.grid(
             row=41, column=0, columnspan=2, padx=(25, 5), pady=10, sticky=tk.W
         )
+
         # Własny szablon
+        def own_template_radiobutton_func() -> None:
+            """self.own_template_radiobutton function"""
+
+            self.send_snob.set(""),
+            self.snob_amount_entry.config(state="disabled"),
+            self.first_snob_army_size_entry.config(state="disabled"),
+            self.army_type.set(""),
+            self.slowest_troop.set(""),
+            self.choosed_fake_template.set(""),
+            self.choose_slowest_troop.config(state="disabled")
+            self.split_attacks_number.set("1")
+
         self.own_template_radiobutton = ttk.Radiobutton(
             button_info_frame,
             text="Własny szablon",
             value="send_my_template",
             variable=self.template_type,
-            command=lambda: [
-                self.send_snob.set(""),
-                self.snob_amount_entry.config(state="disabled"),
-                self.first_snob_army_size_entry.config(state="disabled"),
-                self.army_type.set(""),
-                self.slowest_troop.set(""),
-                self.choosed_fake_template.set(""),
-                self.choose_slowest_troop.config(state="disabled"),
-            ],
+            command=own_template_radiobutton_func,
         )
         self.own_template_radiobutton.grid(row=0, column=0, sticky=tk.W)
 
@@ -483,7 +512,7 @@ class NotebookSchedul:
 
         ToolTip(
             info,
-            text="W poniższych polach można podać konkretną liczbę jednostek bądź wpisać słowo max "
+            text="W poniższych polach można podać konkretną liczbę jednostek, bądź wpisać słowo max "
             "które oznacza wstawienie maksymalnej ilości danej jednostki.",
             wraplength=350,
             topmost=True,
@@ -573,41 +602,113 @@ class NotebookSchedul:
         }
 
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["spear"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["spear"],
         ).grid(row=0, column=0, padx=(0, 0), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["spy"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["spy"],
         ).grid(row=0, column=1, padx=(0, 3), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["ram"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["ram"],
         ).grid(row=0, column=2, padx=(0, 0), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["knight"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["knight"],
         ).grid(row=0, column=3, padx=(0, 25), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["sword"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["sword"],
         ).grid(row=1, column=0, padx=(0, 0), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["light"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["light"],
         ).grid(row=1, column=1, padx=(0, 3), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["catapult"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["catapult"],
         ).grid(row=1, column=2, padx=(0, 0), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["snob"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["snob"],
         ).grid(row=1, column=3, padx=(0, 25), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["axe"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["axe"],
         ).grid(row=2, column=0, padx=(0, 0), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["marcher"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["marcher"],
         ).grid(row=2, column=1, padx=(0, 3), pady=(5, 0), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["archer"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["archer"],
         ).grid(row=3, column=0, padx=(0, 0), pady=(5, 5), sticky=tk.E)
         ttk.Entry(
-            army_frame, width=5, state="disabled", textvariable=self.troops["heavy"]
+            army_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.troops["heavy"],
         ).grid(row=3, column=1, padx=(0, 3), pady=(5, 5), sticky=tk.E)
+
+        # Liczba ataków
+        attacks_number_frame = ttk.Labelframe(
+            army_frame, text="Liczba ataków", labelanchor="n"
+        )
+        attacks_number_frame.grid(
+            row=2,
+            rowspan=2,
+            column=2,
+            columnspan=2,
+            padx=(25, 25),
+            pady=(5, 0),
+            sticky=tk.NSEW,
+        )
+        attacks_number_frame.rowconfigure(0, weight=1)
+        attacks_number_frame.columnconfigure(0, weight=1)
+        self.split_attacks_number = ttk.StringVar()
+        ttk.Entry(
+            attacks_number_frame,
+            width=5,
+            state="disabled",
+            justify=tk.CENTER,
+            textvariable=self.split_attacks_number,
+        ).grid(row=0, column=0)
 
         settings["scheduler"].setdefault("ready_schedule", [])
         if settings["scheduler"]["ready_schedule"]:
@@ -625,9 +726,9 @@ class NotebookSchedul:
                 if not parent.winfo_viewable():
                     return
                 self.own_template_radiobutton.invoke()
-                self.repeat_attack_number_entry.config(state="normal")
+                self.total_attacks_number_entry.config(state="normal")
             else:
-                self.repeat_attack_number_entry.config(state="disabled")
+                self.total_attacks_number_entry.config(state="disabled")
 
         self.repeat_attack_checkbutton = ttk.Checkbutton(
             self.scroll_able.frame,
@@ -641,21 +742,21 @@ class NotebookSchedul:
             row=43, columnspan=2, padx=(45, 0), pady=(15, 0), sticky=tk.W
         )
 
-        self.number_of_attacks = tk.StringVar()
-        self.number_of_attacks_label = ttk.Label(
+        self.total_attacks_number = tk.StringVar()
+        self.total_attacks_number_label = ttk.Label(
             self.scroll_able.frame, text="Łączna liczba ataków"
         )
-        self.number_of_attacks_label.grid(
+        self.total_attacks_number_label.grid(
             row=44, column=0, padx=(65, 0), pady=10, sticky=tk.W
         )
-        self.repeat_attack_number_entry = ttk.Entry(
+        self.total_attacks_number_entry = ttk.Entry(
             self.scroll_able.frame,
-            textvariable=self.number_of_attacks,
+            textvariable=self.total_attacks_number,
             width=4,
             justify=tk.CENTER,
             state="disabled",
         )
-        self.repeat_attack_number_entry.grid(
+        self.total_attacks_number_entry.grid(
             row=44, columnspan=2, padx=(5, 25), pady=10, sticky=tk.E
         )
 
@@ -734,60 +835,6 @@ class NotebookSchedul:
 
     def create_schedule(self, settings: dict, main_window) -> None:
         """Create scheduled defined on used options by the user"""
-
-        def get_villages_id(settings: dict[str], update: bool = False) -> dict:
-            """Download, process and save in text file for future use.
-            In the end return all villages in the world with proper id.
-            """
-
-            def update_world_villages_file() -> None:
-                """Create or update file with villages and their id's"""
-
-                if update:
-                    file_name = f'villages{settings["server_world"]}.txt'
-                    creation_time = os.path.getmtime(file_name)
-                    if time.time() - creation_time < 3600:
-                        return
-
-                url = f"http://{settings['server_world']}.{settings['game_url']}/map/village.txt"
-                response = requests.get(url)
-                response = response.text
-                response = response.splitlines()
-                villages = {}
-                for row in response:
-                    id, _, x, y, _, _, _ = row.split(",")
-                    villages[x + "|" + y] = id
-
-                try:
-                    world_villages_file = open(
-                        f'villages{settings["server_world"]}.txt', "w"
-                    )
-                except:
-                    logger.error(
-                        f'There was a problem with villages{settings["server_world"]}.txt'
-                    )
-                else:
-                    for village_coords, village_id in villages.items():
-                        world_villages_file.write(f"{village_coords},{village_id}\n")
-                finally:
-                    world_villages_file.close()
-
-            if update:
-                update_world_villages_file()
-
-            villages = {}
-            try:
-                world_villages_file = open(f'villages{settings["server_world"]}.txt')
-            except FileNotFoundError:
-                update_world_villages_file()
-                world_villages_file = open(f'villages{settings["server_world"]}.txt')
-            finally:
-                for row in world_villages_file:
-                    village_coords, village_id = row.split(",")
-                    villages[village_coords] = village_id
-                world_villages_file.close()
-
-            return villages
 
         def local_custom_error(message) -> None:
             custom_error(message=message, parent=self.parent)
@@ -869,11 +916,12 @@ class NotebookSchedul:
                 if (
                     command_type == "target_support"
                     and "knight" in troops
-                    and troops["knight"] > 0
+                    and int(troops["knight"]) > 0
                 ):
                     army_speed = 10
+                split_attacks_number = self.split_attacks_number.get() or "1"
                 repeat_attack = self.repeat_attack.get()
-                number_of_attacks = self.number_of_attacks.get()
+                total_attacks_number = self.total_attacks_number.get()
 
         villages = get_villages_id(settings=settings)
 
@@ -904,14 +952,16 @@ class NotebookSchedul:
                     custom_error(
                         message=f"Wioska {send_from} nie istnieje.", parent=self.parent
                     )
-                    continue
+                    self.scroll_able.canvas.yview_moveto(0)
+                    return
                 try:
                     send_to_village_id = villages[send_to][:-1]  # It returns village ID
                 except KeyError:
                     custom_error(
                         message=f"Wioska {send_to} nie istnieje.", parent=self.parent
                     )
-                    continue
+                    self.scroll_able.canvas.yview_moveto(0)
+                    return
 
             send_info["url"] = (
                 f"https://"
@@ -955,8 +1005,9 @@ class NotebookSchedul:
 
                 case "send_my_template":
                     send_info["troops"] = troops
+                    send_info["split_attacks_number"] = split_attacks_number
                     send_info["repeat_attack"] = repeat_attack
-                    send_info["number_of_attacks"] = number_of_attacks
+                    send_info["total_attacks_number"] = total_attacks_number
 
             distance = sqrt(
                 pow(int(send_from[:3]) - int(send_to[:3]), 2)
@@ -1430,10 +1481,14 @@ class NotebookGathering:
             troops_frame,
             width=5,
             textvariable=gathering_troops["spear"]["left_in_village"],
+            justify=tk.CENTER,
         )
         self.spear_left.grid(row=9, column=1, pady=5)
         self.spear_max = ttk.Entry(
-            troops_frame, width=5, textvariable=gathering_troops["spear"]["send_max"]
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["spear"]["send_max"],
+            justify=tk.CENTER,
         )
         self.spear_max.grid(row=9, column=2, pady=5)
 
@@ -1453,10 +1508,14 @@ class NotebookGathering:
             troops_frame,
             width=5,
             textvariable=gathering_troops["light"]["left_in_village"],
+            justify=tk.CENTER,
         )
         self.light_left.grid(row=9, column=4, pady=5)
         self.light_max = ttk.Entry(
-            troops_frame, width=5, textvariable=gathering_troops["light"]["send_max"]
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["light"]["send_max"],
+            justify=tk.CENTER,
         )
         self.light_max.grid(row=9, column=5, pady=5, padx=(0, 25))
 
@@ -1476,10 +1535,14 @@ class NotebookGathering:
             troops_frame,
             width=5,
             textvariable=gathering_troops["sword"]["left_in_village"],
+            justify=tk.CENTER,
         )
         self.sword_left.grid(row=10, column=1, pady=5)
         self.sword_max = ttk.Entry(
-            troops_frame, width=5, textvariable=gathering_troops["sword"]["send_max"]
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["sword"]["send_max"],
+            justify=tk.CENTER,
         )
         self.sword_max.grid(row=10, column=2, pady=5)
 
@@ -1499,10 +1562,14 @@ class NotebookGathering:
             troops_frame,
             width=5,
             textvariable=gathering_troops["marcher"]["left_in_village"],
+            justify=tk.CENTER,
         )
         self.marcher_left.grid(row=10, column=4, pady=5)
         self.marcher_max = ttk.Entry(
-            troops_frame, width=5, textvariable=gathering_troops["marcher"]["send_max"]
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["marcher"]["send_max"],
+            justify=tk.CENTER,
         )
         self.marcher_max.grid(row=10, column=5, pady=5, padx=(0, 25))
 
@@ -1522,10 +1589,14 @@ class NotebookGathering:
             troops_frame,
             width=5,
             textvariable=gathering_troops["axe"]["left_in_village"],
+            justify=tk.CENTER,
         )
         self.axe_left.grid(row=11, column=1, pady=5)
         self.axe_max = ttk.Entry(
-            troops_frame, width=5, textvariable=gathering_troops["axe"]["send_max"]
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["axe"]["send_max"],
+            justify=tk.CENTER,
         )
         self.axe_max.grid(row=11, column=2, pady=5)
 
@@ -1545,10 +1616,14 @@ class NotebookGathering:
             troops_frame,
             width=5,
             textvariable=gathering_troops["heavy"]["left_in_village"],
+            justify=tk.CENTER,
         )
         self.heavy_left.grid(row=11, column=4, pady=5)
         self.heavy_max = ttk.Entry(
-            troops_frame, width=5, textvariable=gathering_troops["heavy"]["send_max"]
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["heavy"]["send_max"],
+            justify=tk.CENTER,
         )
         self.heavy_max.grid(row=11, column=5, pady=5, padx=(0, 25))
 
@@ -1570,10 +1645,14 @@ class NotebookGathering:
             troops_frame,
             width=5,
             textvariable=gathering_troops["archer"]["left_in_village"],
+            justify=tk.CENTER,
         )
         self.archer_left.grid(row=12, column=1, pady=5)
         self.archer_max = ttk.Entry(
-            troops_frame, width=5, textvariable=gathering_troops["archer"]["send_max"]
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["archer"]["send_max"],
+            justify=tk.CENTER,
         )
         self.archer_max.grid(row=12, column=2, pady=5)
 
@@ -1593,10 +1672,14 @@ class NotebookGathering:
             troops_frame,
             width=5,
             textvariable=gathering_troops["knight"]["left_in_village"],
+            justify=tk.CENTER,
         )
         self.knight_left.grid(row=12, column=4, pady=5)
         self.knight_max = ttk.Entry(
-            troops_frame, width=5, textvariable=gathering_troops["knight"]["send_max"]
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["knight"]["send_max"],
+            justify=tk.CENTER,
         )
         self.knight_max.grid(row=12, column=5, pady=5, padx=(0, 25))
 
@@ -2580,15 +2663,52 @@ class MainWindow:
         ).grid(row=2, column=2, padx=5, pady=(10), sticky="E")
 
         # Wybijanie monet
+        self.mine_coin_frame = ttk.Frame(f5)
+        self.mine_coin_frame.grid(row=4, column=0, columnspan=3, sticky=ttk.NSEW)
+        self.mine_coin_frame.columnconfigure(0, weight=1)
+        self.mine_coin_frame.columnconfigure(1, weight=1)
+
         self.entries_content["mine_coin"] = tk.StringVar()
         self.check_mine_coin = ttk.Checkbutton(
-            f5,
+            self.mine_coin_frame,
             text="Wybijanie monet",
             variable=self.entries_content["mine_coin"],
             onvalue=True,
             offvalue=False,
         )
-        self.check_mine_coin.grid(row=3, columnspan=3, padx=5, pady=5)
+        self.check_mine_coin.grid(row=0, column=0, columnspan=2, padx=5, pady=10)
+
+        self.villages_to_mine_coin = ttk.Entry(
+            self.mine_coin_frame,
+            justify=ttk.CENTER,
+            width=7,
+        )
+        self.villages_to_mine_coin.grid(row=1, column=0, padx=5, pady=5, sticky=ttk.E)
+
+        def add_village_to_mine_coin_villages_list() -> None:
+            village = self.villages_to_mine_coin.get()
+            villages = get_villages_id(settings=settings)
+            if village in villages:
+                village_id = villages[village][:-1]
+            else:
+                villages = get_villages_id(settings=settings, update=True)
+                if village not in villages:
+                    custom_error(message=f"Wioska {village} nie istnieje.", parent=f5)
+                    return
+                village_id = villages[village][:-1]
+            settings.setdefault("villages_to_mine_coin", [])
+            settings["villages_to_mine_coin"].append(
+                {"coords": village, "id": village_id}
+            )
+
+        self.add_village_to_mine_coin = ttk.Button(
+            self.mine_coin_frame,
+            text="Dodaj",
+            command=add_village_to_mine_coin_villages_list,
+        )
+        self.add_village_to_mine_coin.grid(
+            row=1, column=1, padx=5, pady=5, sticky=ttk.W
+        )
 
         self.acc_info_frame = ttk.Labelframe(
             f5, text="Informacje o koncie", labelanchor="n"
@@ -3312,11 +3432,14 @@ class MainWindow:
             Return False on log out or True if not
             """
 
-            if len(self.to_do) and (
-                self.to_do[0]["start_time"] > time.time() + 300
-                or _settings["server_world"] != self.to_do[0]["server_world"]
-            ):
-                self.driver.get("chrome://newtab")
+            if self.to_do:
+                if self.to_do[0]["start_time"] > time.time() + 300:
+                    self.driver.get("chrome://newtab")
+                    return False
+                if _settings["server_world"] == self.to_do[0]["server_world"]:
+                    return True
+                if self.to_do[0]["start_time"] > time.time() + 5:
+                    self.driver.get("chrome://newtab")
                 return False
             return True
 
@@ -3415,7 +3538,7 @@ class MainWindow:
                         bot_functions.auto_farm(self.driver, _settings)
                         self.to_do[0]["start_time"] = time.time() + int(
                             _settings["farm_sleep_time"]
-                        ) * random.uniform(55, 65)
+                        ) * random.uniform(52, 68)
                         self.to_do[0]["errors_number"] = 0
                         self.to_do.append(self.to_do[0])
 
@@ -3425,15 +3548,11 @@ class MainWindow:
                             _settings,
                             int(_settings["notifications"]["email_notifications"]),
                         )
-                        self.to_do[0]["start_time"] = (
-                            time.time()
-                            + int(
-                                _settings["notifications"][
-                                    "check_incoming_attacks_sleep_time"
-                                ]
-                            )
-                            * 60
-                        )
+                        self.to_do[0]["start_time"] = time.time() + int(
+                            _settings["notifications"][
+                                "check_incoming_attacks_sleep_time"
+                            ]
+                        ) * random.uniform(58, 62)
                         self.to_do[0]["errors_number"] = 0
                         self.to_do.append(self.to_do[0])
 
@@ -3498,10 +3617,16 @@ class MainWindow:
                         if send_number_times > 1:
                             index_to_del = []
                             for index, row_data in enumerate(self.to_do):
-                                if row_data["func"] == "send_troops":
-                                    index_to_del.append(index)
-                                    if len(index_to_del) == send_number_times:
-                                        break
+                                if row_data["func"] != "send_troops":
+                                    continue
+                                if (
+                                    row_data["server_world"]
+                                    != _settings["server_world"]
+                                ):
+                                    continue
+                                index_to_del.append(index)
+                                if len(index_to_del) == send_number_times:
+                                    break
                             for index in sorted(index_to_del, reverse=True)[:-1]:
                                 del self.to_do[index]
                         for attack in attacks_to_repeat:
@@ -3524,6 +3649,7 @@ class MainWindow:
                     and self.to_do[0]["func"] == "send_troops"
                 ):
                     del self.to_do[0]
+                    del _settings["scheduler"]["ready_schedule"][0]
                     logged = log_out_when_free_time(_settings)
                     if not logged:
                         continue
@@ -4004,7 +4130,7 @@ def check_for_updates() -> None:
         master.update_idletasks()
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "0.6.3"
+    APP_VERSION = "0.7.5"
 
     client = Client(ClientConfig())
     client.refresh()
