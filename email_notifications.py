@@ -26,7 +26,9 @@ def send_email(
     # For loop, sending emails to all email recipients
     for recipient in email_recepients:
         message = MIMEMultipart("alternative")
-        message["From"] = formataddr(("TribalWars Notification", EMAIL_SENDER_ACCOUNT))
+        message["From"] = formataddr(
+            ("TribalWarsBot Notifications", EMAIL_SENDER_ACCOUNT)
+        )
         message["To"] = recipient
         message["Subject"] = email_subject
         message.attach(MIMEText(email_body, "plain"))

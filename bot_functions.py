@@ -3,8 +3,10 @@ import logging
 import os
 import random
 import re
+import threading
 import time
 import traceback
+import winsound
 from math import ceil, sqrt
 
 import lxml.html
@@ -18,6 +20,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
+from ttkbootstrap.toast import ToastNotification
 
 import email_notifications
 from gui_functions import custom_error
@@ -34,9 +37,7 @@ logger.addHandler(f_handler)
 logger.propagate = False
 
 
-def attacks_labels(
-    driver: webdriver.Chrome, settings: dict[str], notifications: bool = False
-) -> bool:
+def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     """Etykiety ataków"""
 
     COUNTRY_CODE: str = settings["country_code"]
@@ -104,7 +105,14 @@ def attacks_labels(
         )
     ).click()
 
-    if notifications:
+    notifications = settings["notifications"]
+    if any(
+        (
+            notifications["email_notifications"],
+            notifications["sms_notifications"],
+            notifications["sound_notifications"],
+        )
+    ):
         etkyieta_rozkazu = WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable(
                 (
@@ -127,7 +135,12 @@ def attacks_labels(
         WebDriverWait(driver, 5).until(
             EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
         )
-        if driver.find_elements_by_id("incomings_table"):
+
+        # Return True if no attacks were found
+        if not driver.find_elements_by_id("incomings_table"):
+            return True
+
+        if notifications["email_notifications"]:
             total_attacks_number = driver.find_element_by_xpath(
                 '//*[@id="incomings_table"]/tbody/tr[1]/th[1]'
             ).text
@@ -142,31 +155,48 @@ def attacks_labels(
                 f"{index+1}. {_}\n" for index, _ in enumerate(reach_time_list)
             )
 
-            email_notifications.send_email(
-                email_recepients=settings["notifications"]["email_address"],
-                email_subject="Wykryto grubasy",
-                email_body=f'Wykryto grubasy o godzinie {time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())}\n\n'
-                f"Liczba nadchodzących grubasów: {total_attacks_number}\n\n"
-                f"Godziny wejść:\n"
-                f"{attacks_reach_time}",
+            threading.Thread(
+                target=email_notifications.send_email,
+                kwargs={
+                    "email_recepients": settings["notifications"]["email_address"],
+                    "email_subject": f"Wykryto grubasy {settings['world_in_title']}",
+                    "email_body": f'Wykryto grubasy o godzinie {time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())}\n\n'
+                    f"Liczba nadchodzących grubasów: {total_attacks_number}\n\n"
+                    f"Godziny wejść:\n"
+                    f"{attacks_reach_time}",
+                },
+            ).start()
+
+        if notifications["sms_notifications"]:
+            pass
+
+        if notifications["sound_notifications"]:
+            winsound.PlaySound("alarm.wav", winsound.SND_ASYNC + winsound.SND_LOOP)
+            toast = ToastNotification(
+                title="TribalWarsBot Alert!",
+                message="Wykryto nadchodzące grubasy. Kliknij w komunikat w celu wyłączenia alertu.",
+                topmost=True,
+                bootstyle="danger",
+            )
+            toast.show_toast()
+            toast.toplevel.bind(
+                "<Destroy>", lambda args: winsound.PlaySound(None, winsound.SND_PURGE)
             )
 
-            current_time = time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())
+        # Describe attacks
+        for label in driver.find_elements_by_xpath(
+            '//*[@id="incomings_table"]/tbody/tr/td[1]/span/span/a[2]'
+        ):
+            driver.execute_script("return arguments[0].scrollIntoView(true);", label)
+            label.click()
 
-            for label in driver.find_elements_by_xpath(
-                '//*[@id="incomings_table"]/tbody/tr/td[1]/span/span/a[2]'
-            ):
-                driver.execute_script(
-                    "return arguments[0].scrollIntoView(true);", label
-                )
-                label.click()
-
-            for label_input in driver.find_elements_by_xpath(
-                '//*[@id="incomings_table"]/tbody/tr/td[1]/span/span[2]/input[1]'
-            ):
-                label_input.clear()
-                label_input.send_keys(f"szlachta notified {current_time}")
-                label_input.send_keys(Keys.ENTER)
+        current_time = time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())
+        for label_input in driver.find_elements_by_xpath(
+            '//*[@id="incomings_table"]/tbody/tr/td[1]/span/span[2]/input[1]'
+        ):
+            label_input.clear()
+            label_input.send_keys(f"szlachta notified {current_time}")
+            label_input.send_keys(Keys.ENTER)
 
     return True
 
@@ -302,11 +332,11 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
         # Lista przycisków do wysyłki szablonów A, B i C
         villages_to_farm = {}
 
-        if int(settings["A"]["active"]):
+        if settings["A"]["active"]:
             villages_to_farm["A"] = 9  # Szablon A
-        if int(settings["B"]["active"]):
+        if settings["B"]["active"]:
             villages_to_farm["B"] = 10  # Szablon B
-        if int(settings["C"]["active"]):
+        if settings["C"]["active"]:
             villages_to_farm["C"] = 11  # Szablon C
 
         # Wysyłka wojsk w asystencie farmera
@@ -322,14 +352,18 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
             )
             captcha_solved = False
             for village, wall_level in zip(villages_to_farm[template], walls_level):
-                if isinstance(wall_level, str) and not int(
-                    settings[template]["wall_ignore"]
+                if (
+                    isinstance(wall_level, str)
+                    and not settings[template]["wall_ignore"]
                 ):
                     continue
 
-                if int(settings[template]["wall_ignore"]) or int(
-                    settings[template]["min_wall"]
-                ) <= wall_level <= int(settings[template]["max_wall"]):
+                if (
+                    settings[template]["wall_ignore"]
+                    or settings[template]["min_wall"]
+                    <= wall_level
+                    <= settings[template]["max_wall"]
+                ):
                     for unit, number in template_troops[template].items():
                         if available_troops[unit] - number < 0:
                             no_units = True
@@ -698,18 +732,20 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
 
         for troop_name, troop_number in zip(troops_name, troops_number):
             if (
-                int(settings["gathering_troops"][troop_name]["use"])
+                settings["gathering_troops"][troop_name]["use"]
                 and int(troop_number[1:-1]) > 0
             ):
-                available_troops[troop_name] = int(troop_number[1:-1]) - int(
-                    settings["gathering_troops"][troop_name]["left_in_village"]
+                available_troops[troop_name] = (
+                    int(troop_number[1:-1])
+                    - settings["gathering_troops"][troop_name]["left_in_village"]
                 )
-                if available_troops[troop_name] > int(
-                    settings["gathering_troops"][troop_name]["send_max"]
+                if (
+                    available_troops[troop_name]
+                    > settings["gathering_troops"][troop_name]["send_max"]
                 ):
-                    available_troops[troop_name] = int(
-                        settings["gathering_troops"][troop_name]["send_max"]
-                    )
+                    available_troops[troop_name] = settings["gathering_troops"][
+                        troop_name
+                    ]["send_max"]
 
         # Odblokowane i dostępne poziomy zbieractwa
         troops_to_send = {
@@ -722,7 +758,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             zip(
                 doc.xpath('//*[@id="scavenge_screen"]/div/div[2]/div/div[3]/div'),
                 (
-                    int(settings["gathering"]["ommit"][ele])
+                    settings["gathering"]["ommit"][ele]
                     for ele in settings["gathering"]["ommit"]
                 ),
             )
@@ -760,7 +796,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             "knight": 100,
         }
         reduce_ratio = None
-        max_resources = int(settings["gathering_max_resources"])
+        max_resources = settings["gathering_max_resources"]
         round_ups_per_troop = {troop_name: 0 for troop_name in available_troops}
         for key in troops_to_send:
             for troop_name, troop_number in available_troops.items():
@@ -1515,7 +1551,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
             # If all exchange rate is bigger than all max exchange rate user settings
             if all(
                 exchange_resources[resource_name]["current_resource_rate"]
-                > int(settings["market"][resource_name]["max_exchange_rate"])
+                > settings["market"][resource_name]["max_exchange_rate"]
                 for resource_name in exchange_resources
             ):
                 break
@@ -1577,9 +1613,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     )
                     if (
                         current_exchange_rate
-                        > int(
-                            settings["market"][resource_name]["max_exchange_rate"]
-                        )  # Pomiń jeśli kurs jest powyżej ustalonej wartości
+                        > settings["market"][resource_name]["max_exchange_rate"]
+                        # Pomiń jeśli kurs jest powyżej ustalonej wartości
                         or current_exchange_rate >= resources_available[resource_name]
                     ):  # Pomiń jeśli kurs jest wyższy od dostępnych surowców
                         continue
@@ -1862,7 +1897,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
 
                     if (
                         send_info["send_snob"] == "send_snob"
-                        and int(send_info["snob_amount"]) > 1
+                        and send_info["snob_amount"] > 1
                     ):
 
                         match send_info["army_type"]:
@@ -1890,7 +1925,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 )
 
                         for troop in all_troops:
-                            if int(settings["world_config"]["archer"]) == 0:
+                            if settings["world_config"]["archer"] == 0:
                                 if troop in ("archer", "marcher"):
                                     continue
                             if troop == "snob":
@@ -1910,7 +1945,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                     troop_number = round(
                                         troop_number
                                         / 100
-                                        * int(send_info["first_snob_army_size"])
+                                        * send_info["first_snob_army_size"]
                                     )
                             input_field.send_keys(troop_number)
 
@@ -1929,11 +1964,11 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 )
 
                     if send_info["send_snob"] == "send_snob":
-                        if send_info["snob_amount"] and send_info["snob_amount"] != "0":
+                        if send_info["snob_amount"]:
                             snob_input = driver.find_element(By.ID, "unit_input_snob")
                             snob_input.clear()
                             snob_input.send_keys("1")
-                            send_info["snob_amount"] = int(send_info["snob_amount"]) - 1
+                            send_info["snob_amount"] = send_info["snob_amount"] - 1
 
                 case "send_fake":
                     # Choose troops to send
@@ -1947,9 +1982,10 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         available_troop_number = int(
                             troop_input.get_attribute("data-all-count")
                         )
-                        if available_troop_number >= int(
-                            template_data["min_value"]
-                        ) and available_troop_number <= int(template_data["max_value"]):
+                        if (
+                            available_troop_number >= template_data["min_value"]
+                            and available_troop_number <= template_data["max_value"]
+                        ):
                             if (
                                 available_troop_number * template_data["population"]
                                 >= min_population - current_population
@@ -1966,10 +2002,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 current_population += (
                                     available_troop_number * template_data["population"]
                                 )
-                        elif available_troop_number >= int(template_data["max_value"]):
+                        elif available_troop_number >= template_data["max_value"]:
                             if (
-                                int(template_data["max_value"])
-                                * template_data["population"]
+                                template_data["max_value"] * template_data["population"]
                                 >= min_population - current_population
                             ):
                                 troop_number = ceil(
@@ -1978,9 +2013,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 )
                                 current_population = min_population
                             else:
-                                troop_number = int(template_data["max_value"])
+                                troop_number = template_data["max_value"]
                                 current_population += (
-                                    int(template_data["max_value"])
+                                    template_data["max_value"]
                                     * template_data["population"]
                                 )
                         else:
@@ -2009,11 +2044,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         )
                         troop_input.send_keys(troop_number)
 
-                    if int(send_info["repeat_attack"]):
+                    if send_info["repeat_attack"]:
                         if send_info["total_attacks_number"]:
-                            total_attacks_number = int(
-                                send_info["total_attacks_number"]
-                            )
+                            total_attacks_number = send_info["total_attacks_number"]
                             if total_attacks_number > 1:
                                 total_attacks_number -= 1
                                 # Add dict to list of attacks to repeat and in the end add to self.to_do
@@ -2073,9 +2106,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
             elif send_info["template_type"] == "send_my_template":
                 if (
                     "split_attacks_number" in send_info
-                    and send_info["split_attacks_number"] != "1"
+                    and send_info["split_attacks_number"] != 1
                 ):
-                    split_attacks_number = int(send_info["split_attacks_number"])
+                    split_attacks_number = send_info["split_attacks_number"]
                     try:
                         add_attack = driver.find_element(By.ID, "troop_confirm_train")
                     except:
@@ -2095,7 +2128,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         if troop_name not in send_info["troops"]:
                             send_info["troops"][troop_name] = "0"
                     for troop_name, troop_number in send_info["troops"].items():
-                        if troop_name == "snob" and int(troop_number) == 1:
+                        if troop_name == "snob" and troop_number == 1:
                             continue
                         for index in range(2, split_attacks_number + 1):
                             troop_input = driver.find_element(
