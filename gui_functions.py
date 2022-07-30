@@ -4,6 +4,8 @@ import logging
 import os
 import subprocess
 import sys
+import textwrap
+import threading
 import time
 import tkinter as tk
 import winreg
@@ -136,7 +138,9 @@ def current_time() -> str:
     return time.strftime("%d/%m/%Y %H:%M:%S", time.localtime())
 
 
-def custom_error(message: str, auto_hide: bool = False, parent=None) -> None:
+def custom_error(
+    message: str, auto_hide: bool = False, parent=None, justify=None, sticky=None
+) -> None:
 
     master = tk.Toplevel(borderwidth=1, relief="groove")
     master.attributes("-alpha", 0.0)
@@ -147,21 +151,27 @@ def custom_error(message: str, auto_hide: bool = False, parent=None) -> None:
     message = message.splitlines()
     if not auto_hide:
         if len(message) == 1:
-            message_label = ttk.Label(master, text=message[0])
-            message_label.grid(row=0, column=0, padx=5, pady=5)
+            message = textwrap.fill(message[0], width=80)
+            message_label = ttk.Label(master, text=message, justify=justify)
+            message_label.grid(row=0, column=0, padx=10, pady=10, sticky=sticky)
 
             ok_button = ttk.Button(master, text="Ok", command=master.destroy)
-            ok_button.grid(row=1, column=0, pady=(5, 8))
+            ok_button.grid(row=1, column=0, padx=10, pady=(0, 10))
         else:
             for index, text_line in enumerate(message):
+                text_line = textwrap.fill(text_line, width=80)
                 if index == 0:
-                    message_label = ttk.Label(master, text=text_line)
-                    message_label.grid(row=index, column=0, padx=10, pady=(10, 5))
+                    message_label = ttk.Label(master, text=text_line, justify=justify)
+                    message_label.grid(
+                        row=index, column=0, padx=10, pady=(10, 5), sticky=sticky
+                    )
                 else:
-                    message_label = ttk.Label(master, text=text_line)
-                    message_label.grid(row=index, column=0, padx=10, pady=(0, 5))
+                    message_label = ttk.Label(master, text=text_line, justify=justify)
+                    message_label.grid(
+                        row=index, column=0, padx=10, pady=(0, 5), sticky=sticky
+                    )
             ok_button = ttk.Button(master, text="Ok", command=master.destroy)
-            ok_button.grid(row=len(message), column=0, pady=(5, 10))
+            ok_button.grid(row=len(message), column=0, padx=10, pady=(5, 10))
 
         master.focus_force()
         master.bind("<Return>", lambda event: master.destroy())
@@ -178,18 +188,40 @@ def custom_error(message: str, auto_hide: bool = False, parent=None) -> None:
         master.after(ms=2000, func=lambda: master.destroy())
 
 
+def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Thread:
+    """Used to speedup app start doing stuff while connecting to database"""
+
+    def run_in_other_thread() -> None:
+
+        # Load settings into settings_by_worlds[server_world]
+        try:
+            for settings_file_name in os.listdir("settings"):
+                server_world = settings_file_name[: settings_file_name.find(".")]
+                main_window.settings_by_worlds[server_world] = load_settings(
+                    f"settings//{settings_file_name}"
+                )
+        except FileNotFoundError:
+            os.mkdir("settings")
+
+        # Add reference to deeper lists and dicts between settings and settings_by_worlds[server_world]
+        if (
+            "server_world" in settings
+            and settings["server_world"] in main_window.settings_by_worlds
+        ):
+            settings.update(main_window.settings_by_worlds[settings["server_world"]])
+
+    if not main_window.settings_by_worlds:
+        threading.Thread(target=run_in_other_thread).start()
+
+
 def fill_entry_from_settings(entries: dict, settings: dict) -> None:
     def loop_over_entries(entries: dict | tk.StringVar, settings: dict | str):
         for key in entries:
             if key in settings:
-                if settings[key]:
-                    if isinstance(entries[key], dict):
-                        loop_over_entries(entries[key], settings[key])
-                    else:
-                        entries[key].set(settings[key])
+                if isinstance(entries[key], dict):
+                    loop_over_entries(entries[key], settings[key])
                 else:
-                    if not entries[key].get():
-                        entries[key].set(0)
+                    entries[key].set(settings[key])
 
     loop_over_entries(entries=entries, settings=settings)
 
@@ -349,6 +381,44 @@ def load_settings(file_path: str = "settings.json") -> dict:
         return settings
 
 
+def on_button_release(event: tk.Event, master: tk.Tk) -> None:
+    """Adds function to some widgets like Entry, Text, Spinbox etc.
+    It is selecting all text inside widget after button_release event.
+    Also it loes focus and clear selection if user click outside of widget.
+    """
+
+    widget: ttk.Entry = event.widget
+    widget.selection_range(0, "end")
+    widget.focus()
+    widget_class = widget.winfo_class()
+    widget.unbind_class(widget_class, "<ButtonRelease-1>")
+
+    def on_leave(event: tk.Event = None) -> None:
+        def on_enter(event: tk.Event = None) -> None:
+            master.unbind_all("<Button-1>")
+            master.unbind_class(widget_class, "<ButtonRelease-1>")
+
+        def on_click_outside(event: tk.Event) -> None:
+            if not widget.winfo_exists():
+                master.unbind_all("<Button-1>")
+                return
+            widget.select_clear()
+            widget.nametowidget(widget.winfo_parent()).focus()
+            master.unbind_all("<Button-1>")
+            widget.unbind("<Enter>")
+            widget.unbind("<Leave>")
+
+        widget.bind("<Enter>", on_enter)
+        master.bind_class(
+            widget_class,
+            "<ButtonRelease-1>",
+            lambda event: on_button_release(event, master),
+        )
+        master.bind_all("<Button-1>", on_click_outside, add="+")
+
+    widget.bind("<Leave>", on_leave)
+
+
 def run_driver(settings: dict) -> webdriver.Chrome:
     """Uruchamia sterownik i przeglądarkę google chrome"""
 
@@ -356,6 +426,7 @@ def run_driver(settings: dict) -> webdriver.Chrome:
         chrome_options = Options()
         chrome_options.add_argument("user-data-dir=" + settings["path"])
         chrome_options.add_argument("start-maximized")
+        chrome_options.add_argument("--no-sandbox")
         chrome_options.add_extension(extension="0.62.crx")
         chrome_options.add_experimental_option("useAutomationExtension", False)
         chrome_options.add_experimental_option(
@@ -365,9 +436,7 @@ def run_driver(settings: dict) -> webdriver.Chrome:
             try:
                 driver = webdriver.Chrome(
                     service=Service(
-                        ChromeDriverManager(
-                            cache_valid_range=31, log_level=logging.WARNING
-                        ).install()
+                        ChromeDriverManager(cache_valid_range=31).install()
                     ),
                     options=chrome_options,
                 )

@@ -16,15 +16,18 @@
 # under the License.
 
 import time
-from selenium.common.exceptions import NoSuchElementException, InvalidSelectorException
+import typing
+
+from selenium.types import WaitExcTypes
+from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import TimeoutException
 
-POLL_FREQUENCY = 0.5  # How long to sleep in between calls to the method
-IGNORED_EXCEPTIONS = (NoSuchElementException,)  # exceptions ignored during calls to the method
+POLL_FREQUENCY: float = 0.5  # How long to sleep in between calls to the method
+IGNORED_EXCEPTIONS: typing.Tuple[typing.Type[Exception]] = (NoSuchElementException,)  # default to be ignored.
 
 
-class WebDriverWait(object):
-    def __init__(self, driver, timeout, poll_frequency=POLL_FREQUENCY, ignored_exceptions=None):
+class WebDriverWait:
+    def __init__(self, driver, timeout: float, poll_frequency: float = POLL_FREQUENCY, ignored_exceptions: typing.Optional[WaitExcTypes] = None):
         """Constructor, takes a WebDriver instance and timeout in seconds.
 
            :Args:
@@ -60,7 +63,7 @@ class WebDriverWait(object):
         return '<{0.__module__}.{0.__name__} (session="{1}")>'.format(
             type(self), self._driver.session_id)
 
-    def until(self, method, message=''):
+    def until(self, method, message: str = ""):
         """Calls the method provided with the driver as an argument until the \
         return value does not evaluate to ``False``.
 
@@ -72,23 +75,21 @@ class WebDriverWait(object):
         screen = None
         stacktrace = None
 
-        end_time = time.time() + self._timeout
+        end_time = time.monotonic() + self._timeout
         while True:
             try:
                 value = method(self._driver)
                 if value:
                     return value
-            except InvalidSelectorException as e:
-                raise e
             except self._ignored_exceptions as exc:
                 screen = getattr(exc, 'screen', None)
                 stacktrace = getattr(exc, 'stacktrace', None)
             time.sleep(self._poll)
-            if time.time() > end_time:
+            if time.monotonic() > end_time:
                 break
         raise TimeoutException(message, screen, stacktrace)
 
-    def until_not(self, method, message=''):
+    def until_not(self, method, message: str = ""):
         """Calls the method provided with the driver as an argument until the \
         return value evaluates to ``False``.
 
@@ -98,17 +99,15 @@ class WebDriverWait(object):
                   ``True`` if `method` has raised one of the ignored exceptions
         :raises: :exc:`selenium.common.exceptions.TimeoutException` if timeout occurs
         """
-        end_time = time.time() + self._timeout
+        end_time = time.monotonic() + self._timeout
         while True:
             try:
                 value = method(self._driver)
                 if not value:
                     return value
-            except InvalidSelectorException as e:
-                raise e
             except self._ignored_exceptions:
                 return True
             time.sleep(self._poll)
-            if time.time() > end_time:
+            if time.monotonic() > end_time:
                 break
         raise TimeoutException(message)

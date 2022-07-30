@@ -104,19 +104,25 @@ class ScrollableFrame:
     def __init__(self, parent: ttk.Frame = None) -> None:
 
         self.parent = parent
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(0, weight=1)
 
         def on_configure(event: tk.Event):
             # Update scrollregion after starting 'mainloop'
             # when all widgets are in canvas.
             self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+            if self.canvas.yview() == (0.0, 1.0):
+                self.scrollbar.grid_remove()
 
         def _frame_width(event: tk.Event):
             canvas_width = event.width
+            if self.canvas.yview() == (0.0, 1.0):
+                self.canvas.itemconfig(self.canvas_frame, width=canvas_width)
+                return
             self.canvas.itemconfig(self.canvas_frame, width=canvas_width - 11)
-            # self.canvas.config(width=self.frame.winfo_reqwidth())
-            # self.canvas.itemconfig(self.canvas_frame, width=self.frame.winfo_reqwidth())
 
         # --- Create self.canvas with scrollbar ---
+
         self.canvas = tk.Canvas(parent)
         self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
         self.canvas.columnconfigure(0, weight=1)
@@ -144,27 +150,6 @@ class ScrollableFrame:
         # when all widgets are in self.canvas.
         self.frame.bind("<Configure>", on_configure)
         self.canvas.bind("<Configure>", _frame_width)
-
-    def update_canvas(self, max_height: int = 500) -> None:
-        """Update canvas size depend on frame requested size"""
-
-        # # self.frame['width'] = 440
-        # # self.frame.update_idletasks()
-        # # if self.frame.winfo_reqheight() <= max_height:
-        # #     self.canvas['height'] = self.frame.winfo_reqheight()
-        # # else:
-        # #     self.canvas['height'] = max_height
-        # self.frame.update_idletasks()
-        # print(self.canvas['width'])
-        # print(self.frame['width'])
-        # # self.parent['width'] = 450
-        # print(self.frame.winfo_reqwidth())
-        # print(self.parent.winfo_reqwidth())
-        # print(self.scrollbar.winfo_reqwidth())
-        # print('-------------------------------------------------')
-
-        # # self.canvas.yview_moveto(0)
-        pass
 
     def _bound_to_mousewheel(self, event: tk.Event = None):
         self.canvas.bind_all("<MouseWheel>", lambda event: self._on_mousewheel(event))

@@ -56,6 +56,10 @@
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_pkgres.py',
    'PYSOURCE'),
+  ('pyi_rth_win32api',
+   'C:\\Users\\klime\\VS '
+   'Code\\selenium_chrome\\.venv_tribal_wars\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth_win32api.py',
+   'PYSOURCE'),
   ('pyi_rth__tkinter',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks\\pyi_rth__tkinter.py',
@@ -70,7 +74,7 @@
  [],
  False,
  False,
- 1656711155,
+ 1659199229,
  [('runw.exe',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit\\runw.exe',

@@ -1,3 +1,5 @@
+import logging
+import os
 import threading
 import tkinter as tk
 
@@ -7,17 +9,31 @@ from database_connection import DataBaseConnection
 from gui_functions import (
     center,
     custom_error,
+    delegate_things_to_other_thread,
     get_pos,
     invoke_checkbuttons,
     show_or_hide_password,
 )
 from register_window import RegisterWindow
 
+# Logging module settings
+logger = logging.getLogger(__name__)
+if not os.path.exists("logs"):
+    os.mkdir("logs")
+f_handler = logging.FileHandler("logs/log.txt")
+f_format = logging.Formatter(
+    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+)
+f_handler.setFormatter(f_format)
+logger.addHandler(f_handler)
+logger.propagate = False
+
 
 class LogInWindow:
     def __init__(self, main_window, settings: dict) -> None:
         settings["logged"] = False
         if "user_password" in settings:
+            delegate_things_to_other_thread(settings=settings, main_window=main_window)
             db_answer = None
             user_data = None
             with DataBaseConnection() as cursor:
@@ -42,7 +58,9 @@ class LogInWindow:
                 else:
                     main_window.user_data = user_data
                     self.after_correct_log_in(
-                        main_window=main_window, settings=settings, user_data=user_data
+                        main_window=main_window,
+                        settings=settings,
+                        user_data=user_data,
                     )
                     return
 
@@ -143,7 +161,11 @@ class LogInWindow:
         center(self.master)
 
     def after_correct_log_in(
-        self, main_window, settings: dict, user_data: dict, parent=None
+        self,
+        main_window,
+        settings: dict,
+        user_data: dict,
+        parent=None,
     ) -> None:
         settings["logged"] = True
 
@@ -175,7 +197,6 @@ class LogInWindow:
 
         invoke_checkbuttons(parent=main_window.master)
         center(main_window.master, parent=parent)
-        main_window.load_after_log_in(settings=settings)
         main_window.master.deiconify()
         main_window.master.attributes("-alpha", 1.0)
         main_window.master.attributes("-topmost", 1)
@@ -183,6 +204,7 @@ class LogInWindow:
         self.update_db_running_status(main_window=main_window)
 
     def log_in(self, main_window, settings: dict):
+        delegate_things_to_other_thread(settings=settings, main_window=main_window)
         db_answer = None
         user_data = None
         with DataBaseConnection() as cursor:
@@ -224,7 +246,18 @@ class LogInWindow:
 
     def register(self):
         self.master.withdraw()
-        self.register_win = RegisterWindow(parent=self.master)
+        try:
+            self.register_win = RegisterWindow(parent=self.master)
+        except:
+            logger.error("RegisterWindow exception", exc_info=True)
+            custom_error(
+                message="Wystąpił nieoczekiwany błąd.\nInformację o błędzie zapisane zostały "
+                "w pliku log.txt. Plik znajduję się w podfolderze, o nazwie logs, w głównym folderze aplikacji TribalWarsBot. "
+                "W celu uzyskania pomocy prześlij wspomniany plik na adres k.spec@tuta.io",
+                parent=self.master,
+                sticky=ttk.W,
+            )
+            self.master.deiconify()
 
     def update_db_running_status(self, main_window):
         """Inform database about account activity every 10min"""

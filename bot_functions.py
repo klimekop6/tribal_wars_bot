@@ -12,7 +12,12 @@ from math import ceil, sqrt
 import lxml.html
 import requests
 from selenium import webdriver
-from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import (
+    NoSuchWindowException,
+    StaleElementReferenceException,
+    TimeoutException,
+    WebDriverException,
+)
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -44,7 +49,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
 
     if not int(driver.execute_script("return window.game_data.player.incomings")):
         return False
-    incomings = WebDriverWait(driver, 3).until(
+    incomings = WebDriverWait(driver, 3, 0.2).until(
         EC.element_to_be_clickable((By.ID, "incomings_cell"))
     )  # Otwarcie karty z nadchodzącymi atakami
     driver.execute_script("return arguments[0].scrollIntoView(false);", incomings)
@@ -53,22 +58,24 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     ]
     driver.execute_script(f"scrollBy(0, -{top_bar_height});")
     incomings.click()
-    WebDriverWait(driver, 3).until(
+    WebDriverWait(driver, 3, 0.2).until(
         EC.element_to_be_clickable(
             (By.XPATH, '//*[@id="paged_view_content"]/div[1]/*[@data-group-type="all"]')
         )
     ).click()  # Zmiana grupy na wszystkie
-    manage_filters = WebDriverWait(driver, 5).until(
+    manage_filters = WebDriverWait(driver, 5, 0.2).until(
         EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
     )  # Zwraca element z filtrem ataków
     if (
-        driver.find_element_by_xpath('//*[@id="paged_view_content"]/div[2]')
+        driver.find_element(By.XPATH, '//*[@id="paged_view_content"]/div[2]')
         .get_attribute("style")
         .find("display: none")
         != -1
     ):
         manage_filters.click()
-    etkyieta_rozkazu = WebDriverWait(driver, 5).until(
+    # Close chat
+    driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
+    etkyieta_rozkazu = WebDriverWait(driver, 5, 0.2).until(
         EC.element_to_be_clickable(
             (
                 By.XPATH,
@@ -79,7 +86,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     etkyieta_rozkazu.clear()
     translate = {"pl": "Atak", "de": "Angriff"}
     etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
-    WebDriverWait(driver, 5).until(
+    WebDriverWait(driver, 5, 0.2).until(
         EC.element_to_be_clickable(
             (
                 By.XPATH,
@@ -87,23 +94,30 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             )
         )
     ).click()
-    WebDriverWait(driver, 5).until(
+    WebDriverWait(driver, 5, 0.2).until(
         EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
     )
 
+    # Quit if no new attacks
     if not driver.find_elements(By.ID, "incomings_table"):
         return True
 
-    element = WebDriverWait(driver, 5).until(
+    # Close chat
+    driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
+
+    element = WebDriverWait(driver, 5, 0.2).until(
         EC.element_to_be_clickable((By.ID, "select_all"))
     )
     driver.execute_script("return arguments[0].scrollIntoView(true);", element)
     element.click()
-    WebDriverWait(driver, 5).until(
+    WebDriverWait(driver, 5, 0.2).until(
         EC.element_to_be_clickable(
             (By.XPATH, '//*[@id="incomings_table"]//input[@type="submit"]')
         )
     ).click()
+
+    # Close chat
+    driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
 
     notifications = settings["notifications"]
     if any(
@@ -113,7 +127,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             notifications["sound_notifications"],
         )
     ):
-        etkyieta_rozkazu = WebDriverWait(driver, 5).until(
+        etkyieta_rozkazu = WebDriverWait(driver, 5, 0.2).until(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
@@ -124,7 +138,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
         etkyieta_rozkazu.clear()
         translate = {"pl": "Szlachcic", "de": "AG"}
         etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
-        WebDriverWait(driver, 5).until(
+        WebDriverWait(driver, 5, 0.2).until(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
@@ -132,28 +146,54 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
                 )
             )
         ).click()
-        WebDriverWait(driver, 5).until(
+        WebDriverWait(driver, 5, 0.2).until(
             EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
         )
 
-        # Return True if no attacks were found
-        if not driver.find_elements_by_id("incomings_table"):
+        # Return True if no new attacks with snob were found
+        if not driver.find_elements(By.ID, "incomings_table"):
             return True
 
-        if notifications["email_notifications"]:
-            total_attacks_number = driver.find_element_by_xpath(
-                '//*[@id="incomings_table"]/tbody/tr[1]/th[1]'
-            ).text
-            total_attacks_number = re.search(r"\d+", total_attacks_number).group()
-            reach_time_list = [
+        # Close chat
+        driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
+
+        def get_attacks_info() -> str:
+            reach_times = [
                 reach_time.text
-                for reach_time in driver.find_elements_by_xpath(
-                    '//*[@id="incomings_table"]/tbody/tr/td[6]'
+                for reach_time in driver.find_elements(
+                    By.XPATH, '//*[@id="incomings_table"]/tbody/tr/td[6]'
                 )
             ]
-            attacks_reach_time = "".join(
-                f"{index+1}. {_}\n" for index, _ in enumerate(reach_time_list)
+            villages_coords = [  # (?s:.*)
+                re.findall(r"\d{3}\|\d{3}", village_coord.text)[-1]
+                for village_coord in driver.find_elements(
+                    By.XPATH, '//*[@id="incomings_table"]/tbody/tr/td[2]'
+                )
+            ]
+            attacks_by_village = {}
+            for village_coords, attack_time in zip(villages_coords, reach_times):
+                if village_coords not in attacks_by_village:
+                    attacks_by_village[village_coords] = [attack_time]
+                    continue
+                attacks_by_village[village_coords].append(attack_time)
+
+            # Sort dict by first value in each key
+            attacks_by_village = dict(
+                sorted(attacks_by_village.items(), key=lambda item: item[1][0])
             )
+
+            message = "\n".join(
+                f"\n{coords}\n" + "\n".join(attacks)
+                for coords, attacks in attacks_by_village.items()
+            )
+            return message
+
+        if notifications["email_notifications"]:
+            total_attacks_number = driver.find_element(
+                By.XPATH, '//*[@id="incomings_table"]/tbody/tr[1]/th[1]'
+            ).text
+            total_attacks_number = re.search(r"\d+", total_attacks_number).group()
+            attacks_info = get_attacks_info()
 
             threading.Thread(
                 target=email_notifications.send_email,
@@ -161,14 +201,27 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
                     "email_recepients": settings["notifications"]["email_address"],
                     "email_subject": f"Wykryto grubasy {settings['world_in_title']}",
                     "email_body": f'Wykryto grubasy o godzinie {time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())}\n\n'
-                    f"Liczba nadchodzących grubasów: {total_attacks_number}\n\n"
-                    f"Godziny wejść:\n"
-                    f"{attacks_reach_time}",
+                    f"Liczba nadchodzących grubasów: {total_attacks_number}\n"
+                    f"{attacks_info}",
                 },
             ).start()
 
         if notifications["sms_notifications"]:
-            pass
+            url = "https://sms-api.ddns.net/send_sms"
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": "***REMOVED***",
+            }
+            if "attacks_info" not in locals():
+                attacks_info = get_attacks_info()
+            data = {
+                "number": notifications["phone_number"],
+                "text": f"Wykryto grubasy {settings['world_in_title']}\n{attacks_info}",
+            }
+            threading.Thread(
+                target=requests.post,
+                kwargs={"url": url, "json": data, "headers": headers},
+            ).start()
 
         if notifications["sound_notifications"]:
             winsound.PlaySound("alarm.wav", winsound.SND_ASYNC + winsound.SND_LOOP)
@@ -184,15 +237,17 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             )
 
         # Describe attacks
-        for label in driver.find_elements_by_xpath(
-            '//*[@id="incomings_table"]/tbody/tr/td[1]/span/span/a[2]'
+        for label in driver.find_elements(
+            By.XPATH, '//*[@id="incomings_table"]/tbody/tr/td[1]/span/span/a[2]'
         ):
-            driver.execute_script("return arguments[0].scrollIntoView(true);", label)
+            driver.execute_script(
+                'return arguments[0].scrollIntoView({block: "center"});', label
+            )
             label.click()
 
         current_time = time.strftime("%H:%M:%S %d.%m.%Y", time.localtime())
-        for label_input in driver.find_elements_by_xpath(
-            '//*[@id="incomings_table"]/tbody/tr/td[1]/span/span[2]/input[1]'
+        for label_input in driver.find_elements(
+            By.XPATH, '//*[@id="incomings_table"]/tbody/tr/td[1]/span/span[2]/input[1]'
         ):
             label_input.clear()
             label_input.send_keys(f"szlachta notified {current_time}")
@@ -214,9 +269,7 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
         driver.execute_script("return premium")
         and int(driver.execute_script("return game_data.player.villages")) > 1
     ):
-        open_groups = driver.find_element_by_id("open_groups")
-        driver.execute_script("arguments[0].scrollIntoView(false);", open_groups)
-        open_groups.click()
+        driver.execute_script("if (!villageDock.docked) {villageDock.open(event);}")
         current_group = (
             WebDriverWait(driver, 10, 0.033)
             .until(
@@ -228,20 +281,14 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
         )
         # Check and change group if not in proper one
         if current_group != settings["farm_group"]:
-            select = Select(driver.find_element_by_id("group_id"))
+            select = Select(driver.find_element(By.ID, "group_id"))
             select.select_by_visible_text(settings["farm_group"])
-            WebDriverWait(driver, 10, 0.033).until(
+            WebDriverWait(driver, 5, 0.033).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a')
                 )
             ).click()
-        close_groups = WebDriverWait(driver, 3, 0.033).until(
-            EC.presence_of_element_located((By.ID, "closelink_group_popup"))
-        )
-        driver.execute_script(
-            "return arguments[0].scrollIntoView(false);", close_groups
-        )
-        close_groups.click()
+        driver.execute_script("if (villageDock.docked) {villageDock.close(event);}")
         WebDriverWait(driver, 2, 0.033).until(  # Wait for group_popup close
             EC.presence_of_element_located(
                 (By.XPATH, '//*[@id="close_groups"][@style="display: none;"]')
@@ -262,12 +309,11 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
     while True:
 
         # Ukrywa chat
-        chat = driver.find_element_by_xpath('//*[@id="chat-wrapper"]')
-        driver.execute_script("arguments[0].innerHTML = '';", chat)
+        driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
 
         # Szablon A i B nazwy jednostek i ich liczebność
         doc = lxml.html.fromstring(
-            driver.find_element_by_id("content_value").get_attribute("innerHTML")
+            driver.find_element(By.ID, "content_value").get_attribute("innerHTML")
         )
         template_troops = {
             "A": doc.xpath("div[2]/div/form/table/tbody/tr[2]/td/input"),
@@ -318,7 +364,7 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
 
         # Lista poziomów murów
         walls_level = (
-            driver.find_element_by_id("plunder_list")
+            driver.find_element(By.ID, "plunder_list")
             .get_attribute("innerHTML")
             .split("<tr")[3:]
         )
@@ -343,15 +389,24 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
         start_time = 0
         no_units = False
         for index, template in enumerate(villages_to_farm):
-
             if skip[template]:
                 continue
-
-            villages_to_farm[template] = driver.find_elements_by_xpath(
-                f'//*[@id="plunder_list"]/tbody/tr/td[{villages_to_farm[template]}]/a'
+            max_attacks_number = settings[template]["attacks_number"]
+            villages_to_farm[template] = driver.find_elements(
+                By.XPATH,
+                f'//*[@id="plunder_list"]/tbody/tr/td[{villages_to_farm[template]}]/a',
             )
             captcha_solved = False
-            for village, wall_level in zip(villages_to_farm[template], walls_level):
+            for attacks_number, (village, wall_level) in enumerate(
+                zip(villages_to_farm[template], walls_level)
+            ):
+                if (
+                    not settings[template]["max_attacks"]
+                    and attacks_number >= max_attacks_number
+                ):
+                    break
+                if not settings["temp"]["main_window"].running:
+                    return
                 if (
                     isinstance(wall_level, str)
                     and not settings[template]["wall_ignore"]
@@ -390,8 +445,9 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
             if index < len(villages_to_farm) - 1:
                 no_units = False
                 driver.refresh()
-                chat = driver.find_element_by_xpath('//*[@id="chat-wrapper"]')
-                driver.execute_script("arguments[0].innerHTML = '';", chat)
+                driver.execute_script(
+                    'document.getElementById("chat-wrapper").innerHTML = "";'
+                )
 
         # Przełącz wioskę i sprawdź czy nie jest to wioska startowa
         ActionChains(driver).send_keys("d").perform()
@@ -405,24 +461,38 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
         )
 
 
-def captcha_check(
-    driver: webdriver.Chrome, settings: dict[str], page_source: str = None
-) -> None:
+def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     """Check for captcha existence.
 
     If exist, wait until solved and than update captcha counter.
     """
 
-    if not page_source:
-        page_source = driver.page_source
+    def antigate_solver_status_check() -> bool:
+        # Captcha not in page return True
+        if not driver.execute_script(
+            'return document.querySelector(".antigate_solver");'
+        ):
+            return True
+        # Captcha solved return True
+        if driver.execute_script(
+            'return document.querySelector(".antigate_solver.solved");'
+        ):
+            return True
+        # Captcha error refresh page and return False
+        if driver.execute_script(
+            'return document.querySelector(".antigate_solver.error");'
+        ):
+            driver.refresh()
+        return False
 
-    if page_source.find("captcha") != -1:
-        WebDriverWait(driver, 120).until(
-            lambda x: x.find_element_by_css_selector(".antigate_solver.solved")
-        )
+    if driver.execute_script('return document.querySelector(".antigate_solver");'):
+        WebDriverWait(driver, 120, 0.25).until(lambda _: antigate_solver_status_check())
+        time.sleep(1)
         settings["temp"]["captcha_counter"].set(
             settings["temp"]["captcha_counter"].get() + 1
         )
+        return True
+    return False
 
 
 def check_groups(
@@ -456,13 +526,15 @@ def check_groups(
 
         return
 
-    driver.find_element_by_id("open_groups").click()
+    # Open village selector
+    driver.execute_script("if (!villageDock.docked) {villageDock.open(event);}")
     groups = (
         WebDriverWait(driver, 10, 0.033)
         .until(EC.presence_of_element_located((By.ID, "group_id")))
         .get_attribute("innerHTML")
     )
-    driver.find_element_by_id("close_groups").click()
+    # Close village selector
+    driver.execute_script("if (villageDock.docked) {villageDock.close(event);}")
     groups = [group[1:-1] for group in re.findall(r">[^<].+?<", groups)]
     settings["groups"].clear()
     settings["groups"].extend(groups)
@@ -493,7 +565,7 @@ def dodge_attacks(driver: webdriver.Chrome) -> None:
         EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
     )  # Filtr ataków
     if (
-        driver.find_element_by_xpath('//*[@id="paged_view_content"]/div[2]')
+        driver.find_element(By.XPATH, '//*[@id="paged_view_content"]/div[2]')
         .get_attribute("style")
         .find("display: none")
         != -1
@@ -528,16 +600,16 @@ def dodge_attacks(driver: webdriver.Chrome) -> None:
         EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
     )  # Sprawdź widoczność przycisku "zarządzanie filtrami"
     try:
-        driver.find_element_by_id(
-            "incomings_table"
+        driver.find_element(
+            By.ID, "incomings_table"
         )  # Czy są ataki spełniające powyższe kryteria
     except:
         pass
 
-    targets = driver.find_elements_by_xpath(
-        '//*[@id="incomings_table"]/tbody/tr/td[2]/a'
+    targets = driver.find_elements(
+        By.XPATH, '//*[@id="incomings_table"]/tbody/tr/td[2]/a'
     )
-    dates = driver.find_elements_by_xpath('//*[@id="incomings_table"]/tbody/tr/td[6]')
+    dates = driver.find_elements(By.XPATH, '//*[@id="incomings_table"]/tbody/tr/td[6]')
 
     date_time = time.gmtime()
 
@@ -618,11 +690,9 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             driver.execute_script("return premium")
             and int(driver.execute_script("return game_data.player.villages")) > 1
         ):
-            groups_popup = driver.find_element(By.ID, "open_groups")
-            driver.execute_script("arguments[0].scrollIntoView(false);", groups_popup)
-            groups_popup.click()
+            driver.execute_script("if (!villageDock.docked) {villageDock.open(event);}")
             current_group = (
-                WebDriverWait(driver, 10, 0.033)
+                WebDriverWait(driver, 5, 0.033)
                 .until(
                     EC.presence_of_element_located(
                         (By.XPATH, '//*[@id="group_id"]/option[@selected="selected"]')
@@ -632,20 +702,14 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             )
 
             if current_group != settings["gathering_group"]:
-                select = Select(driver.find_element_by_id("group_id"))
+                select = Select(driver.find_element(By.ID, "group_id"))
                 select.select_by_visible_text(settings["gathering_group"])
                 WebDriverWait(driver, 3, 0.025).until(
                     EC.element_to_be_clickable(
                         (By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a')
                     )
                 ).click()
-            close_group = WebDriverWait(driver, 3, 0.025).until(
-                EC.element_to_be_clickable((By.ID, "closelink_group_popup"))
-            )
-            driver.execute_script(
-                "return arguments[0].scrollIntoView(true);", close_group
-            )
-            close_group.click()
+            driver.execute_script("if (villageDock.docked) {villageDock.close(event);}")
             WebDriverWait(driver, 2, 0.033).until(
                 EC.presence_of_element_located(
                     (By.XPATH, '//*[@id="close_groups"][@style="display: none;"]')
@@ -673,25 +737,29 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
     else:
         driver.get(kwargs["url_to_gathering"])
 
-    footer_height = driver.find_element(By.ID, "footer").size["height"]
-
     # Core całej funkcji, kończy gdy przejdzie przez wszystkie wioski
     while True:
 
+        if not settings["temp"]["main_window"].running:
+            return []
+
         send_troops_in_the_middle(driver=driver, settings=settings)
+        captcha_check(driver=driver, settings=settings)
 
         page_source = driver.page_source
-        captcha_check(driver=driver, settings=settings, page_source=page_source)
 
         # Skip to next village if current one doesn't have place
         place_str = re.search(r'"place":"\d"', page_source).group()
         if re.search(r"\d", place_str).group() == "0":
-            driver.find_element_by_id("ds_body").send_keys("d")
+            driver.find_element(By.ID, "ds_body").send_keys("d")
             current_village_id = driver.execute_script(
                 "return window.game_data.village.id;"
             )
             if starting_village == current_village_id:
-                return list_of_dicts
+                if "url_to_gathering" not in kwargs:
+                    return list_of_dicts
+                else:
+                    return []
             continue
 
         # Dostępne wojska
@@ -767,21 +835,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 del troops_to_send[number + 1]
 
         # Ukrywa chat
-        chat = driver.find_element_by_xpath('//*[@id="chat-wrapper"]')
-        driver.execute_script("arguments[0].innerHTML = '';", chat)
-
-        # Tymaczsowy zapis w celu wykrycia problemów z wysyłką
-        # class_list = [ele.get('class') for ele in doc.xpath('//*[@id="scavenge_screen"]/div/div[2]/div/div[3]/div')]
-        # current_village_name = driver.find_element_by_xpath('//*[@id="menu_row2_village"]/a').text
-        # if 'url_to_gathering' in kwargs:
-        #     gathering_info_file = open('gathering_info.txt', 'a')
-        #     gathering_info_file.write(
-        #         f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())}\n'
-        #         f'{current_village_name}\n'
-        #         f'available_troops {available_troops}\n'
-        #         f'troops_to_send {troops_to_send}\n'
-        #         f'{class_list}\n\n')
-        #     gathering_info_file.close()
+        driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
 
         # Obliczenie i wysyłanie wojsk na zbieractwo
         sum_capacity = sum(troops_to_send[key]["capacity"] for key in troops_to_send)
@@ -799,6 +853,8 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
         max_resources = settings["gathering_max_resources"]
         round_ups_per_troop = {troop_name: 0 for troop_name in available_troops}
         for key in troops_to_send:
+            if not settings["temp"]["main_window"].running:
+                return []
             for troop_name, troop_number in available_troops.items():
                 counted_troops_number = (
                     troops_to_send[key]["capacity"] / sum_capacity * troop_number
@@ -828,33 +884,26 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 else:
                     reduce_ratio = 1
             for troop_name in available_troops:
-                if troops_to_send[key][troop_name] > 0:
-                    _input = WebDriverWait(driver, 3, 0.01).until(
-                        EC.element_to_be_clickable(
-                            (
-                                By.XPATH,
-                                f'//*[@id="scavenge_screen"]/div/div[1]/table/tbody/tr[2]/td/input[@name="{troop_name}"]',
-                            )
-                        )
+                if not troops_to_send[key][troop_name] > 0:
+                    continue
+                if reduce_ratio != 1:
+                    driver.execute_script(
+                        f"""
+                        let field = $(`[name='{troop_name}']`);
+                        field.trigger('keydown');
+                        field.val('{round(troops_to_send[key][troop_name] * reduce_ratio)}');
+                        field.trigger('keyup');
+                    """
                     )
-                    try:
-                        _input.click()
-                    except:
-                        driver.execute_script(
-                            "return arguments[0].scrollIntoView(true);", _input
-                        )
-                        top_bar_height = driver.find_element(
-                            By.XPATH, '//*[@id="ds_body"]/div[1]'
-                        ).size["height"]
-                        driver.execute_script(f"scrollBy(0, -{top_bar_height})")
-                        _input.click()
-                    _input.clear()
-                    if reduce_ratio != 1:
-                        _input.send_keys(
-                            round(troops_to_send[key][troop_name] * reduce_ratio)
-                        )
-                    else:
-                        _input.send_keys(troops_to_send[key][troop_name])
+                else:
+                    driver.execute_script(
+                        f"""
+                        let field = $(`[name='{troop_name}']`);
+                        field.trigger('keydown');
+                        field.val('{troops_to_send[key][troop_name]}');
+                        field.trigger('keyup');
+                    """
+                    )
             army_sum = 0
             for troop_name in available_troops:
                 if troops_to_send[key][troop_name] > 0:
@@ -886,9 +935,6 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 )
             )
             driver.execute_script("arguments[0].click()", start)
-            # driver.execute_script("return arguments[0].scrollIntoView(false);", start)
-            # driver.execute_script(f"scrollBy(0, {footer_height});")
-            # start.click()
             WebDriverWait(driver, 3, 0.01).until(
                 EC.presence_of_element_located(
                     (
@@ -898,16 +944,12 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 )
             )
 
-        # tymczasowo w celu zlokalizowania problemu
-        # if 'url_to_gathering' in kwargs:
-        # logging.error(f'available_troops {available_troops}\ntroops_to_send {troops_to_send}')
-
         if "url_to_gathering" in kwargs:
 
             # Zwraca docelowy url i czas zakończenia zbieractwa w danej wiosce
             doc = lxml.html.fromstring(
-                driver.find_element_by_xpath(
-                    '//*[@id="scavenge_screen"]/div/div[2]'
+                driver.find_element(
+                    By.XPATH, '//*[@id="scavenge_screen"]/div/div[2]'
                 ).get_attribute("innerHTML")
             )
             doc = doc.xpath("//div/div[3]/div/ul/li[4]/span[2]")
@@ -915,8 +957,8 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 for _ in range(10):
                     time.sleep(0.2)
                     doc = lxml.html.fromstring(
-                        driver.find_element_by_xpath(
-                            '//*[@id="scavenge_screen"]/div/div[2]'
+                        driver.find_element(
+                            By.XPATH, '//*[@id="scavenge_screen"]/div/div[2]'
                         ).get_attribute("innerHTML")
                     )
                     doc = doc.xpath("//div/div[3]/div/ul/li[4]/span[2]")
@@ -958,7 +1000,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             journey_time = [int(_) for _ in max([ele.text for ele in doc]).split(":")]
         except:
             # Pomija wioski z zablokowanym zbieractwem
-            driver.find_element_by_id("ds_body").send_keys("d")
+            driver.find_element(By.ID, "ds_body").send_keys("d")
             current_village_id = driver.execute_script(
                 "return window.game_data.village.id;"
             )
@@ -979,7 +1021,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
         )
 
         # Przełącz wioskę i sprawdź czy nie jest to wioska startowa jeśli tak zwróć listę słowników z czasem i linkiem do poszczególnych wiosek
-        driver.find_element_by_id("ds_body").send_keys("d")
+        driver.find_element(By.ID, "ds_body").send_keys("d")
         current_village_id = driver.execute_script(
             "return window.game_data.village.id;"
         )
@@ -1057,9 +1099,13 @@ def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
     """Logowanie"""
 
     try:
-        driver.get(
-            f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
-        )
+        try:
+            driver.get(
+                f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
+            )
+        except WebDriverException as e:
+            if "cannot determine loading status" in e.msg:
+                pass
 
         # Czy prawidłowo wczytano i zalogowano się na stronie
         if f"{settings['server_world']}.{settings['game_url']}" in driver.current_url:
@@ -1143,14 +1189,14 @@ def market_offers(driver: webdriver.Chrome) -> None:
         village_resources.get_attribute("href").replace(
             "overview", "market&mode=own_offer"
         )
-        for village_resources in driver.find_elements_by_xpath(
-            '//*[@id="production_table"]/tbody/tr/td[2]/span/span/a[1]'
+        for village_resources in driver.find_elements(
+            By.XPATH, '//*[@id="production_table"]/tbody/tr/td[2]/span/span/a[1]'
         )
     ]
     resources = [
         int(resource.text.replace(".", ""))
-        for resource in driver.find_elements_by_xpath(
-            '//*[@id="production_table"]/tbody/tr/td[4]/span'
+        for resource in driver.find_elements(
+            By.XPATH, '//*[@id="production_table"]/tbody/tr/td[4]/span'
         )
     ]
     villages_resources["resources"] = [
@@ -1222,32 +1268,33 @@ def mark_villages_on_map(driver: webdriver.Chrome) -> None:
         + "screen=ally&mode=members_defense&player_id=&village="
         + village_id
     )
-    player_name = driver.find_element_by_xpath(
-        '//*[@id="menu_row"]/td[11]/table/tbody/tr[1]/td/a'
+    player_name = driver.find_element(
+        By.XPATH, '//*[@id="menu_row"]/td[11]/table/tbody/tr[1]/td/a'
     ).get_attribute("innerHTML")
-    current_player_id = driver.find_element_by_xpath(
-        f'//*[@id="ally_content"]/div/form/select/option[contains(text(), "{player_name}")]'
+    current_player_id = driver.find_element(
+        By.XPATH,
+        f'//*[@id="ally_content"]/div/form/select/option[contains(text(), "{player_name}")]',
     ).get_attribute("value")
     player_id = [
         player_id.get_attribute("value")
-        for player_id in driver.find_elements_by_xpath(
-            '//*[@id="ally_content"]/div/form/select/option'
+        for player_id in driver.find_elements(
+            By.XPATH, '//*[@id="ally_content"]/div/form/select/option'
         )
     ][1:]
     del player_id[player_id.index(str(current_player_id))]
     for id in player_id:
         driver.get(url[: url.find("player_id") + 10] + id + url[url.rfind("&") :])
-        if not driver.find_elements_by_xpath(
-            '//*[@id="ally_content"]/div/div'
+        if not driver.find_elements(
+            By.XPATH, '//*[@id="ally_content"]/div/div'
         ):  # Omija graczy bez wiosek
             continue
         village_number = len(
-            driver.find_elements_by_xpath(
-                '//*[@id="ally_content"]/div/div/table/tbody/tr/td[1]'
+            driver.find_elements(
+                By.XPATH, '//*[@id="ally_content"]/div/div/table/tbody/tr/td[1]'
             )
         )
-        tmp1 = driver.find_element_by_xpath(
-            '//*[@id="ally_content"]/div/div/table/tbody'
+        tmp1 = driver.find_element(
+            By.XPATH, '//*[@id="ally_content"]/div/div/table/tbody'
         ).text
         if (
             tmp1.find("?") != -1
@@ -1264,15 +1311,17 @@ def mark_villages_on_map(driver: webdriver.Chrome) -> None:
                 continue
             index += 1
         for index in range(len(tmp1)):
-            tmp1[index][0] = driver.find_element_by_xpath(
-                f'//*[@id="ally_content"]/div/div/table/tbody/tr[{tmp1[index][0]}]/td[1]/a'
+            tmp1[index][0] = driver.find_element(
+                By.XPATH,
+                f'//*[@id="ally_content"]/div/div/table/tbody/tr[{tmp1[index][0]}]/td[1]/a',
             ).get_attribute("href")
         villages_to_mark.extend([to_mark[0] for to_mark in tmp1])
 
     for village_to_mark in villages_to_mark:
         driver.get(village_to_mark)
-        driver.find_element_by_xpath(
-            '//*[@id="content_value"]/table/tbody/tr/td[1]/table[2]/tbody/tr[8]'
+        driver.find_element(
+            By.XPATH,
+            '//*[@id="content_value"]/table/tbody/tr/td[1]/table[2]/tbody/tr[8]',
         ).click()  # Otwiera zarządzanie zaznaczeniami mapy
         WebDriverWait(driver, 10, 0.1).until(
             EC.element_to_be_clickable(
@@ -1284,18 +1333,20 @@ def mark_villages_on_map(driver: webdriver.Chrome) -> None:
         )  # Czeka na załadowanie kodu HTML
         groups = [
             label_name.text
-            for label_name in driver.find_elements_by_xpath(
-                '//*[@id="map_group_management"]/table/tbody/tr/td/label'
+            for label_name in driver.find_elements(
+                By.XPATH, '//*[@id="map_group_management"]/table/tbody/tr/td/label'
             )
         ]  # Dostępne grupy zaznaczeń na mapie
         group_name = "FARMA"  # Nazwa wybranej grupy
-        element = driver.find_element_by_xpath(
-            f'//*[@id="map_group_management"]/table/tbody/tr[{groups.index(group_name)+1}]/td/label/input'
+        element = driver.find_element(
+            By.XPATH,
+            f'//*[@id="map_group_management"]/table/tbody/tr[{groups.index(group_name)+1}]/td/label/input',
         )  # Klika wybraną nazwę grupy
         driver.execute_script("return arguments[0].scrollIntoView(true);", element)
         element.click()
-        element = driver.find_element_by_xpath(
-            '//*[@id="map_group_management"]/table/tbody/tr/td/input[@value="Zapisz"]'
+        element = driver.find_element(
+            By.XPATH,
+            '//*[@id="map_group_management"]/table/tbody/tr/td/input[@value="Zapisz"]',
         )  # Zapisuję wybór
         driver.execute_script("return arguments[0].scrollIntoView(true);", element)
         element.click()
@@ -1307,6 +1358,10 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
     if "bonus_opened" in settings:
         if settings["bonus_opened"] == time.strftime("%d.%m.%Y", time.localtime()):
             return
+    # If zero new_daily_bonus
+    if not int(driver.execute_script("return game_data.player.new_daily_bonus")):
+        settings["bonus_opened"] = time.strftime("%d.%m.%Y", time.localtime())
+        return
 
     def open_all_available_chests() -> None:
         bonuses = driver.find_elements(
@@ -1364,14 +1419,15 @@ def player_villages(driver: webdriver.Chrome) -> dict:
     villages = {
         "id": [
             id.get_attribute("data-id")
-            for id in driver.find_elements_by_xpath(
-                '//*[@id="villages_list"]/tbody/tr/td[1]/table/tbody/tr/td[1]/span'
+            for id in driver.find_elements(
+                By.XPATH,
+                '//*[@id="villages_list"]/tbody/tr/td[1]/table/tbody/tr/td[1]/span',
             )
         ],
         "coords": [
             coords.text
-            for coords in driver.find_elements_by_xpath(
-                '//*[@id="villages_list"]/tbody/tr/td[3]'
+            for coords in driver.find_elements(
+                By.XPATH, '//*[@id="villages_list"]/tbody/tr/td[3]'
             )
         ],
     }
@@ -1472,31 +1528,35 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
 
             driver.get(village_url)
 
-            # Skip if market has not been built yet
+            # Skip if there is no market built
             if (
                 driver.execute_script("return game_data.village.buildings.market")
                 == "0"
             ):
                 continue
 
-            chat = driver.find_element_by_xpath('//*[@id="chat-wrapper"]')
-            driver.execute_script("arguments[0].innerHTML = '';", chat)
+            # Close chat
+            driver.execute_script(
+                'document.getElementById("chat-wrapper").innerHTML = "";'
+            )
 
             resources_doc = lxml.html.fromstring(
-                driver.find_element_by_xpath(
-                    '//*[@id="header_info"]/tbody/tr/td[4]/table/tbody/tr[1]/td/table/tbody/tr'
+                driver.find_element(
+                    By.XPATH,
+                    '//*[@id="header_info"]/tbody/tr/td[4]/table/tbody/tr[1]/td/table/tbody/tr',
                 ).get_attribute("innerHTML")
             )
             resources_name = ("wood", "stone", "iron")
             resources_available = {}
             for resource in resources_name:
-                resources_available[resource] = int(
-                    resources_doc.get_element_by_id(resource).text
+                resources_available[resource] = (
+                    int(resources_doc.get_element_by_id(resource).text)
+                    - settings["market"][resource]["leave_in_storage"]
                 )
 
             exchange_doc = lxml.html.fromstring(
-                driver.find_element_by_xpath(
-                    '//*[@id="premium_exchange_form"]/table/tbody'
+                driver.find_element(
+                    By.XPATH, '//*[@id="premium_exchange_form"]/table/tbody'
                 ).get_attribute("innerHTML")
             )
             exchange_resources = {
@@ -1516,8 +1576,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                 exchange_resources[resource]["max_exchange_resource_can_receive"] = int(
                     resource_capacity
                 ) - int(resource_stock)
-                resource_rate = driver.find_element_by_xpath(
-                    f'//*[@id="premium_exchange_rate_{resource}"]/div[1]'
+                resource_rate = driver.find_element(
+                    By.XPATH, f'//*[@id="premium_exchange_rate_{resource}"]/div[1]'
                 ).text
                 exchange_resources[resource]["current_resource_rate"] = int(
                     resource_rate
@@ -1555,6 +1615,9 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                 for resource_name in exchange_resources
             ):
                 break
+            # If village does not have enough resources skip to next one
+            if all(resource < 1 for resource in resources_available.values()):
+                continue
 
             SUM_EXCHANGE_RATE = sum(
                 resource["current_resource_rate"]
@@ -1562,8 +1625,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
             )
 
             STARTING_TRANSPORT_CAPACITY = int(
-                driver.find_element_by_xpath(
-                    '//*[@id="market_merchant_max_transport"]'
+                driver.find_element(
+                    By.XPATH, '//*[@id="market_merchant_max_transport"]'
                 ).text
             )
             transport_capacity = STARTING_TRANSPORT_CAPACITY
@@ -1607,8 +1670,9 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     )
 
                     current_exchange_rate = int(
-                        driver.find_element_by_xpath(
-                            f'//*[@id="premium_exchange_rate_{resource_name}"]/div[1]'
+                        driver.find_element(
+                            By.XPATH,
+                            f'//*[@id="premium_exchange_rate_{resource_name}"]/div[1]',
                         ).text
                     )
                     if (
@@ -1662,8 +1726,9 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                             continue
                         resource_to_sell = 1
 
-                    input = driver.find_element_by_xpath(
-                        f'//*[@id="premium_exchange_sell_{resource_name}"]/div[1]/input'
+                    input = driver.find_element(
+                        By.XPATH,
+                        f'//*[@id="premium_exchange_sell_{resource_name}"]/div[1]/input',
                     )
                     input.send_keys(f"{resource_to_sell}")
                     input.send_keys(Keys.ENTER)
@@ -1680,8 +1745,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                             )
                         )
                     except TimeoutException:
-                        driver.find_element_by_xpath(
-                            '//*[@id="premium_exchange_form"]/input'
+                        driver.find_element(
+                            By.XPATH, '//*[@id="premium_exchange_form"]/input'
                         ).click()
                         final_resource_amount_to_sell = WebDriverWait(
                             driver, 3, 0.025
@@ -1727,8 +1792,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                         final_resource_amount_to_sell
                         > resources_available[resource_name]
                     ):
-                        current_exchange_rate = driver.find_element_by_xpath(
-                            '//*[@id="confirmation-msg"]/div/p[2]'
+                        current_exchange_rate = driver.find_element(
+                            By.XPATH, '//*[@id="confirmation-msg"]/div/p[2]'
                         ).text
                         current_exchange_rate = ceil(
                             final_resource_amount_to_sell
@@ -1784,8 +1849,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
 def send_back_support(driver: webdriver.Chrome) -> None:
     """Odsyłanie wybranego wsparcia z przeglądanej wioski"""
 
-    code = driver.find_element_by_xpath(
-        '//*[@id="withdraw_selected_units_village_info"]/table/tbody'
+    code = driver.find_element(
+        By.XPATH, '//*[@id="withdraw_selected_units_village_info"]/table/tbody'
     ).get_attribute("innerHTML")
     temp = code.split("<tr>")[2:-1]
     omit = 2
@@ -1801,8 +1866,9 @@ def send_back_support(driver: webdriver.Chrome) -> None:
                 continue
             if temp[index][row][1].find("hidden") != -1:
                 continue
-            ele = driver.find_element_by_xpath(
-                f'//*[@id="withdraw_selected_units_village_info"]/table/tbody/tr[{index+2}]/td[{temp[index][row][0]}]'
+            ele = driver.find_element(
+                By.XPATH,
+                f'//*[@id="withdraw_selected_units_village_info"]/table/tbody/tr[{index+2}]/td[{temp[index][row][0]}]',
             )
             html = temp[index][row][1][temp[index][row][1].find("<") : -5]
             html = html[: html.find("value")] + 'value="" ' + html[html.find("min") :]
@@ -2278,8 +2344,7 @@ def unwanted_page_content(
             return log_in(driver, settings)
 
         # If captcha on page
-        if html.find("captcha") != -1:
-            captcha_check(driver=driver, settings=settings, page_source=html)
+        if captcha_check(driver=driver, settings=settings):
             return True
 
         # Bonus dzienny i pozostałe okna należacę do popup_box_container
@@ -2381,8 +2446,8 @@ def unwanted_page_content(
                 return True
 
         # Zamyka otwarte okno grup
-        elif driver.find_elements_by_xpath(
-            '//*[@id="open_groups"][@style="display: none;"]'
+        elif driver.find_elements(
+            By.XPATH, '//*[@id="open_groups"][@style="display: none;"]'
         ):
             driver.execute_script("villageDock.close(event);")
 
