@@ -1,6 +1,7 @@
 /dist/
 /build/
-/log.txt
+/logs/
 /pyu-data/
 /settings/
 settings.json
+villages*.txt

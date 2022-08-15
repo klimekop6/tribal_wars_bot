@@ -17,7 +17,7 @@ def log_errors(send_email: bool = False):
     def decorator(func):
         def wrapper(*args, **kwargs):
             try:
-                func(*args, **kwargs)
+                return func(*args, **kwargs)
             except:
                 error_str = traceback.format_exc()
                 error_str = error_str[: error_str.find("Stacktrace")]

@@ -1,4 +1,0 @@
-INFO:WDM:====== WebDriver manager ======
-INFO:WDM:Current google-chrome version is 103.0.5060
-INFO:WDM:Get LATEST chromedriver version for 103.0.5060 google-chrome
-INFO:WDM:Driver [C:\Users\klime\.wdm\drivers\chromedriver\win32\103.0.5060.134\chromedriver.exe] found in cache

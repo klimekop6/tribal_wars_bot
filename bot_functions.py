@@ -1,6 +1,5 @@
-import json
+import ast
 import logging
-import os
 import random
 import re
 import threading
@@ -11,9 +10,10 @@ from math import ceil, sqrt
 
 import lxml.html
 import requests
+from anticaptchaofficial.hcaptchaproxyless import *
+from anycaptcha import AnycaptchaClient, HCaptchaTaskProxyless
 from selenium import webdriver
 from selenium.common.exceptions import (
-    NoSuchWindowException,
     StaleElementReferenceException,
     TimeoutException,
     WebDriverException,
@@ -31,8 +31,6 @@ import email_notifications
 from gui_functions import custom_error
 
 logger = logging.getLogger(__name__)
-if not os.path.exists("logs"):
-    os.mkdir("logs")
 f_handler = logging.FileHandler("logs/log.txt")
 f_format = logging.Formatter(
     "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
@@ -42,61 +40,65 @@ logger.addHandler(f_handler)
 logger.propagate = False
 
 
-def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
+def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> bool:
     """Etykiety ataków"""
 
     COUNTRY_CODE: str = settings["country_code"]
 
     if not int(driver.execute_script("return window.game_data.player.incomings")):
         return False
-    incomings = WebDriverWait(driver, 3, 0.2).until(
-        EC.element_to_be_clickable((By.ID, "incomings_cell"))
-    )  # Otwarcie karty z nadchodzącymi atakami
-    driver.execute_script("return arguments[0].scrollIntoView(false);", incomings)
-    top_bar_height = driver.find_element(By.XPATH, '//*[@id="ds_body"]/div[1]').size[
-        "height"
-    ]
-    driver.execute_script(f"scrollBy(0, -{top_bar_height});")
-    incomings.click()
-    WebDriverWait(driver, 3, 0.2).until(
-        EC.element_to_be_clickable(
-            (By.XPATH, '//*[@id="paged_view_content"]/div[1]/*[@data-group-type="all"]')
-        )
-    ).click()  # Zmiana grupy na wszystkie
-    manage_filters = WebDriverWait(driver, 5, 0.2).until(
-        EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
-    )  # Zwraca element z filtrem ataków
-    if (
-        driver.find_element(By.XPATH, '//*[@id="paged_view_content"]/div[2]')
-        .get_attribute("style")
-        .find("display: none")
-        != -1
-    ):
-        manage_filters.click()
-    # Close chat
-    driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
-    etkyieta_rozkazu = WebDriverWait(driver, 5, 0.2).until(
-        EC.element_to_be_clickable(
-            (
-                By.XPATH,
-                '//*[@id="paged_view_content"]/div[2]/form/table/tbody/tr[2]/td[2]/input',
-            )
-        )
+
+    # Open incoming attacks tab with group id = 0 which points to all villages
+    current_village_id = driver.execute_script("return game_data.village.id")
+    url = f'https://{settings["server_world"]}.{settings["game_url"]}'
+    driver.get(
+        f"{url}/game.php?village={current_village_id}&screen=overview_villages&mode=incomings&type=unignored&subtype=attacks&group=0&page=-1"
     )
-    etkyieta_rozkazu.clear()
+    captcha_check(driver=driver, settings=settings)
+    # Check current label command and ommit changing it if it is already correct
+    label_command_value = driver.execute_script(
+        """return document.querySelector(
+        '#paged_view_content > div.overview_filters > form > table > tbody > tr:nth-child(2) > td:nth-child(2) > input[type=text]'
+        ).value;
+        """
+    )
     translate = {"pl": "Atak", "de": "Angriff"}
-    etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
-    WebDriverWait(driver, 5, 0.2).until(
-        EC.element_to_be_clickable(
-            (
-                By.XPATH,
-                '//*[@id="paged_view_content"]/div[2]/form/table/tbody/tr[6]/td/input',
+    if label_command_value != translate[COUNTRY_CODE]:
+        if (  # Check if filter manager is opened if not than open it
+            driver.find_element(By.XPATH, '//*[@id="paged_view_content"]/div[2]')
+            .get_attribute("style")
+            .find("display: none")
+            != -1
+        ):
+            manage_filters = WebDriverWait(driver, 5, 0.1).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, '//*[@id="paged_view_content"]/a')
+                )
+            )
+            manage_filters.click()
+        # Close chat
+        driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
+        etkyieta_rozkazu = WebDriverWait(driver, 5, 0.1).until(
+            EC.element_to_be_clickable(
+                (
+                    By.XPATH,
+                    '//*[@id="paged_view_content"]/div[2]/form/table/tbody/tr[2]/td[2]/input',
+                )
             )
         )
-    ).click()
-    WebDriverWait(driver, 5, 0.2).until(
-        EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
-    )
+        etkyieta_rozkazu.clear()
+        etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
+        WebDriverWait(driver, 5, 0.1).until(
+            EC.element_to_be_clickable(
+                (
+                    By.XPATH,
+                    '//*[@id="paged_view_content"]/div[2]/form/table/tbody/tr[6]/td/input',
+                )
+            )
+        ).click()
+        WebDriverWait(driver, 5, 0.1).until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
+        )
 
     # Quit if no new attacks
     if not driver.find_elements(By.ID, "incomings_table"):
@@ -105,14 +107,17 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     # Close chat
     driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
 
-    element = WebDriverWait(driver, 5, 0.2).until(
+    select_all = WebDriverWait(driver, 5, 0.1).until(
         EC.element_to_be_clickable((By.ID, "select_all"))
     )
-    driver.execute_script("return arguments[0].scrollIntoView(true);", element)
-    element.click()
-    WebDriverWait(driver, 5, 0.2).until(
+    driver.execute_script("return arguments[0].scrollIntoView(true);", select_all)
+    select_all.click()
+    WebDriverWait(driver, 5, 0.1).until(
         EC.element_to_be_clickable(
-            (By.XPATH, '//*[@id="incomings_table"]//input[@type="submit"]')
+            (
+                By.XPATH,
+                '//*[@id="incomings_table"]//input[@type="submit" and @name="label"]',
+            )
         )
     ).click()
 
@@ -127,7 +132,20 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             notifications["sound_notifications"],
         )
     ):
-        etkyieta_rozkazu = WebDriverWait(driver, 5, 0.2).until(
+        if (  # Check if filter manager is opened if not than open it
+            driver.find_element(By.XPATH, '//*[@id="paged_view_content"]/div[2]')
+            .get_attribute("style")
+            .find("display: none")
+            != -1
+        ):
+            manage_filters = WebDriverWait(driver, 5, 0.1).until(
+                EC.element_to_be_clickable(
+                    (By.XPATH, '//*[@id="paged_view_content"]/a')
+                )
+            )
+            manage_filters.click()
+
+        etkyieta_rozkazu = WebDriverWait(driver, 5, 0.1).until(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
@@ -138,7 +156,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
         etkyieta_rozkazu.clear()
         translate = {"pl": "Szlachcic", "de": "AG"}
         etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
-        WebDriverWait(driver, 5, 0.2).until(
+        WebDriverWait(driver, 5, 0.1).until(
             EC.element_to_be_clickable(
                 (
                     By.XPATH,
@@ -146,7 +164,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
                 )
             )
         ).click()
-        WebDriverWait(driver, 5, 0.2).until(
+        WebDriverWait(driver, 5, 0.1).until(
             EC.element_to_be_clickable((By.XPATH, '//*[@id="paged_view_content"]/a'))
         )
 
@@ -256,7 +274,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     return True
 
 
-def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
+def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None:
     """Automatyczne wysyłanie wojsk w asystencie farmera"""
 
     # Przechodzi do asystenta farmera
@@ -283,11 +301,19 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
         if current_group != settings["farm_group"]:
             select = Select(driver.find_element(By.ID, "group_id"))
             select.select_by_visible_text(settings["farm_group"])
-            WebDriverWait(driver, 5, 0.033).until(
-                EC.element_to_be_clickable(
-                    (By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a')
-                )
-            ).click()
+            time.sleep(0.2)
+            try:
+                WebDriverWait(driver, 5, 0.033).until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a')
+                    )
+                ).click()
+            except StaleElementReferenceException:
+                WebDriverWait(driver, 5, 0.033).until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a')
+                    )
+                ).click()
         driver.execute_script("if (villageDock.docked) {villageDock.close(event);}")
         WebDriverWait(driver, 2, 0.033).until(  # Wait for group_popup close
             EC.presence_of_element_located(
@@ -304,6 +330,20 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
     # Lista wykorzystanych wiosek - unikalne id wioski'
     used_villages = []
     used_villages.append(driver.execute_script("return window.game_data.village.id;"))
+    troops_speed = {
+        "spear": 18,
+        "sword": 22,
+        "axe": 18,
+        "archer": 18,
+        "spy": 9,
+        "light": 10,
+        "marcher": 10,
+        "heavy": 11,
+        "ram": 30,
+        "catapult": 30,
+        "knight": 10,
+        "snob": 35,
+    }
 
     # Główna pętla funkcji
     while True:
@@ -349,7 +389,6 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
                 if available_troops[troop_name] - troop_number < 0:
                     skip[template] = True
                     break
-
         if skip["A"] and skip["B"]:
             ActionChains(driver).send_keys("d").perform()
             if (
@@ -384,6 +423,8 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
             villages_to_farm["B"] = 10  # Szablon B
         if settings["C"]["active"]:
             villages_to_farm["C"] = 11  # Szablon C
+            skip["C"] = False
+            template_troops["C"] = {}
 
         # Wysyłka wojsk w asystencie farmera
         start_time = 0
@@ -392,40 +433,133 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
             if skip[template]:
                 continue
             max_attacks_number = settings[template]["attacks_number"]
+            captcha_solved = False
+            if captcha_check(driver=driver, settings=settings):
+                captcha_solved = True
             villages_to_farm[template] = driver.find_elements(
                 By.XPATH,
                 f'//*[@id="plunder_list"]/tbody/tr/td[{villages_to_farm[template]}]/a',
             )
-            captcha_solved = False
-            for attacks_number, (village, wall_level) in enumerate(
+
+            # Farm rules
+            # Loot farm rule
+            villages_loot = ()
+            if settings[template]["farm_rules"]["loot"] != "mix_loot":
+                villages_loot = tuple(  # True for max loot and False for not
+                    loot_info.get_attribute("src").endswith("1.png")
+                    for loot_info in driver.find_elements(
+                        By.XPATH,
+                        f'//*[@id="plunder_list"]/tbody/tr/td[3]/img',
+                    )
+                )
+            if "C" in template:
+                units_home = driver.find_element(
+                    By.CSS_SELECTOR, "#units_home tbody"
+                ).get_attribute("innerHTML")
+                units_home = lxml.html.fromstring(units_home)
+                units_amount = units_home.xpath("tr[2]/td")
+                for unit_amount in units_amount[1:]:
+                    if not int(unit_amount.text_content()):
+                        continue
+                    template_troops[template][unit_amount.xpath("@id")[0]] = int(
+                        unit_amount.text_content()
+                    )
+
+            # Travel time rule
+            max_distance = 0.0
+            if settings[template]["farm_rules"]["max_travel_time"]:
+                villages_distance = tuple(
+                    float(ele.text)
+                    for ele in driver.find_elements(
+                        By.XPATH, f'//*[@id="plunder_list"]/tbody/tr/td[8]'
+                    )
+                )
+                army_speed = max(
+                    troops_speed[unit] for unit in template_troops[template]
+                )
+                max_distance: float = (
+                    settings[template]["farm_rules"]["max_travel_time"] / army_speed
+                )
+
+            for village_number, (village, wall_level) in enumerate(
                 zip(villages_to_farm[template], walls_level)
             ):
+                # Attacks number requirements
                 if (
                     not settings[template]["max_attacks"]
-                    and attacks_number >= max_attacks_number
+                    and village_number >= max_attacks_number
                 ):
                     break
-                if not settings["temp"]["main_window"].running:
-                    return
+
+                # Loot requirements
+                if villages_loot:
+                    # For max_loot
+                    if settings[template]["farm_rules"]["loot"] == "max_loot":
+                        if not villages_loot[village_number]:
+                            continue
+                    # For min_loot
+                    else:
+                        if villages_loot[village_number]:
+                            continue
+                # Travel time requirements
+                if max_distance and villages_distance[village_number] > max_distance:
+                    break
+                # Walls requirements
                 if (
                     isinstance(wall_level, str)
                     and not settings[template]["wall_ignore"]
                 ):
                     continue
-
                 if (
                     settings[template]["wall_ignore"]
                     or settings[template]["min_wall"]
                     <= wall_level
                     <= settings[template]["max_wall"]
                 ):
-                    for unit, number in template_troops[template].items():
-                        if available_troops[unit] - number < 0:
+                    # Troops number for template A and B
+                    if template in ("A", "B"):
+                        for unit, number in template_troops[template].items():
+                            if available_troops[unit] - number < 0:
+                                no_units = True
+                                break
+                            available_troops[unit] -= number
+                        if no_units:
+                            break
+                    # Template C
+                    else:
+                        if any(
+                            True if number < 0 else False
+                            for number in template_troops[template].values()
+                        ):
                             no_units = True
                             break
-                        available_troops[unit] -= number
-                    if no_units:
-                        break
+                        troops_to_send = ast.literal_eval(
+                            village.get_attribute("data-units-forecast")
+                        )
+                        for unit, number in troops_to_send.items():
+                            if not number:
+                                continue
+                            template_troops[template][unit] -= int(number)
+
+                        units_home = driver.find_element(
+                            By.CSS_SELECTOR, "#units_home tbody"
+                        ).get_attribute("innerHTML")
+                        units_home = lxml.html.fromstring(units_home)
+                        units_checkboxes = units_home.xpath("tr[1]/th")
+                        units_amount = units_home.xpath("tr[2]/td")
+
+                        for unit_checkbox, unit_amount in zip(
+                            units_checkboxes, units_amount
+                        ):
+
+                            if "checked" in unit_checkbox.xpath("input/@checked"):
+                                if int(unit_amount.text_content()) > 0:
+                                    break
+                        else:
+                            break
+
+                    if not settings["temp"]["main_window"].running:
+                        return
 
                     send_troops_in_the_middle(driver=driver, settings=settings)
 
@@ -439,9 +573,14 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str]) -> None:
                         'return arguments[0].scrollIntoView({block: "center"});',
                         village,
                     )
-                    village.click()
+                    try:
+                        village.click()
+                    except StaleElementReferenceException:
+                        break
+
                 start_time = time.time()
 
+            # Checks if there is other template to send
             if index < len(villages_to_farm) - 1:
                 no_units = False
                 driver.refresh()
@@ -467,30 +606,115 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     If exist, wait until solved and than update captcha counter.
     """
 
-    def antigate_solver_status_check() -> bool:
-        # Captcha not in page return True
-        if not driver.execute_script(
-            'return document.querySelector(".antigate_solver");'
-        ):
-            return True
-        # Captcha solved return True
-        if driver.execute_script(
-            'return document.querySelector(".antigate_solver.solved");'
-        ):
-            return True
-        # Captcha error refresh page and return False
-        if driver.execute_script(
-            'return document.querySelector(".antigate_solver.error");'
+    search_for_captcha = 'return document.querySelector(".h-captcha, .captcha")'
+    if driver.execute_script(search_for_captcha):
+
+        find_captcha_time = time.time()
+        if (
+            "last_captcha_solved" in settings["temp"]
+            and find_captcha_time - settings["temp"]["last_captcha_solved"] < 60
         ):
             driver.refresh()
-        return False
+            # Return if no captcha were find after page refresh
+            if not driver.execute_script(search_for_captcha):
+                return True
 
-    if driver.execute_script('return document.querySelector(".antigate_solver");'):
-        WebDriverWait(driver, 120, 0.25).until(lambda _: antigate_solver_status_check())
-        time.sleep(1)
-        settings["temp"]["captcha_counter"].set(
-            settings["temp"]["captcha_counter"].get() + 1
-        )
+        logger.info("start solving captcha")
+
+        def simple_solve_captcha(captcha_selector: str) -> bool:
+            # Switch to frame when it is available
+            WebDriverWait(driver, 3, 0.05).until(
+                EC.frame_to_be_available_and_switch_to_it(
+                    (By.CSS_SELECTOR, f"{captcha_selector} iframe")
+                )
+            )
+            WebDriverWait(driver, 3, 0.05).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "div[id=checkbox]"))
+            ).click()
+            driver.switch_to.default_content()
+            try:
+                WebDriverWait(driver, 3, 0.1).until(
+                    lambda _: False
+                    if driver.execute_script(search_for_captcha)
+                    else True
+                )
+                return True
+            except TimeoutException:
+                ActionChains(driver).send_keys(Keys.ESCAPE).perform()
+                return False
+
+        def get_token() -> str | bool:
+
+            api_key = "***REMOVED***"
+            website_url = driver.current_url[: driver.current_url.rfind("/")]
+            website_key = re.search(
+                r"&sitekey=(.*?)&",
+                WebDriverWait(driver, 3, 0.05)
+                .until(
+                    EC.presence_of_element_located(
+                        (
+                            By.CSS_SELECTOR,
+                            "iframe[title='widget containing checkbox for hCaptcha security challenge']",
+                        )
+                    )
+                )
+                .get_attribute("src"),
+            ).group(1)
+            client = AnycaptchaClient(api_key)
+            task = HCaptchaTaskProxyless(
+                website_url=website_url, website_key=website_key
+            )
+            job = client.createTask(task)
+            # Notify user that captcha solving is in process
+            iframe_width = driver.execute_script(
+                f"return document.querySelector('{captcha_selector} iframe').clientWidth"
+            )
+            driver.execute_script(
+                f"""const captcha_container = document.querySelectorAll("{captcha_selector} *:last-child")[0];
+                const div_to_add = "<div id='kspec' style='width: {iframe_width};'>Solving captcha please wait..</div>"
+                captcha_container.insertAdjacentHTML("afterend", div_to_add);"""
+            )
+            job.join()
+            result = job.get_solution_response()
+
+            if result.find("ERROR") != -1:
+                logger.error(msg=f"task finished with error {result}")
+                return False
+            else:
+                # If everything is fine result contain token
+                return result
+
+        def hard_solve_captcha() -> bool:
+            token = get_token()
+            driver.execute_script("document.querySelector('#kspec').remove();")
+            if token:
+                driver.execute_script(
+                    f"document.getElementById('anycaptchaSolveButton').onclick('{token}');"
+                )
+                return True
+            return False
+
+        get_captcha_selector = """if (document.querySelector('.h-captcha')) {return '.h-captcha'}
+            else if (document.querySelector('.captcha')) {return '.captcha'}
+            else {return}
+            """
+        captcha_selector = driver.execute_script(get_captcha_selector)
+
+        if simple_solve_captcha(captcha_selector):
+            logger.info("captcha solved the easy way")
+            return True
+
+        if hard_solve_captcha():
+            logger.info("captcha solved the hard way")
+            settings["temp"]["captcha_counter"].set(
+                settings["temp"]["captcha_counter"].get() + 1
+            )
+            settings["temp"]["last_captcha_solved"] = find_captcha_time
+            return True
+
+        logger.info("error when dealing with captcha")
+        driver.refresh()
+
         return True
     return False
 
@@ -540,7 +764,6 @@ def check_groups(
     settings["groups"].extend(groups)
     for combobox in args:
         combobox["values"] = settings["groups"]
-        combobox.set("Wybierz grupę")
 
     if tmp_driver:
         driver.quit()
@@ -704,11 +927,19 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             if current_group != settings["gathering_group"]:
                 select = Select(driver.find_element(By.ID, "group_id"))
                 select.select_by_visible_text(settings["gathering_group"])
-                WebDriverWait(driver, 3, 0.025).until(
-                    EC.element_to_be_clickable(
-                        (By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a')
-                    )
-                ).click()
+                time.sleep(0.2)
+                try:
+                    WebDriverWait(driver, 3, 0.025).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a')
+                        )
+                    ).click()
+                except StaleElementReferenceException:
+                    WebDriverWait(driver, 3, 0.025).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, '//*[@id="group_table"]/tbody/tr[1]/td[1]/a')
+                        )
+                    ).click()
             driver.execute_script("if (villageDock.docked) {villageDock.close(event);}")
             WebDriverWait(driver, 2, 0.033).until(
                 EC.presence_of_element_located(
@@ -1257,111 +1488,12 @@ def market_offers(driver: webdriver.Chrome) -> None:
             continue
 
 
-def mark_villages_on_map(driver: webdriver.Chrome) -> None:
-    """Zaznacza na mapie wioski spełniające konkretne kryteria na podstawie przeglądów plemiennych"""
-
-    villages_to_mark = []
-    url = driver.current_url
-    village_id = url[url.find("=") + 1 : url.find("&")]
-    url = (
-        url[: url.find("?") + 1]
-        + "screen=ally&mode=members_defense&player_id=&village="
-        + village_id
-    )
-    player_name = driver.find_element(
-        By.XPATH, '//*[@id="menu_row"]/td[11]/table/tbody/tr[1]/td/a'
-    ).get_attribute("innerHTML")
-    current_player_id = driver.find_element(
-        By.XPATH,
-        f'//*[@id="ally_content"]/div/form/select/option[contains(text(), "{player_name}")]',
-    ).get_attribute("value")
-    player_id = [
-        player_id.get_attribute("value")
-        for player_id in driver.find_elements(
-            By.XPATH, '//*[@id="ally_content"]/div/form/select/option'
-        )
-    ][1:]
-    del player_id[player_id.index(str(current_player_id))]
-    for id in player_id:
-        driver.get(url[: url.find("player_id") + 10] + id + url[url.rfind("&") :])
-        if not driver.find_elements(
-            By.XPATH, '//*[@id="ally_content"]/div/div'
-        ):  # Omija graczy bez wiosek
-            continue
-        village_number = len(
-            driver.find_elements(
-                By.XPATH, '//*[@id="ally_content"]/div/div/table/tbody/tr/td[1]'
-            )
-        )
-        tmp1 = driver.find_element(
-            By.XPATH, '//*[@id="ally_content"]/div/div/table/tbody'
-        ).text
-        if (
-            tmp1.find("?") != -1
-        ):  # Omija graczy którzy nie udostępniają podglądu swoich wojsk
-            continue
-        tmp1 = [tmp[tmp.find(" w wiosce ") + 10 :] for tmp in tmp1.splitlines()[1::2]]
-        tmp1 = [tmp.split() for tmp in tmp1]
-        for index in range(len(tmp1)):
-            tmp1[index].insert(0, index * 2 + 2)
-        index = 0
-        while index < len(tmp1):
-            if sum([int(cell) for cell in tmp1[index][1:]]) > 100:
-                del tmp1[index]
-                continue
-            index += 1
-        for index in range(len(tmp1)):
-            tmp1[index][0] = driver.find_element(
-                By.XPATH,
-                f'//*[@id="ally_content"]/div/div/table/tbody/tr[{tmp1[index][0]}]/td[1]/a',
-            ).get_attribute("href")
-        villages_to_mark.extend([to_mark[0] for to_mark in tmp1])
-
-    for village_to_mark in villages_to_mark:
-        driver.get(village_to_mark)
-        driver.find_element(
-            By.XPATH,
-            '//*[@id="content_value"]/table/tbody/tr/td[1]/table[2]/tbody/tr[8]',
-        ).click()  # Otwiera zarządzanie zaznaczeniami mapy
-        WebDriverWait(driver, 10, 0.1).until(
-            EC.element_to_be_clickable(
-                (
-                    By.XPATH,
-                    '//*[@id="map_color_assignment"]/form[1]/table/tbody/tr[4]/td/input',
-                )
-            )
-        )  # Czeka na załadowanie kodu HTML
-        groups = [
-            label_name.text
-            for label_name in driver.find_elements(
-                By.XPATH, '//*[@id="map_group_management"]/table/tbody/tr/td/label'
-            )
-        ]  # Dostępne grupy zaznaczeń na mapie
-        group_name = "FARMA"  # Nazwa wybranej grupy
-        element = driver.find_element(
-            By.XPATH,
-            f'//*[@id="map_group_management"]/table/tbody/tr[{groups.index(group_name)+1}]/td/label/input',
-        )  # Klika wybraną nazwę grupy
-        driver.execute_script("return arguments[0].scrollIntoView(true);", element)
-        element.click()
-        element = driver.find_element(
-            By.XPATH,
-            '//*[@id="map_group_management"]/table/tbody/tr/td/input[@value="Zapisz"]',
-        )  # Zapisuję wybór
-        driver.execute_script("return arguments[0].scrollIntoView(true);", element)
-        element.click()
-
-
 def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
     """Check and open once a day daily bonus"""
 
     if "bonus_opened" in settings:
         if settings["bonus_opened"] == time.strftime("%d.%m.%Y", time.localtime()):
             return
-    # If zero new_daily_bonus
-    if not int(driver.execute_script("return game_data.player.new_daily_bonus")):
-        settings["bonus_opened"] = time.strftime("%d.%m.%Y", time.localtime())
-        return
 
     def open_all_available_chests() -> None:
         bonuses = driver.find_elements(
@@ -1438,75 +1570,76 @@ def player_villages(driver: webdriver.Chrome) -> dict:
 def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
     """Umożliwia automatyczną sprzedaż lub zakup surwców za punkty premium"""
 
-    up_to_date = False
-    if "villages_update_time" in settings["temp"]:
-        if time.time() - settings["temp"]["villages_update_time"] < 3600:
-            villages = settings["temp"]["villages"]
-            up_to_date = True
+    current_village_id = int(
+        driver.execute_script("return window.game_data.village.id")
+    )
+    url = driver.current_url
+    url = url[: url.rfind("/")]
+    player_production_url = (
+        url
+        + f"/game.php?village={current_village_id}&screen=overview_villages&mode=prod&group=0&page=-1&"
+    )
 
-    # Update villages list if cached more than one hour ago
-    if not up_to_date:
-        current_village_id = int(
-            driver.execute_script("return window.game_data.village.id")
+    def get_player_production_page() -> str:
+        return driver.execute_script(
+            f"""
+            var request = new XMLHttpRequest();
+            request.open("GET", "{player_production_url}", false);
+            request.send(null);   
+            return request.responseText;"""
         )
-        url = driver.current_url
-        url = url[: url.rfind("/")]
-        player_profile_url = (
-            url + f"/game.php?village={current_village_id}&screen=info_player"
+
+    try:
+        html_response = get_player_production_page()
+    except BaseException:
+        log_in(driver=driver, settings=settings)
+        html_response = get_player_production_page()
+    doc = lxml.html.fromstring(html_response)
+    try:
+        production = doc.get_element_by_id("production_table")
+    except:
+        driver.get(player_production_url)
+        captcha_check(driver=driver, settings=settings)
+        doc = lxml.html.fromstring(driver.page_source)
+        production = doc.get_element_by_id("production_table")
+
+    villages = {}
+    for village_data in production[1:]:
+        village_id = village_data.xpath("td[2]/span")[0].get("data-id")
+        village_market_url = (
+            f"{url}/game.php?village={village_id}&screen=market&mode=exchange"
         )
-
-        try:
-            html_response = driver.execute_script(
-                f"""
-                var request = new XMLHttpRequest();
-                request.open("GET", "{player_profile_url}", false);
-                request.send(null);   
-                return request.responseText;"""
+        village_coords = village_data.xpath("td[2]/span/span/a/span")[0].text
+        village_coords = re.findall(r"\d{3}\|\d{3}", village_coords)[-1]
+        continent = f"k{village_coords[4]}{village_coords[0]}"
+        if continent not in villages:
+            villages[continent] = []
+        village_resources = {}
+        for resource_name, resource_amount in zip(
+            ("wood", "stone", "iron"), village_data.xpath("td[4]/span")
+        ):
+            village_resources[resource_name] = int(
+                resource_amount.text_content().replace(".", "")
             )
-        except BaseException:
-            log_in(driver=driver, settings=settings)
-            html_response = driver.execute_script(
-                f"""
-                var request = new XMLHttpRequest();
-                request.open("GET", "{player_profile_url}", false);
-                request.send(null);   
-                return request.responseText;"""
-            )
-        doc = lxml.html.fromstring(html_response)
-        doc = doc.xpath('//table[@id="villages_list"]/tbody/tr')
-        if len(doc) > 100:
-            player_id = driver.execute_script("return game_data.player.id")
-            get_remain_villages_url = (
-                f"{player_profile_url}&ajax=fetch_villages&player_id={player_id}"
-            )
-            html_response = driver.execute_script(
-                f"""
-                var request = new XMLHttpRequest();
-                request.open("GET", "{get_remain_villages_url}", false);
-                request.send(null);   
-                return request.responseText;"""
-            )
-            add_to_doc = lxml.html.fromstring(json.loads(html_response)["villages"])
-            doc.pop()
-            doc.extend(add_to_doc)
-
-        villages = {}
-        for row in doc:
-            village_id = row.xpath("td/table/tr/td/span")[0].get("data-id")
-            village_url = (
-                url + f"/game.php?village={village_id}&screen=market&mode=exchange"
-            )
-            village_coords = row.xpath("td")[-2].text
-            x, y = village_coords.split("|")
-            continent = f"k{y[0]}{x[0]}"
-            if continent not in villages:
-                villages[continent] = []
-            villages[continent].append(
-                {"village_url": village_url, "village_coords": village_coords}
-            )
-
-        settings["temp"]["villages"] = villages
-        settings["temp"]["villages_update_time"] = time.time()
+        market_merchant = village_data.xpath("td[6]")[0].text_content().split("/")
+        market_merchant = {
+            "available": int(market_merchant[0]),
+            "max": int(market_merchant[1]),
+        }
+        villages[continent].append(
+            {
+                "coords": village_coords,
+                "resources": village_resources,
+                "market_url": village_market_url,
+                "market_merchant": market_merchant,
+            }
+        )
+    for villages_by_continent in villages.values():
+        villages_by_continent.sort(
+            reverse=True,
+            key=lambda v: sum(v["resources"].values())
+            + v["market_merchant"]["available"] * 2000,
+        )
 
     # Core loop iterate over all villages
     for continent, village_list in villages.items():
@@ -1517,42 +1650,34 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
         ):
             continue
 
-        # saved_market_history = False
         for village in village_list:
-            village_url, village_coords = village.values()
+            market_url, village_coords = village["market_url"], village["coords"]
 
             if village_coords in settings["market"]["market_exclude_villages"]:
                 continue
 
+            # Skip if there is no market built or no merchant available
+            if not village["market_merchant"]["available"]:
+                continue
+
+            for resource in village["resources"]:
+                village["resources"][resource] -= settings["market"][resource][
+                    "leave_in_storage"
+                ]
+            # If village does not have enough resources skip to next one
+            if all(resource < 1 for resource in village["resources"].values()):
+                continue
+
+            driver.get(market_url)
+
             send_troops_in_the_middle(driver=driver, settings=settings)
 
-            driver.get(village_url)
-
-            # Skip if there is no market built
-            if (
-                driver.execute_script("return game_data.village.buildings.market")
-                == "0"
-            ):
-                continue
+            captcha_check(driver=driver, settings=settings)
 
             # Close chat
             driver.execute_script(
                 'document.getElementById("chat-wrapper").innerHTML = "";'
             )
-
-            resources_doc = lxml.html.fromstring(
-                driver.find_element(
-                    By.XPATH,
-                    '//*[@id="header_info"]/tbody/tr/td[4]/table/tbody/tr[1]/td/table/tbody/tr',
-                ).get_attribute("innerHTML")
-            )
-            resources_name = ("wood", "stone", "iron")
-            resources_available = {}
-            for resource in resources_name:
-                resources_available[resource] = (
-                    int(resources_doc.get_element_by_id(resource).text)
-                    - settings["market"][resource]["leave_in_storage"]
-                )
 
             exchange_doc = lxml.html.fromstring(
                 driver.find_element(
@@ -1564,9 +1689,9 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     "current_resource_rate": 0,
                     "max_exchange_resource_can_receive": 0,
                 }
-                for resource_name in resources_name
+                for resource_name in village["resources"]
             }
-            for resource in resources_name:
+            for resource in village["resources"]:
                 resource_capacity = exchange_doc.get_element_by_id(
                     f"premium_exchange_capacity_{resource}"
                 ).text
@@ -1583,23 +1708,6 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     resource_rate
                 )
 
-            # Currently not used anywhere
-            # if not saved_market_history:
-            #     market_history_file = open(
-            #         f'market_history_{settings["server_world"]}.txt', "a"
-            #     )
-            #     market_history_file.write(
-            #         f'{time.strftime("%d.%m.%Y %H:%M:%S", time.localtime())} '
-            #     )
-            #     market_history_file.writelines(
-            #         f'{resource_name} {value["current_resource_rate"]} '
-            #         for resource_name, value in exchange_resources.items()
-            #     )
-            #     market_history_file.write(f"K{continent}")
-            #     market_history_file.write("\n")
-            #     market_history_file.close()
-            #     saved_market_history = True
-
             # If market is full break current loop and go to next continent
             if all(
                 not exchange_resources[resource_name][
@@ -1615,23 +1723,14 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                 for resource_name in exchange_resources
             ):
                 break
-            # If village does not have enough resources skip to next one
-            if all(resource < 1 for resource in resources_available.values()):
-                continue
 
             SUM_EXCHANGE_RATE = sum(
                 resource["current_resource_rate"]
                 for resource in exchange_resources.values()
             )
 
-            STARTING_TRANSPORT_CAPACITY = int(
-                driver.find_element(
-                    By.XPATH, '//*[@id="market_merchant_max_transport"]'
-                ).text
-            )
+            STARTING_TRANSPORT_CAPACITY = village["market_merchant"]["available"] * 1000
             transport_capacity = STARTING_TRANSPORT_CAPACITY
-            if not transport_capacity:
-                continue
 
             exchange_resources = dict(
                 sorted(
@@ -1665,7 +1764,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                         (
                             max_resource_to_sell,
                             transport_capacity,
-                            resources_available[resource_name],
+                            village["resources"][resource_name],
                         )
                     )
 
@@ -1679,41 +1778,41 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                         current_exchange_rate
                         > settings["market"][resource_name]["max_exchange_rate"]
                         # Pomiń jeśli kurs jest powyżej ustalonej wartości
-                        or current_exchange_rate >= resources_available[resource_name]
+                        or current_exchange_rate >= village["resources"][resource_name]
                     ):  # Pomiń jeśli kurs jest wyższy od dostępnych surowców
                         continue
                     # For the lowest exchange rate
                     if exchange_rate == min_exchange_rate:
-                        if resource_to_sell > round(
+                        if resource_to_sell > int(
                             max_exchange_rate
                             / SUM_EXCHANGE_RATE
                             * STARTING_TRANSPORT_CAPACITY
                         ):
-                            resource_to_sell = round(
+                            resource_to_sell = int(
                                 max_exchange_rate
                                 / SUM_EXCHANGE_RATE
                                 * STARTING_TRANSPORT_CAPACITY
                             )
                     # For the highest exchange rate
                     elif exchange_rate == max_exchange_rate:
-                        if resource_to_sell > round(
+                        if resource_to_sell > int(
                             min_exchange_rate
                             / SUM_EXCHANGE_RATE
                             * STARTING_TRANSPORT_CAPACITY
                         ):
-                            resource_to_sell = round(
+                            resource_to_sell = int(
                                 min_exchange_rate
                                 / SUM_EXCHANGE_RATE
                                 * STARTING_TRANSPORT_CAPACITY
                             )
                     # For medium exchange rate
                     else:
-                        if resource_to_sell > round(
+                        if resource_to_sell > int(
                             exchange_rate
                             / SUM_EXCHANGE_RATE
                             * STARTING_TRANSPORT_CAPACITY
                         ):
-                            resource_to_sell = round(
+                            resource_to_sell = int(
                                 exchange_rate
                                 / SUM_EXCHANGE_RATE
                                 * STARTING_TRANSPORT_CAPACITY
@@ -1780,7 +1879,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     ) or (
                         resource_to_sell == 1
                         and final_resource_amount_to_sell
-                        > resources_available[resource_name]
+                        > village["resources"][resource_name]
                     ):
                         driver.find_element(
                             By.CLASS_NAME, "btn.evt-cancel-btn.btn-confirm-no"
@@ -1790,7 +1889,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
 
                     if (
                         final_resource_amount_to_sell
-                        > resources_available[resource_name]
+                        > village["resources"][resource_name]
                     ):
                         current_exchange_rate = driver.find_element(
                             By.XPATH, '//*[@id="confirmation-msg"]/div/p[2]'
@@ -1805,7 +1904,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                         ).click()  # Click cancel button
 
                         final_resource_amount_to_sell = (
-                            resources_available[resource_name] - current_exchange_rate
+                            village["resources"][resource_name] - current_exchange_rate
                         )
                         if final_resource_amount_to_sell < 1:
                             if current_exchange_rate < max_resource_to_sell:
@@ -1904,14 +2003,25 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
     try:
         for index, send_info in enumerate(list_to_send):
 
-            if index > 0:
+            if index:
                 previous_tabs = set(driver.window_handles)
+                # Open new tab
                 driver.switch_to.new_window("tab")
                 driver.get(send_info["url"])
+                # Search and get new tab
                 new_tab = set(driver.window_handles).difference(previous_tabs)
                 new_tabs.append(*new_tab)
             else:
                 driver.get(send_info["url"])
+
+            # Check if place is build
+            if driver.execute_script(
+                "if (game_data.village.buildings.place==0) {return true}"
+            ):
+                if len(list_to_send) == 1:
+                    return 1, []
+                else:
+                    continue
 
             match send_info["template_type"]:
                 case "send_all":
@@ -2084,7 +2194,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                     template_data["max_value"]
                                     * template_data["population"]
                                 )
-                        else:
+                        else:  # available_troop_number < template_data["min_value"]
                             return len(list_to_send), attacks_to_repeat_to_do
                         troop_input.send_keys(troop_number)
                         if current_population >= min_population:
@@ -2210,14 +2320,29 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
             driver.switch_to.window(origin_tab)
 
         for index, send_info in enumerate(list_to_send):
-            if index > 0:
+            if index:
                 driver.switch_to.window(new_tabs[index - 1])
+            # Skip to next if didn't find element with id="date_arrival"
             current_time = driver.find_elements(
                 By.XPATH, '//*[@id="date_arrival"]/span'
             )
-            # Skip to next if didn't find element with id="date_arrival"
             if not current_time:
                 continue
+            # If can choose catapult target
+            if driver.execute_script(
+                """
+                catapult_target_select = document.getElementById('place_confirm_catapult_target');
+                if (catapult_target_select && catapult_target_select.getAttribute('style')==null) {return true}
+                else {return false}
+                """
+            ):
+                if (
+                    "catapult_target" in send_info
+                    and "Default" not in send_info["catapult_target"]
+                ):
+                    Select(
+                        driver.find_element(By.XPATH, "//select[@name='building']")
+                    ).select_by_value(send_info["catapult_target"])
             current_time = current_time[0]
             send_button = driver.find_element(By.ID, "troop_confirm_submit")
             arrival_time = re.search(
@@ -2229,7 +2354,11 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                 if ms <= 10:
                     sec = 0
                 else:
-                    sec = (ms + 10) / 1000
+                    sec = ms / 1000
+                if "low_priority" in send_info:
+                    if send_info["low_priority"]:
+                        driver.execute_script("arguments[0].click()", send_button)
+                        continue
                 while True:
                     current_arrival_time = current_time.text[-8:]
                     if current_arrival_time == arrival_time:

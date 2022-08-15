@@ -287,6 +287,6 @@ class LogInWindow:
         ).start()
 
         main_window.master.after(
-            ms=595000,
+            ms=595_000,
             func=lambda: self.update_db_running_status(main_window=main_window),
         )

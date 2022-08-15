@@ -1,6 +1,10 @@
 import json
 import logging
 import os
+
+if not os.path.exists("logs"):
+    os.mkdir("logs")
+
 import random
 import re
 import subprocess
@@ -9,39 +13,32 @@ import threading
 import time
 import tkinter as tk
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import partial
-from math import sqrt
+from math import comb, sqrt
+from pathlib import Path
+from typing import NamedTuple
 
 import requests
 import ttkbootstrap as ttk
 import xmltodict
 from pyupdater.client import Client
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchWindowException, WebDriverException
+from selenium.common.exceptions import NoSuchWindowException
 from ttkbootstrap.tableview import Tableview
+from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.tooltip import ToolTip
 
 import bot_functions
 from client_config import ClientConfig
 from database_connection import DataBaseConnection, get_user_data
 from decorators import log_errors
-from gui_functions import (
-    center,
-    change_state,
-    custom_error,
-    fill_entry_from_settings,
-    first_app_lunch,
-    forget_row,
-    get_pos,
-    get_villages_id,
-    invoke_checkbuttons,
-    load_settings,
-    on_button_release,
-    paid,
-    run_driver,
-    save_entry_to_settings,
-)
+from gui_functions import (center, change_state, custom_error,
+                           fill_entry_from_settings, first_app_lunch,
+                           forget_row, get_pos, get_villages_id,
+                           invoke_checkbuttons, load_settings,
+                           on_button_release, paid, run_driver,
+                           save_entry_to_settings)
 from log_in_window import LogInWindow
 from my_widgets import ScrollableFrame, TopLevel
 
@@ -82,20 +79,292 @@ if os.path.exists("logs/debug.txt"):
 logger.propagate = False
 
 
+class Farm:
+    """"""
+
+    def __init__(
+        self,
+        parent: ttk.Frame,
+        main_window: "MainWindow",
+        entries_content: dict,
+        settings: dict,
+    ) -> None:
+
+        self.parent = parent
+        parent.rowconfigure(0, weight=1)
+        parent.columnconfigure(0, weight=1)
+
+        self.entries_content = entries_content
+
+        templates = ttk.Notebook(parent)
+        templates.grid(pady=5, padx=5, sticky=("N", "S", "E", "W"))
+
+        # Create notebooks for for all templates A, B, C
+        for template in ("A", "B", "C"):
+            self.__setattr__(f"master_{template}", ttk.Frame(templates))
+            master: ttk.Frame = self.__getattribute__(f"master_{template}")
+            templates.add(master, text=f"Szablon {template}")
+
+            master.columnconfigure(0, weight=1)
+            master.columnconfigure(1, weight=1)
+            self.entries_content[template] = {}
+
+            self.entries_content[template]["active"] = tk.BooleanVar()
+            self.__setattr__(
+                f"active_{template}",
+                ttk.Checkbutton(
+                    master,
+                    text="Aktywuj szablon",
+                    variable=self.entries_content[template]["active"],
+                    onvalue=True,
+                    offvalue=False,
+                ),
+            )
+            active: ttk.Checkbutton = self.__getattribute__(f"active_{template}")
+            active.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
+            active.configure(
+                command=partial(
+                    change_state,
+                    master,
+                    "active",
+                    self.entries_content[template],
+                    True,
+                    active,
+                )
+            )
+
+            ttk.Separator(master, orient="horizontal").grid(
+                row=1, column=0, columnspan=2, sticky=("W", "E")
+            )
+
+            self.__setattr__(f"{template}_frame", ttk.Frame(master))
+            frame: ttk.Frame = self.__getattribute__(f"{template}_frame")
+            frame.grid(row=2, columnspan=2, sticky="EW", padx=0, pady=20)
+            frame.columnconfigure(1, weight=1)
+
+            if "farm_group" not in self.entries_content:
+                self.entries_content["farm_group"] = tk.StringVar()
+            ttk.Label(frame, text="Grupa farmiąca").grid(
+                row=0, column=0, padx=(5, 0), pady=(10), sticky="W"
+            )
+            self.__setattr__(
+                f"farm_group_{template}",
+                ttk.Combobox(
+                    frame,
+                    textvariable=self.entries_content["farm_group"],
+                    state="readonly",
+                    justify="center",
+                ),
+            )
+            farm_group: ttk.Combobox = self.__getattribute__(f"farm_group_{template}")
+            farm_group.grid(row=0, column=1, padx=(0), pady=(10))
+            farm_group.set("Wybierz grupę")
+            farm_group["values"] = settings["groups"]
+
+            ttk.Button(
+                frame,
+                image=main_window.images.refresh,
+                bootstyle="primary.Link.TButton",
+                command=lambda: threading.Thread(
+                    target=lambda: main_window.check_groups(settings=settings),
+                    name="checking_groups",
+                    daemon=True,
+                ).start(),
+            ).grid(row=0, column=2, padx=(0, 25), pady=(10), sticky="E")
+
+            ttk.Label(master, text="Poziom muru").grid(
+                row=4, column=0, columnspan=2, pady=(0, 15), padx=5, sticky="W"
+            )
+
+            self.entries_content[template]["wall_ignore"] = tk.BooleanVar()
+            wall_ignore = ttk.Checkbutton(
+                master,
+                text="Ignoruj poziom",
+                variable=self.entries_content[template]["wall_ignore"],
+                onvalue=True,
+                offvalue=False,
+            )
+            wall_ignore.grid(row=5, column=0, pady=5, padx=(25, 5), sticky="W")
+
+            ttk.Label(master, text="Min").grid(
+                row=6, column=0, pady=5, padx=(25, 5), sticky="W"
+            )
+
+            self.entries_content[template]["min_wall"] = tk.IntVar()
+            min_wall_level_input = ttk.Entry(
+                master,
+                width=5,
+                textvariable=self.entries_content[template]["min_wall"],
+                justify="center",
+            )
+            min_wall_level_input.grid(row=6, column=1, pady=5, padx=(5, 25), sticky="E")
+
+            ttk.Label(master, text="Max").grid(
+                row=7, column=0, pady=5, padx=(25, 5), sticky="W"
+            )
+
+            self.entries_content[template]["max_wall"] = tk.IntVar()
+            max_wall_level_input = ttk.Entry(
+                master,
+                width=5,
+                textvariable=self.entries_content[template]["max_wall"],
+                justify="center",
+            )
+            max_wall_level_input.grid(row=7, column=1, pady=5, padx=(5, 25), sticky="E")
+
+            # Wall ingore set command with partial func
+            wall_ignore.configure(
+                command=partial(
+                    change_state,
+                    [min_wall_level_input, max_wall_level_input],
+                    "wall_ignore",
+                    self.entries_content[template],
+                ),
+            )
+
+            ttk.Label(master, text="Wysyłka ataków").grid(
+                row=8, column=0, columnspan=2, pady=(20, 15), padx=5, sticky="W"
+            )
+
+            self.entries_content[template]["max_attacks"] = tk.BooleanVar()
+            self.__setattr__(
+                f"max_attacks_{template}",
+                ttk.Checkbutton(
+                    master,
+                    text="Maksymalna ilość",
+                    variable=self.entries_content[template]["max_attacks"],
+                    onvalue=True,
+                    offvalue=False,
+                ),
+            )
+            max_attacks: ttk.Checkbutton = self.__getattribute__(
+                f"max_attacks_{template}"
+            )
+            max_attacks.grid(row=9, column=0, pady=5, padx=(25, 5), sticky="W")
+
+            ttk.Label(master, text="Ilość ataków").grid(
+                row=10, column=0, pady=(5, 10), padx=(25, 5), sticky="W"
+            )
+
+            self.entries_content[template]["attacks_number"] = tk.IntVar()
+            attacks_number_input = ttk.Entry(
+                master,
+                width=5,
+                textvariable=self.entries_content[template]["attacks_number"],
+                justify="center",
+            )
+            attacks_number_input.grid(
+                row=10, column=1, pady=(5, 10), padx=(5, 25), sticky="E"
+            )
+            # Max attacks set command with partial func
+            max_attacks.configure(
+                command=partial(
+                    change_state,
+                    attacks_number_input,
+                    "max_attacks",
+                    self.entries_content[template],
+                )
+            )
+
+            ttk.Label(master, text="Pozostałe ustawienia").grid(
+                row=11, column=0, padx=5, pady=(20, 15), sticky="W"
+            )
+
+            ttk.Label(master, text="Powtarzaj ataki w odstępach [min]").grid(
+                row=12, column=0, padx=(25, 5), pady=(0, 5), sticky="W"
+            )
+
+            if "farm_sleep_time" not in self.entries_content:
+                self.entries_content["farm_sleep_time"] = tk.IntVar()
+            farm_sleep_time = ttk.Entry(
+                master,
+                textvariable=self.entries_content["farm_sleep_time"],
+                width=5,
+                justify="center",
+            )
+            farm_sleep_time.grid(
+                row=12, column=1, padx=(5, 25), pady=(0, 5), sticky="E"
+            )
+
+        farm_settings = ttk.Frame(templates)
+
+        templates.add(farm_settings, text=f"Reguły wysyłki")
+
+        self.scroll_able = ScrollableFrame(parent=farm_settings)
+        farm_settings_scrolable = self.scroll_able.frame
+
+        for template, row in zip(("A", "B", "C"), (1, 7, 13)):
+            ttk.Label(farm_settings_scrolable, text=f"Szablon {template}").grid(
+                row=row, padx=5, pady=16, sticky=tk.W
+            )
+            ttk.Label(farm_settings_scrolable, text=f"Wyślij wojsko gdy:").grid(
+                row=row + 1, padx=25, pady=(0, 10), sticky=tk.W
+            )
+            farm_rules = self.entries_content[template]["farm_rules"] = {}
+            farm_rules["loot"] = ttk.StringVar(value="mix_loot")
+            max_loot = ttk.Radiobutton(
+                farm_settings_scrolable,
+                text="Ostatni atak wrócił z pełnym łupem",
+                value="max_loot",
+                variable=farm_rules["loot"],
+            )
+            max_loot.grid(row=row + 2, padx=45, pady=(5, 5), sticky=tk.W)
+            min_loot = ttk.Radiobutton(
+                farm_settings_scrolable,
+                text="Ostatni atak wrócił z niepełnym łupem",
+                value="min_loot",
+                variable=farm_rules["loot"],
+            )
+            min_loot.grid(row=row + 3, padx=45, pady=5, sticky=tk.W)
+            mix_loot = ttk.Radiobutton(
+                farm_settings_scrolable,
+                text="Wysyłaj bez względu na wielkość łupu",
+                value="mix_loot",
+                variable=farm_rules["loot"],
+            )
+            mix_loot.grid(row=row + 4, padx=45, pady=(5, 5), sticky=tk.W)
+
+            tooltip_frame = ttk.Frame(farm_settings_scrolable)
+            tooltip_frame.grid(
+                row=row + 5, column=0, padx=(25, 0), pady=(10, 15), sticky=ttk.W
+            )
+            ttk.Label(
+                tooltip_frame,
+                text="Maksymalny czas przemarszu [min]",
+            ).grid(row=0, column=0, sticky=ttk.W)
+            info = ttk.Label(tooltip_frame, image=main_window.images.info)
+            info.grid(row=0, column=1, padx=(5, 0))
+            farm_rules["max_travel_time"] = ttk.IntVar()
+            ToolTip(
+                info,
+                text="Określa maksymalny czas trwania przemarszu wojsk w jedną stronę.\n\n"
+                "Wioska startowa -> wioska barbarzyńska.\n\n"
+                "Wartość domyślna 0 oznacza brak limitu czasowego.",
+                wraplength=350,
+                topmost=True,
+            )
+            ttk.Entry(
+                farm_settings_scrolable,
+                textvariable=farm_rules["max_travel_time"],
+                width=5,
+                justify=ttk.CENTER,
+            ).grid(row=row + 5, column=1, padx=(0, 25), pady=(10, 15), sticky=ttk.E)
+
+
 class Scheduler:
     """Content and functions to put in notebook frame f3 named 'Planer'."""
 
     def __init__(
-        self, parent: ttk.Frame, main_window, entries_content: dict, settings: dict
+        self,
+        parent: ttk.Frame,
+        main_window: "MainWindow",
+        entries_content: dict,
+        settings: dict,
     ) -> None:
 
         self.parent = parent
         self.entries_content = entries_content
-
-        self.minus = tk.PhotoImage(file="icons//minimize.png")
-        self.plus = tk.PhotoImage(file="icons//plus.png")
-        self.exit = tk.PhotoImage(file="icons//exit.png")
-        self.info = tk.PhotoImage(file="icons//info.png")
+        self.main_window = main_window
 
         entries_content["scheduler"] = {}
 
@@ -220,7 +489,7 @@ class Scheduler:
         def split_text(event=None) -> str | None:
             """Split to new rows if text is to long -> speedup tkinter Text widget"""
 
-            clipboard_text = main_window.master.clipboard_get()
+            clipboard_text: str = main_window.master.clipboard_get()
             if len(clipboard_text) > 200:
                 splited_clipboard_text = clipboard_text.split()
                 splited_clipboard_text = " ".join(
@@ -230,9 +499,8 @@ class Scheduler:
                 main_window.master.clipboard_clear()
                 main_window.master.clipboard_append(splited_clipboard_text + " ")
             else:
-                if clipboard_text[-1] != " ":
-                    main_window.master.clipboard_clear()
-                    main_window.master.clipboard_append(clipboard_text + " ")
+                main_window.master.clipboard_clear()
+                main_window.master.clipboard_append(clipboard_text.strip() + " ")
 
         # Wioski startowe
         self.villages_to_use = tk.Text(
@@ -326,8 +594,11 @@ class Scheduler:
             command=lambda: [
                 self.choosed_fake_template.set(""),
                 self.choose_slowest_troop.config(state="readonly"),
+                self.choose_catapult_target.config(state="readonly"),
+                self.choose_catapult_target.set("Default"),
                 self.repeat_attack.set(False),
                 self.total_attacks_number_entry.config(state="disabled"),
+                forget_row(self.scroll_able.frame, row_number=43),
             ],
         )
         self.all_troops_radiobutton.grid(
@@ -423,7 +694,7 @@ class Scheduler:
         )
 
         ttk.Label(self.scroll_able.frame, text="Najwolniejsza jednostka").grid(
-            row=16, column=0, columnspan=2, padx=(45, 5), pady=5, sticky=tk.W
+            row=16, column=0, columnspan=2, padx=(45, 5), pady=(10, 5), sticky=tk.W
         )
         self.slowest_troop = tk.StringVar()
         self.choose_slowest_troop = ttk.Combobox(
@@ -434,7 +705,7 @@ class Scheduler:
             state="disabled",
         )
         self.choose_slowest_troop.grid(
-            row=16, column=0, columnspan=2, padx=(5, 25), pady=5, sticky=tk.E
+            row=16, column=0, columnspan=2, padx=(5, 25), pady=(10, 5), sticky=tk.E
         )
         self.choose_slowest_troop["values"] = (
             "Pikinier",
@@ -449,6 +720,22 @@ class Scheduler:
             "Katapulta",
             "Rycerz",
             "Szlachcic",
+        )
+
+        ttk.Label(self.scroll_able.frame, text="Cel ostrzału katapultami").grid(
+            row=17, column=0, columnspan=2, padx=(45, 5), pady=(5, 10), sticky=tk.W
+        )
+        self.catapult_target = tk.StringVar()
+        self.choose_catapult_target = ttk.Combobox(
+            self.scroll_able.frame,
+            textvariable=self.catapult_target,
+            values=["Default"] + list(main_window.buildings),
+            width=14,
+            justify=tk.CENTER,
+            state="disabled",
+        )
+        self.choose_catapult_target.grid(
+            row=17, column=0, columnspan=2, padx=(5, 25), pady=(5, 10), sticky=tk.E
         )
         # endregion
 
@@ -468,14 +755,16 @@ class Scheduler:
                 self.choose_slowest_troop.config(state="disabled"),
                 self.repeat_attack.set(False),
                 self.total_attacks_number_entry.config(state="disabled"),
+                self.choose_catapult_target.config(state="disabled"),
+                forget_row(self.scroll_able.frame, row_number=43),
             ],
         )
         self.fake_troops_radiobutton.grid(
-            row=17, column=0, columnspan=2, padx=(25, 5), pady=5, sticky=tk.W
+            row=18, column=0, columnspan=2, padx=(25, 5), pady=5, sticky=tk.W
         )
 
         ttk.Label(self.scroll_able.frame, text="Dostępne szablony").grid(
-            row=18, column=0, columnspan=2, padx=(45, 5), pady=5, sticky=tk.W
+            row=19, column=0, columnspan=2, padx=(45, 5), pady=5, sticky=tk.W
         )
 
         settings.setdefault("scheduler", {})
@@ -487,10 +776,10 @@ class Scheduler:
 
         ttk.Button(
             self.scroll_able.frame,
-            image=self.plus,
+            image=main_window.images.plus,
             bootstyle="primary.Link.TButton",
             command=lambda: self.create_template(settings=settings),
-        ).grid(row=18, column=0, columnspan=2, padx=(0, 27), pady=5, sticky=tk.E)
+        ).grid(row=19, column=0, columnspan=2, padx=(0, 27), pady=5, sticky=tk.E)
 
         button_info_frame = ttk.Frame(self.scroll_able.frame)
         button_info_frame.grid(
@@ -500,6 +789,35 @@ class Scheduler:
 
         # Własny szablon
         # region
+
+        def on_catapult_value_change(*args) -> None:
+            if (
+                not self.choose_catapult_target2.winfo_ismapped()
+                and self.troops["catapult"].get()
+            ):
+                ttk.Label(self.scroll_able.frame, text="Cel ostrzału katapultami").grid(
+                    row=43,
+                    column=0,
+                    columnspan=2,
+                    padx=(45, 5),
+                    pady=(15, 0),
+                    sticky=tk.W,
+                )
+                self.choose_catapult_target2.grid(
+                    row=43,
+                    column=0,
+                    columnspan=2,
+                    padx=(5, 25),
+                    pady=(15, 0),
+                    sticky=tk.E,
+                )
+                return
+            if (
+                self.choose_catapult_target2.winfo_ismapped()
+                and not self.troops["catapult"].get()
+            ):
+                forget_row(self.scroll_able.frame, row_number=43)
+
         def own_template_radiobutton_func() -> None:
             """self.own_template_radiobutton function"""
 
@@ -511,6 +829,8 @@ class Scheduler:
             self.choosed_fake_template.set(""),
             self.choose_slowest_troop.config(state="disabled")
             self.split_attacks_number.set("1")
+            self.choose_catapult_target.config(state="disabled")
+            on_catapult_value_change()
 
         self.own_template_radiobutton = ttk.Radiobutton(
             button_info_frame,
@@ -521,7 +841,7 @@ class Scheduler:
         )
         self.own_template_radiobutton.grid(row=0, column=0, sticky=tk.W)
 
-        info = ttk.Label(button_info_frame, image=self.info)
+        info = ttk.Label(button_info_frame, image=main_window.images.info)
         info.grid(row=0, column=1, padx=(5, 0), sticky=ttk.W)
 
         ToolTip(
@@ -550,96 +870,84 @@ class Scheduler:
             else:
                 troop_entry.set("max")
 
-        self.spear_photo = tk.PhotoImage(file="icons//spear.png")
         spear_label = ttk.Label(
             army_frame,
-            image=self.spear_photo,
+            image=main_window.images.spear,
         )
         spear_label.grid(row=0, column=0, padx=(25, 0), pady=(5, 0), sticky=tk.W)
         spear_label.bind(
             "<Button-1>", lambda _: clear_or_set_max(spear_label, self.troops["spear"])
         )
 
-        self.spy_photo = tk.PhotoImage(file="icons//spy.png")
-        spy_label = ttk.Label(army_frame, image=self.spy_photo)
+        spy_label = ttk.Label(army_frame, image=main_window.images.spy)
         spy_label.grid(row=0, column=1, padx=(25, 0), pady=(5, 0), sticky=tk.W)
         spy_label.bind(
             "<Button-1>", lambda _: clear_or_set_max(spy_label, self.troops["spy"])
         )
 
-        self.ram_photo = tk.PhotoImage(file="icons//ram.png")
-        ram_label = ttk.Label(army_frame, image=self.ram_photo)
+        ram_label = ttk.Label(army_frame, image=main_window.images.ram)
         ram_label.grid(row=0, column=2, padx=(21, 0), pady=(5, 0), sticky=tk.W)
         ram_label.bind(
             "<Button-1>", lambda _: clear_or_set_max(ram_label, self.troops["ram"])
         )
 
-        self.knight_photo = tk.PhotoImage(file="icons//knight.png")
-        knihgt_label = ttk.Label(army_frame, image=self.knight_photo)
+        knihgt_label = ttk.Label(army_frame, image=main_window.images.knight)
         knihgt_label.grid(row=0, column=3, padx=(21, 0), pady=(5, 0), sticky=tk.W)
         knihgt_label.bind(
             "<Button-1>",
             lambda _: clear_or_set_max(knihgt_label, self.troops["knight"]),
         )
 
-        self.sword_photo = tk.PhotoImage(file="icons//sword.png")
-        sword_label = ttk.Label(army_frame, image=self.sword_photo)
+        sword_label = ttk.Label(army_frame, image=main_window.images.sword)
         sword_label.grid(row=1, column=0, padx=(25, 0), pady=(5, 0), sticky=tk.W)
         sword_label.bind(
             "<Button-1>",
             lambda _: clear_or_set_max(sword_label, self.troops["sword"]),
         )
 
-        self.light_photo = tk.PhotoImage(file="icons//light.png")
-        light_label = ttk.Label(army_frame, image=self.light_photo)
+        light_label = ttk.Label(army_frame, image=main_window.images.light)
         light_label.grid(row=1, column=1, padx=(25, 0), pady=(5, 0), sticky=tk.W)
         light_label.bind(
             "<Button-1>",
             lambda _: clear_or_set_max(light_label, self.troops["light"]),
         )
 
-        self.catapult_photo = tk.PhotoImage(file="icons//catapult.png")
-        catapult_label = ttk.Label(army_frame, image=self.catapult_photo)
+        catapult_label = ttk.Label(army_frame, image=main_window.images.catapult)
         catapult_label.grid(row=1, column=2, padx=(21, 0), pady=(5, 0), sticky=tk.W)
         catapult_label.bind(
             "<Button-1>",
             lambda _: clear_or_set_max(catapult_label, self.troops["catapult"]),
         )
 
-        self.snob_photo = tk.PhotoImage(file="icons//snob.png")
-        snob_label = ttk.Label(army_frame, image=self.snob_photo)
+        snob_label = ttk.Label(army_frame, image=main_window.images.snob)
         snob_label.grid(row=1, column=3, padx=(21, 0), pady=(5, 0), sticky=tk.W)
         snob_label.bind(
             "<Button-1>",
             lambda _: clear_or_set_max(snob_label, self.troops["snob"]),
         )
 
-        self.axe_photo = tk.PhotoImage(file="icons//axe.png")
-        axe_label = ttk.Label(army_frame, image=self.axe_photo)
+        axe_label = ttk.Label(army_frame, image=main_window.images.axe)
         axe_label.grid(row=2, column=0, padx=(25, 0), pady=(5, 0), sticky=tk.W)
         axe_label.bind(
             "<Button-1>",
             lambda _: clear_or_set_max(axe_label, self.troops["axe"]),
         )
 
-        self.marcher_photo = tk.PhotoImage(file="icons//marcher.png")
-        marcher_label = ttk.Label(army_frame, image=self.marcher_photo)
+        marcher_label = ttk.Label(army_frame, image=main_window.images.marcher)
         marcher_label.grid(row=2, column=1, padx=(25, 0), pady=(5, 0), sticky=tk.W)
         marcher_label.bind(
             "<Button-1>",
             lambda _: clear_or_set_max(marcher_label, self.troops["marcher"]),
         )
 
-        self.archer_photo = tk.PhotoImage(file="icons//archer.png")
-        archer_label = ttk.Label(army_frame, image=self.archer_photo)
+        archer_label = ttk.Label(army_frame, image=main_window.images.archer)
         archer_label.grid(row=3, column=0, padx=(25, 0), pady=(5, 5), sticky=tk.W)
         archer_label.bind(
             "<Button-1>",
             lambda _: clear_or_set_max(archer_label, self.troops["archer"]),
         )
 
-        self.heavy_photo = tk.PhotoImage(file="icons//heavy.png")
-        heavy_label = ttk.Label(army_frame, image=self.heavy_photo)
+        heavy_label = ttk.Label(army_frame, image=main_window.images.heavy)
         heavy_label.grid(row=3, column=1, padx=(25, 0), pady=(5, 5), sticky=tk.W)
         heavy_label.bind(
             "<Button-1>",
@@ -660,6 +968,8 @@ class Scheduler:
             "knight": tk.StringVar(),
             "snob": tk.StringVar(),
         }
+
+        self.troops["catapult"].trace_add("write", on_catapult_value_change)
 
         ttk.Entry(
             army_frame,
@@ -746,6 +1056,15 @@ class Scheduler:
             textvariable=self.troops["heavy"],
         ).grid(row=3, column=1, padx=(0, 3), pady=(5, 5), sticky=tk.E)
 
+        self.choose_catapult_target2 = ttk.Combobox(
+            self.scroll_able.frame,
+            textvariable=self.catapult_target,
+            values=["Default"] + list(main_window.buildings),
+            state="readonly",
+            width=14,
+            justify=tk.CENTER,
+        )
+
         # Liczba ataków
         attacks_number_frame = ttk.Labelframe(
             army_frame, text="Liczba ataków", labelanchor="n"
@@ -756,7 +1075,7 @@ class Scheduler:
             column=2,
             columnspan=2,
             padx=(25, 25),
-            pady=(5, 0),
+            pady=(5, 5),
             sticky=tk.NSEW,
         )
         attacks_number_frame.rowconfigure(0, weight=1)
@@ -801,7 +1120,7 @@ class Scheduler:
             command=repeat_attack_checkbutton_command,
         )
         self.repeat_attack_checkbutton.grid(
-            row=43, columnspan=2, padx=(45, 0), pady=(15, 0), sticky=tk.W
+            row=44, columnspan=2, padx=(45, 0), pady=(20, 0), sticky=tk.W
         )
 
         self.total_attacks_number = tk.IntVar()
@@ -809,7 +1128,7 @@ class Scheduler:
             self.scroll_able.frame, text="Łączna liczba ataków"
         )
         self.total_attacks_number_label.grid(
-            row=44, column=0, padx=(65, 0), pady=10, sticky=tk.W
+            row=45, column=0, padx=(65, 0), pady=10, sticky=tk.W
         )
         self.total_attacks_number_entry = ttk.Entry(
             self.scroll_able.frame,
@@ -819,13 +1138,13 @@ class Scheduler:
             state="disabled",
         )
         self.total_attacks_number_entry.grid(
-            row=44, columnspan=2, padx=(5, 25), pady=10, sticky=tk.E
+            row=45, columnspan=2, padx=(5, 25), pady=10, sticky=tk.E
         )
 
         # endregion
 
         ttk.Separator(self.scroll_able.frame, orient="horizontal").grid(
-            row=45, column=0, columnspan=2, pady=(5, 0), sticky=("W", "E")
+            row=46, column=0, columnspan=2, pady=(5, 0), sticky=("W", "E")
         )
 
         self.show_schedule = ttk.Button(
@@ -836,7 +1155,7 @@ class Scheduler:
             ),
         )
         self.show_schedule.grid(
-            row=46, column=0, padx=(25, 12.5), pady=10, sticky=ttk.EW
+            row=47, column=0, padx=(25, 12.5), pady=10, sticky=ttk.EW
         )
 
         self.add_to_schedule = ttk.Button(
@@ -847,8 +1166,27 @@ class Scheduler:
             ),
         )
         self.add_to_schedule.grid(
-            row=46, column=1, padx=(12.5, 25), pady=10, sticky=ttk.EW
+            row=47, column=1, padx=(12.5, 25), pady=10, sticky=ttk.EW
         )
+
+        # Bindings
+        combobox: tuple[ttk.Combobox] = (
+            self.choose_slowest_troop,
+            self.choose_catapult_target,
+            self.choose_catapult_target2,
+        )
+
+        def bound_mousewheel(event: tk.Event) -> None:
+            if event.type == "8":
+                self.scroll_able._bound_to_mousewheel()
+
+        def unbound_mousewheel(event: tk.Event) -> None:
+            if "disabled" not in event.widget.state() and event.type.value == "7":
+                self.scroll_able._unbound_to_mousewheel()
+
+        for widget in combobox:
+            widget.bind("<Leave>", lambda event: bound_mousewheel(event))
+            widget.bind("<Enter>", lambda event: unbound_mousewheel(event))
 
         self.scroll_able.frame.bind_all("<F4>", lambda _: self.show_schedule.invoke())
         self.scroll_able.frame.bind_all("<F5>", lambda _: self.add_to_schedule.invoke())
@@ -889,7 +1227,7 @@ class Scheduler:
             ToolTip(template_button, text=text, topmost=True)
             ttk.Button(
                 self.scroll_able.frame,
-                image=self.exit,
+                image=self.main_window.images.exit,
                 bootstyle="primary.Link.TButton",
                 command=partial(
                     delete_template, index + 20, fake_templates, template_name
@@ -897,42 +1235,118 @@ class Scheduler:
             ).grid(row=20 + index, column=0, columnspan=2, padx=(5, 27), sticky=tk.E)
 
     @log_errors()
-    def create_schedule(self, settings: dict, main_window) -> None:
+    def create_schedule(self, settings: dict, main_window: "MainWindow") -> None:
         """Create scheduled defined on used options by the user"""
 
-        def local_custom_error(message) -> None:
+        def local_custom_error(message, scroll_to_top: bool = True) -> None:
             custom_error(message=message, parent=main_window.master)
-            self.scroll_able.canvas.yview_moveto(0)
+            if scroll_to_top:
+                self.scroll_able.canvas.yview_moveto(0)
 
-        if self.villages_to_use.get("1.0", "1.5") == "Współ":
+        # Safeguards
+        if self.villages_to_use.get(
+            "1.0", "1.5"
+        ) == "Współ" or self.villages_to_use.compare("end-1c", "==", "1.0"):
             local_custom_error("Brak wiosek startowych")
             return
-        if self.villages_destiny.get("1.0", "1.5") == "Współ":
+        if self.villages_destiny.get(
+            "1.0", "1.5"
+        ) == "Współ" or self.villages_destiny.compare("end-1c", "==", "1.0"):
             local_custom_error("Brak wiosek docelowych")
             return
         if not self.command_type.get():
             local_custom_error("Wybierz rodzaj komendy")
             return
+        if (
+            "send_fake" in self.template_type.get()
+            and not self.choosed_fake_template.get()
+        ):
+            local_custom_error("Wybierz szablon fejków do wysłania", False)
+            return
 
-        arrival_time = self.destiny_date.entry.get()
-        arrival_time_ms = int(arrival_time[-3:])
-        arrival_time_in_sec = time.mktime(
-            time.strptime(arrival_time, "%d.%m.%Y %H:%M:%S:%f")
-        ) + (arrival_time_ms / 1000)
-        final_arrival_time = self.final_destiny_date.entry.get()
+        # Base info
         sends_from = self.villages_to_use.get("1.0", tk.END)
         sends_to = self.villages_destiny.get("1.0", tk.END)
         command_type = self.command_type.get()
         template_type = self.template_type.get()
+
+        # Timings
+        arrival_time = self.destiny_date.entry.get()
+        arrival_time_in_sec = datetime.strptime(
+            arrival_time, "%d.%m.%Y %H:%M:%S:%f"
+        ).timestamp()
+        final_arrival_time = self.final_destiny_date.entry.get()
+        final_arrival_time_in_sec = datetime.strptime(
+            final_arrival_time, "%d.%m.%Y %H:%M:%S:%f"
+        ).timestamp()
+        set_low_priority = False
         current_time = time.time()
-        max_time_to_add: float = 0
+        timings_ommiting_night_bonus: list[tuple[float, float]] = []
         if arrival_time != final_arrival_time:
-            final_arrival_time_ms = int(final_arrival_time[-3:])
-            max_time_to_add = (
-                time.mktime(time.strptime(final_arrival_time, "%d.%m.%Y %H:%M:%S:%f"))
-                - time.mktime(time.strptime(arrival_time, "%d.%m.%Y %H:%M:%S:%f"))
-                + (final_arrival_time_ms - arrival_time_ms) / 1000
-            )
+
+            class Night(NamedTuple):
+                start_hour: int = int(settings["world_config"]["start_hour"])
+                end_hour: int = int(settings["world_config"]["end_hour"])
+
+            night = Night()
+
+            start = datetime.strptime(arrival_time[:10], f"%d.%m.%Y")
+            end = datetime.strptime(final_arrival_time[:10], f"%d.%m.%Y")
+
+            first_night_bonus_start = datetime.strptime(
+                f"{arrival_time[:10]} {night.start_hour}:00:00:000",
+                f"%d.%m.%Y %H:%M:%S:%f",
+            ).timestamp()
+            # Same day
+            if not (end - start).days:
+                timings_ommiting_night_bonus.append(
+                    (
+                        arrival_time_in_sec,
+                        final_arrival_time_in_sec - arrival_time_in_sec
+                        if final_arrival_time_in_sec < first_night_bonus_start
+                        else first_night_bonus_start - arrival_time_in_sec,
+                    )
+                )
+            # Diffrent days
+            else:
+                last_night_bonus_end = datetime.strptime(
+                    f"{final_arrival_time[:10]} {night.end_hour}:00:00:000",
+                    f"%d.%m.%Y %H:%M:%S:%f",
+                ).timestamp()
+                # When night.start == 0 than skip to the begining of the next day
+                if not night.start_hour:
+                    first_night_bonus_start += timedelta(days=1).total_seconds()
+                    day_duration = (24 - night.end_hour) * 3600
+                else:
+                    day_duration = (night.start_hour - night.end_hour) * 3600
+                # Compute timings for first day
+                time_to_night = first_night_bonus_start - arrival_time_in_sec
+                timings_ommiting_night_bonus.append(
+                    (arrival_time_in_sec, time_to_night)
+                )
+                # Compute timings for every other day between first and last
+                if (end - start).days > 1:
+                    for day in range(1, (end - start).days):
+                        timings_ommiting_night_bonus.append(
+                            (
+                                (
+                                    start + timedelta(days=day, hours=night.end_hour)
+                                ).timestamp(),
+                                day_duration,
+                            )
+                        )
+                # Compute timings for last day and ommit it if it's at night bonus
+                if final_arrival_time_in_sec > last_night_bonus_end:
+                    if final_arrival_time_in_sec < last_night_bonus_end + day_duration:
+                        time_to_night = final_arrival_time_in_sec - last_night_bonus_end
+                    else:
+                        time_to_night = day_duration
+                    timings_ommiting_night_bonus.append(
+                        (last_night_bonus_end, time_to_night)
+                    )
+
+        if final_arrival_time_in_sec - arrival_time_in_sec > 299:
+            set_low_priority = True
 
         troops_speed = {
             "spear": 18,
@@ -956,6 +1370,13 @@ class Scheduler:
                 if send_snob == "send_snob":
                     snob_amount = self.snob_amount.get()
                     first_snob_army_size = self.first_snob_army_size.get()
+                catapult_target = self.catapult_target.get()
+                if catapult_target != "Default":
+                    for key, value in zip(
+                        main_window.buildings._fields, main_window.buildings
+                    ):
+                        if value == catapult_target:
+                            catapult_target = key
 
             case "send_fake":
                 choosed_fake_template = json.loads(
@@ -987,6 +1408,13 @@ class Scheduler:
                 ):
                     army_speed = 10
                 split_attacks_number = self.split_attacks_number.get() or "1"
+                catapult_target = self.catapult_target.get()
+                if catapult_target != "Default":
+                    for key, value in zip(
+                        main_window.buildings._fields, main_window.buildings
+                    ):
+                        if value == catapult_target:
+                            catapult_target = key
                 repeat_attack = self.repeat_attack.get()
                 total_attacks_number = self.total_attacks_number.get()
 
@@ -1068,6 +1496,7 @@ class Scheduler:
                     slowest_troop = troops_dictionary[slowest_troop]
                     send_info["slowest_troop"] = slowest_troop
                     army_speed = troops_speed[slowest_troop]
+                    send_info["catapult_target"] = catapult_target
 
                 case "send_fake":
                     send_info["fake_template"] = choosed_fake_template
@@ -1075,6 +1504,8 @@ class Scheduler:
                 case "send_my_template":
                     send_info["troops"] = troops
                     send_info["split_attacks_number"] = split_attacks_number
+                    if "catapult" in troops:
+                        send_info["catapult_target"] = catapult_target
                     send_info["repeat_attack"] = repeat_attack
                     send_info["total_attacks_number"] = total_attacks_number
 
@@ -1087,17 +1518,28 @@ class Scheduler:
             )  # Milisekundy są zaokrąglane do pełnych sekund
             send_info["travel_time"] = travel_time_in_sec
 
-            if max_time_to_add:
-                extra_time = random.uniform(0, max_time_to_add)
-                final_arrival_time_in_sec = arrival_time_in_sec + extra_time
-                ms = int(final_arrival_time_in_sec % 1 * 1000)
-                send_info["arrival_time"] = time.strftime(
-                    f"%d.%m.%Y %H:%M:%S:{ms:03}",
-                    time.localtime(final_arrival_time_in_sec),
+            if timings_ommiting_night_bonus:
+                drawn_arrival_time, max_time_to_add = random.choice(
+                    timings_ommiting_night_bonus
                 )
+                drawn_extra_time = random.uniform(0, max_time_to_add)
+                current_command_final_arrival_time_in_sec = (
+                    drawn_arrival_time + drawn_extra_time
+                )
+                send_info["arrival_time"] = datetime.strftime(
+                    datetime.fromtimestamp(current_command_final_arrival_time_in_sec),
+                    "%d.%m.%Y %H:%M:%S:%f",
+                )[:-3]
                 send_info["send_time"] = (
-                    final_arrival_time_in_sec - travel_time_in_sec
+                    current_command_final_arrival_time_in_sec - travel_time_in_sec
                 )  # sec since epoch
+                if set_low_priority:
+                    send_info["low_priority"] = True
+                    if drawn_extra_time < 8:
+                        send_info["send_time"] += 8
+                    elif drawn_extra_time + 8 > max_time_to_add:
+                        send_info["send_time"] += 5
+
             else:
                 send_info["arrival_time"] = arrival_time
                 send_info["send_time"] = (
@@ -1154,6 +1596,7 @@ class Scheduler:
             message="Dodano do planera!", auto_hide=True, parent=main_window.master
         )
 
+    @log_errors()
     def create_template(self, settings: dict) -> None:
         """As named it creates fake template to use"""
 
@@ -1209,7 +1652,7 @@ class Scheduler:
 
             ttk.Button(
                 frame,
-                image=self.minus,
+                image=self.main_window.images.minimize,
                 bootstyle="primary.Link.TButton",
                 command=partial(_forget_row, last_row_number, troop),
             ).grid(row=last_row_number, column=4, padx=(0, 10))
@@ -1250,7 +1693,7 @@ class Scheduler:
             text="Szablon dobierania jednostek",
         ).grid(row=0, column=0, padx=5)
 
-        info = ttk.Label(top_frame, image=self.info)
+        info = ttk.Label(top_frame, image=self.main_window.images.info)
         info.grid(row=0, column=1)
 
         ToolTip(
@@ -1323,7 +1766,7 @@ class Scheduler:
         ttk.Button(
             frame,
             bootstyle="primary.Link.TButton",
-            image=self.plus,
+            image=self.main_window.images.plus,
             command=add_to_template,
         ).grid(row=3, column=4, padx=(0, 10), pady=(0, 5))
 
@@ -1422,14 +1865,13 @@ class Gathering:
     def __init__(
         self,
         parent: ttk.Frame,
+        main_window: "MainWindow",
         entries_content: dict,
         settings: dict,
-        elements_state: list,
     ) -> None:
 
         self.parent = parent
         self.entries_content = entries_content
-        self.elements_state = elements_state
 
         self.scroll_able = ScrollableFrame(parent=parent)
 
@@ -1478,17 +1920,17 @@ class Gathering:
             variable=self.entries_content["gathering"]["active"],
             onvalue=True,
             offvalue=False,
-            command=lambda: change_state(*self.elements_state[9]),
         )
         self.active_gathering.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        self.elements_state.append(
-            [
+        self.active_gathering.configure(
+            command=partial(
+                change_state,
                 self.scroll_able.frame,
                 "active",
                 self.entries_content["gathering"],
                 True,
                 self.active_gathering,
-            ]
+            ),
         )
 
         ttk.Separator(self.scroll_able.frame, orient="horizontal").grid(
@@ -1560,10 +2002,9 @@ class Gathering:
                 self.__getattribute__(f"{troop}_max").config(state="disabled")
 
         self.entries_content["gathering_troops"]["spear"]["use"] = tk.BooleanVar()
-        self.spear_photo = tk.PhotoImage(file="icons//spear.png")
         self.gathering_spear = ttk.Checkbutton(
             troops_frame,
-            image=self.spear_photo,
+            image=main_window.images.spear,
             compound="left",
             variable=self.entries_content["gathering_troops"]["spear"]["use"],
             onvalue=True,
@@ -1587,10 +2028,9 @@ class Gathering:
         self.spear_max.grid(row=9, column=2, pady=5)
 
         self.entries_content["gathering_troops"]["light"]["use"] = tk.BooleanVar()
-        self.light_photo = tk.PhotoImage(file="icons//light.png")
         self.gathering_light = ttk.Checkbutton(
             troops_frame,
-            image=self.light_photo,
+            image=main_window.images.light,
             compound="left",
             variable=self.entries_content["gathering_troops"]["light"]["use"],
             onvalue=True,
@@ -1614,10 +2054,9 @@ class Gathering:
         self.light_max.grid(row=9, column=5, pady=5, padx=(0, 25))
 
         self.entries_content["gathering_troops"]["sword"]["use"] = tk.BooleanVar()
-        self.sword_photo = tk.PhotoImage(file="icons//sword.png")
         self.gathering_sword = ttk.Checkbutton(
             troops_frame,
-            image=self.sword_photo,
+            image=main_window.images.sword,
             compound="left",
             variable=self.entries_content["gathering_troops"]["sword"]["use"],
             onvalue=True,
@@ -1641,10 +2080,9 @@ class Gathering:
         self.sword_max.grid(row=10, column=2, pady=5)
 
         self.entries_content["gathering_troops"]["marcher"]["use"] = tk.BooleanVar()
-        self.marcher_photo = tk.PhotoImage(file="icons//marcher.png")
         self.gathering_marcher = ttk.Checkbutton(
             troops_frame,
-            image=self.marcher_photo,
+            image=main_window.images.marcher,
             compound="left",
             variable=self.entries_content["gathering_troops"]["marcher"]["use"],
             onvalue=True,
@@ -1668,10 +2106,9 @@ class Gathering:
         self.marcher_max.grid(row=10, column=5, pady=5, padx=(0, 25))
 
         self.entries_content["gathering_troops"]["axe"]["use"] = tk.BooleanVar()
-        self.axe_photo = tk.PhotoImage(file="icons//axe.png")
         self.gathering_axe = ttk.Checkbutton(
             troops_frame,
-            image=self.axe_photo,
+            image=main_window.images.axe,
             compound="left",
             variable=self.entries_content["gathering_troops"]["axe"]["use"],
             onvalue=True,
@@ -1695,10 +2132,9 @@ class Gathering:
         self.axe_max.grid(row=11, column=2, pady=5)
 
         self.entries_content["gathering_troops"]["heavy"]["use"] = tk.BooleanVar()
-        self.heavy_photo = tk.PhotoImage(file="icons//heavy.png")
         self.gathering_heavy = ttk.Checkbutton(
             troops_frame,
-            image=self.heavy_photo,
+            image=main_window.images.heavy,
             compound="left",
             variable=self.entries_content["gathering_troops"]["heavy"]["use"],
             onvalue=True,
@@ -1722,10 +2158,9 @@ class Gathering:
         self.heavy_max.grid(row=11, column=5, pady=5, padx=(0, 25))
 
         self.entries_content["gathering_troops"]["archer"]["use"] = tk.BooleanVar()
-        self.archer_photo = tk.PhotoImage(file="icons//archer.png")
         self.gathering_archer = ttk.Checkbutton(
             troops_frame,
-            image=self.archer_photo,
+            image=main_window.images.archer,
             compound="left",
             variable=self.entries_content["gathering_troops"]["archer"]["use"],
             onvalue=True,
@@ -1751,10 +2186,9 @@ class Gathering:
         self.archer_max.grid(row=12, column=2, pady=5)
 
         self.entries_content["gathering_troops"]["knight"]["use"] = tk.BooleanVar()
-        self.knight_photo = tk.PhotoImage(file="icons//knight.png")
         self.gathering_knight = ttk.Checkbutton(
             troops_frame,
-            image=self.knight_photo,
+            image=main_window.images.knight,
             compound="left",
             variable=self.entries_content["gathering_troops"]["knight"]["use"],
             onvalue=True,
@@ -1863,10 +2297,9 @@ class Market:
     def __init__(
         self,
         parent: ttk.Frame,
-        main_window,
+        main_window: "MainWindow",
         entries_content: dict,
         settings: dict,
-        elements_state: list,
     ) -> None:
 
         self.parent = parent
@@ -1883,19 +2316,19 @@ class Market:
             variable=market["premium_exchange"],
             onvalue=True,
             offvalue=False,
-            command=lambda: change_state(*elements_state[10]),
         )
-        self.active_premium_exchange.grid(
-            row=0, column=0, columnspan=2, padx=5, pady=20
-        )
-        elements_state.append(
-            [
+        self.active_premium_exchange.configure(
+            command=partial(
+                change_state,
                 self.scroll_able.frame,
                 "premium_exchange",
                 market,
                 True,
                 self.active_premium_exchange,
-            ]
+            ),
+        )
+        self.active_premium_exchange.grid(
+            row=0, column=0, columnspan=2, padx=5, pady=20
         )
 
         ttk.Separator(self.scroll_able.frame, orient="horizontal").grid(
@@ -2126,9 +2559,8 @@ class Market:
 
 class MainWindow:
 
-    elements_state = []
-    entries_content = {}
-    settings_by_worlds = {}
+    entries_content: dict[str, dict | tk.Variable] = {}
+    settings_by_worlds: dict[str, dict] = {}
 
     def __init__(
         self, master: tk.Tk, driver: webdriver.Chrome, settings: dict[str]
@@ -2146,6 +2578,48 @@ class MainWindow:
 
         master.columnconfigure(0, weight=1)
         master.rowconfigure(0, weight=1)
+
+        # All used images -> one time load
+        class Images(NamedTuple):
+            exit: tk.PhotoImage = tk.PhotoImage(file="icons//exit.png")
+            minimize: tk.PhotoImage = tk.PhotoImage(file="icons//minimize.png")
+            plus: tk.PhotoImage = tk.PhotoImage(file="icons//plus.png")
+            refresh: tk.PhotoImage = tk.PhotoImage(file="icons//refresh.png")
+            info: tk.PhotoImage = tk.PhotoImage(file="icons//info.png")
+            spear: tk.PhotoImage = tk.PhotoImage(file="icons//spear.png")
+            sword: tk.PhotoImage = tk.PhotoImage(file="icons//sword.png")
+            axe: tk.PhotoImage = tk.PhotoImage(file="icons//axe.png")
+            archer: tk.PhotoImage = tk.PhotoImage(file="icons//archer.png")
+            spy: tk.PhotoImage = tk.PhotoImage(file="icons//spy.png")
+            light: tk.PhotoImage = tk.PhotoImage(file="icons//light.png")
+            marcher: tk.PhotoImage = tk.PhotoImage(file="icons//marcher.png")
+            heavy: tk.PhotoImage = tk.PhotoImage(file="icons//heavy.png")
+            ram: tk.PhotoImage = tk.PhotoImage(file="icons//ram.png")
+            catapult: tk.PhotoImage = tk.PhotoImage(file="icons//catapult.png")
+            knight: tk.PhotoImage = tk.PhotoImage(file="icons//knight.png")
+            snob: tk.PhotoImage = tk.PhotoImage(file="icons//snob.png")
+
+        self.images = Images()
+
+        # Buildings
+        class Buildings(NamedTuple):
+            main: str = "Ratusz"
+            barracks: str = "Koszary"
+            stable: str = "Stajnia"
+            garage: str = "Warsztat"
+            snob: str = "Pałac"
+            smith: str = "Kuźnia"
+            place: str = "Plac"
+            statue: str = "Piedestał"
+            market: str = "Rynek"
+            wood: str = "Tartak"
+            stone: str = "Cegielnia"
+            iron: str = "Huta żelaza"
+            farm: str = "Zagroda"
+            storage: str = "Spichlerz"
+            wall: str = "Mur"
+
+        self.buildings = Buildings()
 
         # main_frame -> custom_bar, content_frame
         self.main_frame = ttk.Frame(master, borderwidth=1, relief="groove")
@@ -2182,17 +2656,13 @@ class MainWindow:
         )
         self.title_world.grid(row=0, column=3, padx=(5, 0), sticky="E")
 
-        self.minimize = tk.PhotoImage(file="icons//minimize.png")
-
         self.minimize_button = ttk.Button(
             self.custom_bar,
             bootstyle="primary.Link.TButton",
-            image=self.minimize,
+            image=self.images.minimize,
             command=self.hide,
         )
         self.minimize_button.grid(row=0, column=4, padx=(5, 0), pady=5, sticky="E")
-
-        self.exit = tk.PhotoImage(file="icons//exit.png")
 
         def on_exit() -> None:
             master.withdraw()
@@ -2228,7 +2698,7 @@ class MainWindow:
         self.exit_button = ttk.Button(
             self.custom_bar,
             bootstyle="primary.Link.TButton",
-            image=self.exit,
+            image=self.images.exit,
             command=on_exit,
         )
         self.exit_button.grid(row=0, column=5, padx=(0, 5), pady=3, sticky="E")
@@ -2260,504 +2730,29 @@ class MainWindow:
         f4 = ttk.Frame(self.notebook)
         f5 = ttk.Frame(self.notebook)
         f6 = ttk.Frame(self.notebook)
-        # f7 = ttk.Frame(self.notebook)
         self.notebook.add(f1, text="Farma")
         self.notebook.add(f2, text="Zbieractwo")
         self.notebook.add(f3, text="Planer")
         self.notebook.add(f4, text="Rynek")
         self.notebook.add(f5, text="Ustawienia")
         self.notebook.add(f6, text="Powiadomienia")
-        # self.notebook.add(f7, text="O aplikacji")
 
         # f1 -> 'Farma'
-        templates = ttk.Notebook(f1)
-        templates.grid(pady=5, padx=5, sticky=("N", "S", "E", "W"))
-        A = ttk.Frame(templates)
-        B = ttk.Frame(templates)
-        C = ttk.Frame(templates)
-        templates.add(A, text="Szablon A")
-        templates.add(B, text="Szablon B")
-        templates.add(C, text="Szablon C")
-        f1.rowconfigure(0, weight=1)
-        f1.columnconfigure(0, weight=1)
 
-        # Szablon A
-        # region
-        A.columnconfigure(0, weight=1)
-        A.columnconfigure(1, weight=1)
-        self.entries_content["A"] = {}
-
-        self.entries_content["A"]["active"] = tk.BooleanVar()
-        self.active_A = ttk.Checkbutton(
-            A,
-            text="Aktywuj szablon",
-            variable=self.entries_content["A"]["active"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: change_state(*self.elements_state[0]),
+        self.farm = Farm(
+            parent=f1,
+            main_window=self,
+            entries_content=self.entries_content,
+            settings=settings,
         )
-        self.active_A.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        self.elements_state.append(
-            [A, "active", self.entries_content["A"], True, self.active_A]
-        )
-
-        ttk.Separator(A, orient="horizontal").grid(
-            row=1, column=0, columnspan=2, sticky=("W", "E")
-        )
-
-        A_frame = ttk.Frame(A)
-        A_frame.grid(row=2, columnspan=2, sticky="EW", padx=0, pady=20)
-        A_frame.columnconfigure(1, weight=1)
-
-        self.entries_content["farm_group"] = tk.StringVar()
-        ttk.Label(A_frame, text="Grupa farmiąca").grid(
-            row=0, column=0, padx=(5, 0), pady=(10), sticky="W"
-        )
-        self.farm_group_A = ttk.Combobox(
-            A_frame,
-            textvariable=self.entries_content["farm_group"],
-            state="readonly",
-            justify="center",
-        )
-        self.farm_group_A.grid(row=0, column=1, padx=(0), pady=(10))
-        self.farm_group_A.set("Wybierz grupę")
-        self.farm_group_A["values"] = settings["groups"]
-
-        self.refresh_photo = tk.PhotoImage(file="icons//refresh.png")
-        ttk.Button(
-            A_frame,
-            image=self.refresh_photo,
-            bootstyle="primary.Link.TButton",
-            command=lambda: threading.Thread(
-                target=lambda: self.check_groups(settings=settings),
-                name="checking_groups",
-                daemon=True,
-            ).start(),
-        ).grid(row=0, column=2, padx=(0, 25), pady=(10), sticky="E")
-
-        self.wall = ttk.Label(A, text="Poziom muru")
-        self.wall.grid(row=4, column=0, columnspan=2, pady=(0, 15), padx=5, sticky="W")
-
-        self.entries_content["A"]["wall_ignore"] = tk.BooleanVar()
-        self.wall_ignore = ttk.Checkbutton(
-            A,
-            text="Ignoruj poziom",
-            variable=self.entries_content["A"]["wall_ignore"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: change_state(*self.elements_state[1]),
-        )
-        self.wall_ignore.grid(row=5, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.min_wall_level = ttk.Label(A, text="Min")
-        self.min_wall_level.grid(row=6, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.entries_content["A"]["min_wall"] = tk.IntVar()
-        self.min_wall_level_input = ttk.Entry(
-            A,
-            width=5,
-            textvariable=self.entries_content["A"]["min_wall"],
-            justify="center",
-        )
-        self.min_wall_level_input.grid(
-            row=6, column=1, pady=5, padx=(5, 25), sticky="E"
-        )
-
-        self.max_wall_level = ttk.Label(A, text="Max")
-        self.max_wall_level.grid(row=7, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.entries_content["A"]["max_wall"] = tk.IntVar()
-        self.max_wall_level_input_A = ttk.Entry(
-            A,
-            width=5,
-            textvariable=self.entries_content["A"]["max_wall"],
-            justify="center",
-        )
-        self.max_wall_level_input_A.grid(
-            row=7, column=1, pady=5, padx=(5, 25), sticky="E"
-        )
-        self.elements_state.append(
-            [
-                [self.min_wall_level_input, self.max_wall_level_input_A],
-                "wall_ignore",
-                self.entries_content["A"],
-            ]
-        )
-
-        self.attacks = ttk.Label(A, text="Wysyłka ataków")
-        self.attacks.grid(
-            row=8, column=0, columnspan=2, pady=(20, 15), padx=5, sticky="W"
-        )
-
-        self.entries_content["A"]["max_attacks"] = tk.BooleanVar()
-        self.max_attacks_A = ttk.Checkbutton(
-            A,
-            text="Maksymalna ilość",
-            variable=self.entries_content["A"]["max_attacks"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: change_state(*self.elements_state[2]),
-        )
-        self.max_attacks_A.grid(row=9, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.attacks = ttk.Label(A, text="Ilość ataków")
-        self.attacks.grid(row=10, column=0, pady=(5, 10), padx=(25, 5), sticky="W")
-
-        self.entries_content["A"]["attacks_number"] = tk.IntVar()
-        self.attacks_number_input_A = ttk.Entry(
-            A,
-            width=5,
-            textvariable=self.entries_content["A"]["attacks_number"],
-            justify="center",
-        )
-        self.attacks_number_input_A.grid(
-            row=10, column=1, pady=(5, 10), padx=(5, 25), sticky="E"
-        )
-        self.elements_state.append(
-            [self.attacks_number_input_A, "max_attacks", self.entries_content["A"]]
-        )
-
-        ttk.Label(A, text="Pozostałe ustawienia").grid(
-            row=11, column=0, padx=5, pady=(20, 15), sticky="W"
-        )
-
-        self.farm_sleep_time_label = ttk.Label(
-            A, text="Powtarzaj ataki w odstępach [min]"
-        )
-        self.farm_sleep_time_label.grid(
-            row=12, column=0, padx=(25, 5), pady=(0, 5), sticky="W"
-        )
-
-        self.entries_content["farm_sleep_time"] = tk.IntVar()
-        self.farm_sleep_time = ttk.Entry(
-            A,
-            textvariable=self.entries_content["farm_sleep_time"],
-            width=5,
-            justify="center",
-        )
-        self.farm_sleep_time.grid(
-            row=12, column=1, padx=(5, 25), pady=(0, 5), sticky="E"
-        )
-
-        # endregion
-
-        # Szablon B
-        # region
-        B.columnconfigure(0, weight=1)
-        B.columnconfigure(1, weight=1)
-        self.entries_content["B"] = {}
-
-        self.entries_content["B"]["active"] = tk.BooleanVar()
-        self.active_B = ttk.Checkbutton(
-            B,
-            text="Aktywuj szablon",
-            variable=self.entries_content["B"]["active"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: change_state(*self.elements_state[3]),
-        )
-        self.active_B.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        self.elements_state.append(
-            [B, "active", self.entries_content["B"], True, self.active_B]
-        )
-
-        ttk.Separator(B, orient="horizontal").grid(
-            row=1, column=0, columnspan=2, sticky=("W", "E")
-        )
-
-        B_frame = ttk.Frame(B)
-        B_frame.grid(row=2, columnspan=2, sticky="EW", padx=0, pady=20)
-        B_frame.columnconfigure(1, weight=1)
-
-        ttk.Label(B_frame, text="Grupa farmiąca").grid(
-            row=0, column=0, padx=(5, 0), pady=(10), sticky="W"
-        )
-        self.farm_group_B = ttk.Combobox(
-            B_frame,
-            textvariable=self.entries_content["farm_group"],
-            state="readonly",
-            justify="center",
-        )
-        self.farm_group_B.grid(row=0, column=1, padx=(0), pady=(10))
-        self.farm_group_B.set("Wybierz grupę")
-        self.farm_group_B["values"] = settings["groups"]
-        ttk.Button(
-            B_frame,
-            image=self.refresh_photo,
-            bootstyle="primary.Link.TButton",
-            command=lambda: threading.Thread(
-                target=lambda: self.check_groups(settings=settings),
-                name="checking_groups",
-                daemon=True,
-            ).start(),
-        ).grid(row=0, column=2, padx=(0, 25), pady=(10), sticky="E")
-
-        self.wall = ttk.Label(B, text="Poziom muru")
-        self.wall.grid(row=3, column=0, columnspan=2, pady=(0, 15), padx=5, sticky="W")
-
-        self.entries_content["B"]["wall_ignore"] = tk.BooleanVar()
-        self.wall_ignore_B = ttk.Checkbutton(
-            B,
-            text="Ignoruj poziom",
-            variable=self.entries_content["B"]["wall_ignore"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: change_state(*self.elements_state[4]),
-        )
-        self.wall_ignore_B.grid(row=4, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.min_wall_level = ttk.Label(B, text="Min")
-        self.min_wall_level.grid(row=5, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.entries_content["B"]["min_wall"] = tk.IntVar()
-        self.min_wall_level_input_B = ttk.Entry(
-            B,
-            width=5,
-            textvariable=self.entries_content["B"]["min_wall"],
-            justify="center",
-        )
-        self.min_wall_level_input_B.grid(
-            row=5, column=1, pady=5, padx=(5, 25), sticky="E"
-        )
-
-        self.max_wall_level = ttk.Label(B, text="Max")
-        self.max_wall_level.grid(row=6, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.entries_content["B"]["max_wall"] = tk.IntVar()
-        self.max_wall_level_input_B = ttk.Entry(
-            B,
-            width=5,
-            textvariable=self.entries_content["B"]["max_wall"],
-            justify="center",
-        )
-        self.max_wall_level_input_B.grid(
-            row=6, column=1, pady=5, padx=(5, 25), sticky="E"
-        )
-        self.elements_state.append(
-            [
-                [self.min_wall_level_input_B, self.max_wall_level_input_B],
-                "wall_ignore",
-                self.entries_content["B"],
-            ]
-        )
-
-        self.attacks = ttk.Label(B, text="Wysyłka ataków")
-        self.attacks.grid(
-            row=7, column=0, columnspan=2, pady=(20, 15), padx=5, sticky="W"
-        )
-
-        self.entries_content["B"]["max_attacks"] = tk.BooleanVar()
-        self.max_attacks_B = ttk.Checkbutton(
-            B,
-            text="Maksymalna ilość",
-            variable=self.entries_content["B"]["max_attacks"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: change_state(*self.elements_state[5]),
-        )
-        self.max_attacks_B.grid(row=8, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.attacks = ttk.Label(B, text="Ilość ataków")
-        self.attacks.grid(row=9, column=0, pady=(5, 10), padx=(25, 5), sticky="W")
-
-        self.entries_content["B"]["attacks_number"] = tk.IntVar()
-        self.attacks_number_input_B = ttk.Entry(
-            B,
-            width=5,
-            textvariable=self.entries_content["B"]["attacks_number"],
-            justify="center",
-        )
-        self.attacks_number_input_B.grid(
-            row=9, column=1, pady=(5, 10), padx=(5, 25), sticky="E"
-        )
-        self.elements_state.append(
-            [self.attacks_number_input_B, "max_attacks", self.entries_content["B"]]
-        )
-
-        ttk.Label(B, text="Pozostałe ustawienia").grid(
-            row=10, column=0, padx=5, pady=(20, 15), sticky="W"
-        )
-
-        self.farm_sleep_time_label = ttk.Label(
-            B, text="Powtarzaj ataki w odstępach [min]"
-        )
-        self.farm_sleep_time_label.grid(
-            row=11, column=0, padx=(25, 5), pady=(0, 5), sticky="W"
-        )
-
-        self.farm_sleep_time = ttk.Entry(
-            B,
-            textvariable=self.entries_content["farm_sleep_time"],
-            width=5,
-            justify="center",
-        )
-        self.farm_sleep_time.grid(
-            row=11, column=1, padx=(5, 25), pady=(0, 5), sticky="E"
-        )
-
-        # endregion
-
-        # Szablon C
-        # region
-        C.columnconfigure(1, weight=1)
-        C.columnconfigure(0, weight=1)
-        self.entries_content["C"] = {}
-
-        self.entries_content["C"]["active"] = tk.BooleanVar()
-        self.active_C = ttk.Checkbutton(
-            C,
-            text="Aktywuj szablon",
-            variable=self.entries_content["C"]["active"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: change_state(*self.elements_state[6]),
-        )
-        self.active_C.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        self.elements_state.append(
-            [C, "active", self.entries_content["C"], True, self.active_C]
-        )
-
-        ttk.Separator(C, orient="horizontal").grid(
-            row=1, column=0, columnspan=2, sticky=("W", "E")
-        )
-
-        C_frame = ttk.Frame(C)
-        C_frame.grid(row=2, columnspan=2, sticky="EW", padx=0, pady=20)
-        C_frame.columnconfigure(1, weight=1)
-
-        ttk.Label(C_frame, text="Grupa farmiąca").grid(
-            row=0, column=0, padx=(5, 0), pady=(10), sticky="W"
-        )
-        self.farm_group_C = ttk.Combobox(
-            C_frame,
-            textvariable=self.entries_content["farm_group"],
-            state="readonly",
-            justify="center",
-        )
-        self.farm_group_C.grid(row=0, column=1, padx=(0), pady=(10))
-        self.farm_group_C.set("Wybierz grupę")
-        self.farm_group_C["values"] = settings["groups"]
-        ttk.Button(
-            C_frame,
-            image=self.refresh_photo,
-            bootstyle="primary.Link.TButton",
-            command=lambda: threading.Thread(
-                target=lambda: self.check_groups(settings=settings),
-                name="checking_groups",
-                daemon=True,
-            ).start(),
-        ).grid(row=0, column=2, padx=(0, 25), pady=(10), sticky="E")
-
-        self.wall = ttk.Label(C, text="Poziom muru")
-        self.wall.grid(row=3, column=0, columnspan=2, pady=(0, 15), padx=5, sticky="W")
-
-        self.entries_content["C"]["wall_ignore"] = tk.BooleanVar()
-        self.wall_ignore_C = ttk.Checkbutton(
-            C,
-            text="Ignoruj poziom",
-            variable=self.entries_content["C"]["wall_ignore"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: change_state(*self.elements_state[7]),
-        )
-        self.wall_ignore_C.grid(row=4, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.min_wall_level = ttk.Label(C, text="Min")
-        self.min_wall_level.grid(row=5, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.entries_content["C"]["min_wall"] = tk.IntVar()
-        self.min_wall_level_input_C = ttk.Entry(
-            C,
-            width=5,
-            textvariable=self.entries_content["C"]["min_wall"],
-            justify="center",
-        )
-        self.min_wall_level_input_C.grid(
-            row=5, column=1, pady=5, padx=(5, 25), sticky="E"
-        )
-
-        self.max_wall_level = ttk.Label(C, text="Max")
-        self.max_wall_level.grid(row=6, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.entries_content["C"]["max_wall"] = tk.IntVar()
-        self.max_wall_level_input_C = ttk.Entry(
-            C,
-            width=5,
-            textvariable=self.entries_content["C"]["max_wall"],
-            justify="center",
-        )
-        self.max_wall_level_input_C.grid(
-            row=6, column=1, pady=5, padx=(5, 25), sticky="E"
-        )
-        self.elements_state.append(
-            [
-                [self.min_wall_level_input_C, self.max_wall_level_input_C],
-                "wall_ignore",
-                self.entries_content["C"],
-            ]
-        )
-
-        self.attacks = ttk.Label(C, text="Wysyłka ataków")
-        self.attacks.grid(row=7, column=0, pady=(20, 15), padx=5, sticky="W")
-
-        self.entries_content["C"]["max_attacks"] = tk.BooleanVar()
-        self.max_attacks_C = ttk.Checkbutton(
-            C,
-            text="Maksymalna ilość",
-            variable=self.entries_content["C"]["max_attacks"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: change_state(*self.elements_state[8]),
-        )
-        self.max_attacks_C.grid(row=8, column=0, pady=5, padx=(25, 5), sticky="W")
-
-        self.attacks = ttk.Label(C, text="Ilość ataków")
-        self.attacks.grid(row=9, column=0, pady=(5, 10), padx=(25, 5), sticky="W")
-
-        self.entries_content["C"]["attacks_number"] = tk.IntVar()
-        self.attacks_number_input_C = ttk.Entry(
-            C,
-            width=5,
-            textvariable=self.entries_content["C"]["attacks_number"],
-            justify="center",
-        )
-        self.attacks_number_input_C.grid(
-            row=9, column=1, pady=(5, 10), padx=(5, 25), sticky="E"
-        )
-        self.elements_state.append(
-            [self.attacks_number_input_C, "max_attacks", self.entries_content["C"]]
-        )
-
-        ttk.Label(C, text="Pozostałe ustawienia").grid(
-            row=10, column=0, padx=5, pady=(20, 15), sticky="W"
-        )
-
-        self.farm_sleep_time_label = ttk.Label(
-            C, text="Powtarzaj ataki w odstępach [min]"
-        )
-        self.farm_sleep_time_label.grid(
-            row=11, column=0, padx=(25, 5), pady=(0, 5), sticky="W"
-        )
-
-        self.farm_sleep_time = ttk.Entry(
-            C,
-            textvariable=self.entries_content["farm_sleep_time"],
-            width=5,
-            justify="center",
-        )
-        self.farm_sleep_time.grid(
-            row=11, column=1, padx=(5, 25), pady=(0, 5), sticky="E"
-        )
-
-        # endregion
 
         # f2 -> 'Zbieractwo'
 
         self.gathering = Gathering(
             parent=f2,
+            main_window=self,
             entries_content=self.entries_content,
             settings=settings,
-            elements_state=self.elements_state,
         )
 
         # f3 -> 'Planer'
@@ -2776,7 +2771,6 @@ class MainWindow:
             main_window=self,
             entries_content=self.entries_content,
             settings=settings,
-            elements_state=self.elements_state,
         )
 
         # f5 -> 'Ustawienia'
@@ -2857,10 +2851,11 @@ class MainWindow:
         self.villages_groups.set("Dostępne grupy")
         self.villages_groups["values"] = settings["groups"]
 
-        # Aktualizacja dostępnych grup
+        # Update available groups
+
         ttk.Button(
             f5,
-            image=self.refresh_photo,
+            image=self.images.refresh,
             bootstyle="primary.Link.TButton",
             command=lambda: threading.Thread(
                 target=lambda: self.check_groups(settings=settings),
@@ -2869,7 +2864,8 @@ class MainWindow:
             ).start(),
         ).grid(row=2, column=2, padx=5, pady=(10), sticky="E")
 
-        # Wybijanie monet
+        # Coin mine
+
         self.mine_coin_frame = ttk.Frame(f5)
         self.mine_coin_frame.grid(row=4, column=0, columnspan=3, sticky=ttk.NSEW)
         self.mine_coin_frame.columnconfigure(0, weight=1)
@@ -2917,27 +2913,39 @@ class MainWindow:
             row=1, column=1, padx=5, pady=5, sticky=ttk.W
         )
 
+        # Disable stable release
+        f5_settings["stable_release"] = ttk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            f5,
+            text="Zezwól na beta wersje aplikacji",
+            onvalue=False,
+            offvalue=True,
+            variable=f5_settings["stable_release"],
+        ).grid(row=5, columnspan=3, pady=10, sticky=ttk.S)
+
+        # Account information
+
         self.acc_info_frame = ttk.Labelframe(
             f5, text="Informacje o koncie", labelanchor="n"
         )
         self.acc_info_frame.grid(
-            row=5, column=0, columnspan=3, padx=5, pady=5, sticky=("W", "S", "E")
+            row=10, column=0, columnspan=3, padx=5, pady=5, sticky=("W", "S", "E")
         )
         self.acc_info_frame.columnconfigure(0, weight=1)
 
         self.verified_email_label = ttk.Label(self.acc_info_frame, text="")
         self.verified_email_label.grid(
-            row=9, column=0, padx=5, pady=(10, 5), sticky="S"
+            row=1, column=0, padx=5, pady=(10, 5), sticky="S"
         )
 
         self.acc_expire_time = ttk.Label(self.acc_info_frame, text="acc_expire_time")
-        self.acc_expire_time.grid(row=10, column=0, padx=5, pady=5, sticky="S")
+        self.acc_expire_time.grid(row=2, column=0, padx=5, pady=5, sticky="S")
 
         ttk.Button(
             self.acc_info_frame,
             text="Przedłuż ważność konta",
             command=lambda: PaymentWindow(parent=self),
-        ).grid(row=11, column=0, padx=5, pady=(10, 15))
+        ).grid(row=3, column=0, padx=5, pady=(10, 15))
 
         # endregion
 
@@ -3109,6 +3117,7 @@ class MainWindow:
 
         master.withdraw()
 
+    @log_errors()
     def add_new_world_settings(
         self,
         settings: dict,
@@ -3140,6 +3149,8 @@ class MainWindow:
             settings["server_world"] = server_world
             settings["groups"] = ["wszystkie"]
             settings["scheduler"]["ready_schedule"].clear()
+            for template in ("A", "B", "C"):
+                self.entries_content[template]["farm_rules"]["loot"].set("mix_loot")
 
         country_code = game_url[game_url.rfind(".") + 1 :]
         server_world = f"{country_code}{world_number}"
@@ -3166,7 +3177,7 @@ class MainWindow:
         elif len(self.settings_by_worlds) == 0 and entry_change:
             # print("Ustawienie pierwszego świata")
             self.entries_content["world_in_title"].set(
-                f"{country_code.upper()}{world_number}"
+                f"{country_code.upper()}{world_number.upper()}"
             )
             set_additional_settings(
                 game_url=game_url, country_code=country_code, server_world=server_world
@@ -3187,7 +3198,7 @@ class MainWindow:
                 game_url=game_url, country_code=country_code, server_world=server_world
             )
             self.entries_content["world_in_title"].set(
-                f"{country_code.upper()}{world_number}"
+                f"{country_code.upper()}{world_number.upper()}"
             )
             get_world_config()
             save_entry_to_settings(
@@ -3200,7 +3211,6 @@ class MainWindow:
 
         # Dodanie nowych ustawień nieistniejącego jeszcze świata
         else:
-            # print("Dodanie całkowicie nowego świata")
 
             def set_default_entry_values(entries: dict | tk.Variable) -> None:
                 """Ustawia domyślne wartości elementów GUI (entries_content)"""
@@ -3229,13 +3239,13 @@ class MainWindow:
                 value=self.user_data["email"]
             )
             self.entries_content["world_in_title"].set(
-                f"{country_code.upper()}{world_number}"
+                f"{country_code.upper()}{world_number.upper()}"
             )
             # Set combobox deafult values
             for combobox in (
-                self.farm_group_A,
-                self.farm_group_B,
-                self.farm_group_C,
+                self.farm.farm_group_A,
+                self.farm.farm_group_B,
+                self.farm.farm_group_C,
                 self.gathering.gathering_group,
                 self.villages_groups,
             ):
@@ -3253,12 +3263,6 @@ class MainWindow:
             self.settings_by_worlds[server_world] = deepcopy(settings)
             settings.update(self.settings_by_worlds[server_world])
 
-            # print("SETTINGS")
-            # print("ID = ", id(settings))
-            # print(settings)
-            # print(f"\nSETTINGS_BY_WORLDS {server_world} \n")
-            # print("ID = ", id(self.settings_by_worlds[server_world]))
-            # print(self.settings_by_worlds[server_world])
             return True
 
     def check_groups(self, settings: dict):
@@ -3268,36 +3272,29 @@ class MainWindow:
                 message="Najpierw wybierz serwer i numer świata", parent=self.master
             )
             return
-        self.farm_group_A.set("updating...")
-        self.farm_group_B.set("updating...")
-        self.farm_group_C.set("updating...")
-        self.gathering.gathering_group.set("updating...")
-        self.villages_groups.set("updating...")
+        self.villages_groups.set("Updating..")
         save_entry_to_settings(entries=self.entries_content, settings=settings)
         bot_functions.check_groups(
             self.driver,
             settings,
             run_driver,
             *[
-                self.farm_group_A,
-                self.farm_group_B,
-                self.farm_group_C,
+                self.farm.farm_group_A,
+                self.farm.farm_group_B,
+                self.farm.farm_group_C,
                 self.gathering.gathering_group,
                 self.villages_groups,
             ],
         )
+        self.villages_groups.set("Dostępne grupy")
 
+    @log_errors()
     def change_world(
         self, server_world: str, world_in_title: str, settings: dict
     ) -> None:
 
         # Skip if user clicked/choose the same world as he is now
-        if (
-            # re.search(r"\d+", server_world).group()
-            # == self.entries_content["world_number"].get()
-            server_world
-            == settings["server_world"]
-        ):
+        if server_world == settings["server_world"]:
             if hasattr(self, "world_chooser_window"):
                 self.world_chooser_window.destroy()
             return
@@ -3313,12 +3310,12 @@ class MainWindow:
                 )
             settings.update(self.settings_by_worlds[server_world])
 
-            assert settings == self.settings_by_worlds[server_world]
+            # assert settings == self.settings_by_worlds[server_world]
 
             # Set available groups
-            self.farm_group_A["values"] = settings["groups"]
-            self.farm_group_B["values"] = settings["groups"]
-            self.farm_group_C["values"] = settings["groups"]
+            self.farm.farm_group_A["values"] = settings["groups"]
+            self.farm.farm_group_B["values"] = settings["groups"]
+            self.farm.farm_group_C["values"] = settings["groups"]
             self.gathering.gathering_group["values"] = settings["groups"]
             self.villages_groups["values"] = settings["groups"]
 
@@ -3581,6 +3578,15 @@ class MainWindow:
                 | _settings["C"]["active"]
             ):
                 to_do.append({"func": "auto_farm"})
+                # Make sure there is added new features
+                for template in ("A", "B", "C"):
+                    if "farm_rules" not in _settings[template]:
+                        _settings[template]["farm_rules"] = {}
+                    if "max_travel_time" not in _settings[template]["farm_rules"]:
+                        _settings[template]["farm_rules"]["max_travel_time"] = 0
+                    if "loot" not in _settings[template]["farm_rules"]:
+                        _settings[template]["farm_rules"]["loot"] = "mix_loot"
+
             # Add gathering
             if _settings["gathering"]["active"]:
                 to_do.append({"func": "gathering"})
@@ -4065,9 +4071,6 @@ class MainWindow:
         self.world_chooser_window.overrideredirect(True)
         self.world_chooser_window.attributes("-topmost", 1)
 
-        if not hasattr(self, "plus"):
-            self.plus = tk.PhotoImage(file="icons//plus.png")
-
         if not self.settings_by_worlds and "server_world" in settings:
             save_entry_to_settings(entries=self.entries_content, settings=settings)
             if settings["server_world"] not in self.settings_by_worlds:
@@ -4088,7 +4091,7 @@ class MainWindow:
             ttk.Button(
                 self.world_chooser_window,
                 style="danger.primary.Link.TButton",
-                image=self.exit,
+                image=self.images.exit,
                 command=partial(delete_world, server_world),
             ).grid(row=index * 2, column=2, sticky=ttk.NSEW)
 
@@ -4106,7 +4109,7 @@ class MainWindow:
 
         add_world_button = ttk.Button(
             self.world_chooser_window,
-            image=self.plus,
+            image=self.images.plus,
             bootstyle="primary.Link.TButton",
             command=add_world,
         )
@@ -4150,7 +4153,7 @@ class MainWindow:
             "server_world" in settings
             and settings["server_world"] in self.settings_by_worlds
         ):
-            self.settings_by_worlds[settings["server_world"]] = settings
+            self.settings_by_worlds[settings["server_world"]].update(settings)
 
         # Settings per server_world save in file
         for server_world in self.settings_by_worlds:
@@ -4335,23 +4338,44 @@ class PaymentWindow:
         self.master.attributes("-alpha", 1.0)
 
 
-def check_for_updates() -> None:
+@log_errors()
+def check_for_updates(
+    force_update: bool = False,
+    main_window: MainWindow = None,
+    stable_release: bool = True,
+) -> None:
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "0.8.4"
+    APP_VERSION = "1.0.1"
 
     client = Client(ClientConfig())
     client.refresh()
 
-    app_update = client.update_check(APP_NAME, APP_VERSION)
+    # Check for updates on stable channel
+    if stable_release:
+        app_update = client.update_check(APP_NAME, APP_VERSION)
+    # Check for updates on any channel
+    else:
+        app_update = client.update_check(APP_NAME, APP_VERSION, strict=False)
+
+    # Just check for available update do not process or update
+    if not force_update:
+        if app_update is not None:
+            main_window.update_available = True
+        return
 
     if app_update is not None:
 
+        @log_errors()
         def clear_logs() -> None:
             for file in os.listdir("logs"):
                 if file.endswith(".png"):
-                    os.remove(f"logs/{file}")
-            open("logs/log.txt", "w").close()
+                    Path(rf"logs/{file}").unlink(missing_ok=True)
+            if Path("logs").exists():
+                open(Path(r"logs/log.txt"), "w").close()
+
+        clear = threading.Thread(target=clear_logs, daemon=True)
+        clear.start()
 
         def if_downloaded() -> None:
             if not app_update.is_downloaded():
@@ -4406,8 +4430,8 @@ def check_for_updates() -> None:
         app_update.download(background=True)
         logger.debug("Started downloading in background")
         master.after(250, if_downloaded)
-        clear_logs()
         master.mainloop()
+        clear.join(timeout=5)
         app_update.extract_restart()
 
 
@@ -4512,40 +4536,48 @@ def configure_style(style: ttk.Style) -> None:
     )
 
 
-def style_info(style: ttk.Style, style_name: str) -> None:
-    """Print all style options and its current config"""
+def periodically_check_for_updates(main_window: MainWindow) -> None:
+    if hasattr(main_window, "update_available"):
+        if main_window.update_available:
+            return
+    else:
+        main_window.update_available = False
+    check_update_thread = threading.Thread(
+        target=lambda: check_for_updates(main_window=main_window), daemon=True
+    )
+    check_update_thread.start()
+    thread_monitor(check_update_thread, main_window)
+    main_window.master.after(
+        ms=7_200_000,
+        func=lambda: periodically_check_for_updates(main_window=main_window),
+    )
 
-    for _ in ("border", "focus", "padding", "label"):
-        print("\n========================================")
-        print(_)
-        print("========================================\n")
-        for state in (
-            "active",
-            "disabled",
-            "focus",
-            "pressed",
-            # "selected",
-            # "background",
-            # "readonly",
-            "alternate",
-            "invalid",
-        ):
-            print("----------------------------------------")
-            print(state)
-            print("----------------------------------------\n")
-            for key in style.element_options(f"{style_name}.{_}"):
-                if not style.lookup(f"{style_name}", f"{key}", state=[f"{state}"]):
-                    continue
-                print(f"{key}, {state}")
-                print(style.lookup(f"{style_name}", f"{key}", state=[f"{state}"]))
-                print("----------------------")
 
-    print(style.layout(f"{style_name}"))
+def thread_monitor(thread: threading.Thread, main_window: MainWindow) -> None:
+    if thread.is_alive():
+        main_window.master.after(500, lambda: thread_monitor(thread, main_window))
+        return
+    if main_window.update_available:
+        ToastNotification(
+            title="TribalWarsBot Update",
+            message=f"Dostępna jest nowa wersja aplikacji. ",
+            topmost=True,
+            bootstyle="primary",
+        ).show_toast()
 
 
 def main() -> None:
     driver = None
     settings = load_settings()
+
+    # Check for updates
+    if hasattr(sys, "frozen"):
+        if "stable_release" not in settings:
+            settings["stable_release"] = True
+        if settings["stable_release"]:
+            check_for_updates(force_update=True)
+        else:
+            check_for_updates(force_update=True, stable_release=False)
 
     if settings["first_lunch"]:
         first_app_lunch(settings=settings)
@@ -4560,11 +4592,14 @@ def main() -> None:
     main_window = MainWindow(master=root, driver=driver, settings=settings)
     LogInWindow(main_window=main_window, settings=settings)
 
+    root.after(
+        ms=7_200_000,
+        func=lambda: periodically_check_for_updates(main_window=main_window),
+    )
+
     main_window.master.mainloop()
 
 
 if __name__ == "__main__":
 
-    if hasattr(sys, "frozen"):
-        check_for_updates()
     main()

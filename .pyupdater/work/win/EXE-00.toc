@@ -74,7 +74,7 @@
  [],
  False,
  False,
- 1659199229,
+ 1660589602,
  [('runw.exe',
    'C:\\Users\\klime\\VS '
    'Code\\selenium_chrome\\.venv_tribal_wars\\lib\\site-packages\\PyInstaller\\bootloader\\Windows-64bit\\runw.exe',
