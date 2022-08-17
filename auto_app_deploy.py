@@ -2,7 +2,7 @@ import pathlib
 import shutil
 import subprocess
 
-APP_VERSION = "1.0.2b4"
+APP_VERSION = "1.0.2b7"
 
 pyupdater_path = pathlib.Path(r".venv_tribal_wars\Scripts\pyupdater")
 # Build app using pyupdater and win.spec file

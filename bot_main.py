@@ -15,7 +15,7 @@ import tkinter as tk
 from copy import deepcopy
 from datetime import datetime, timedelta
 from functools import partial
-from math import comb, sqrt
+from math import sqrt
 from pathlib import Path
 from typing import NamedTuple
 
@@ -4356,7 +4356,7 @@ def check_for_updates(
 ) -> None:
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "1.0.2b4"
+    APP_VERSION = "1.0.2b7"
 
     client = Client(ClientConfig())
     client.refresh()
@@ -4378,11 +4378,11 @@ def check_for_updates(
 
         @log_errors()
         def clear_logs() -> None:
+            if Path("logs").exists():
+                open(Path(r"logs/log.txt"), "w").close()
             for file in os.listdir("logs"):
                 if file.endswith(".png"):
                     Path(rf"logs/{file}").unlink(missing_ok=True)
-            if Path("logs").exists():
-                open(Path(r"logs/log.txt"), "w").close()
 
         clear = threading.Thread(target=clear_logs, daemon=True)
         clear.start()
