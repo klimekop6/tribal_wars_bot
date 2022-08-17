@@ -3,10 +3,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
 
+from config import EMAIL_SENDER_ACCOUNT, EMAIL_SENDER_PASSWORD, EMAIL_SENDER_USERNAME
+
 # Email Account
-EMAIL_SENDER_ACCOUNT = "***REMOVED***"
-EMAIL_SENDER_USERNAME = "***REMOVED***"
-EMAIL_SENDER_PASSWORD = "***REMOVED***"
 EMAIL_SMTP_SERVER = "smtp-relay.sendinblue.com"
 EMAIL_SMTP_PORT = 587
 

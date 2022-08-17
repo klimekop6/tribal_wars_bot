@@ -5,3 +5,8 @@
 /settings/
 settings.json
 villages*.txt
+keypack.pyu
+.pyupdater/work/*
+.spec
+Untitled-1.ipynb
+config.py

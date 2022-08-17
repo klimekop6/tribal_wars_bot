@@ -435,6 +435,56 @@
             "patch_hash": "e7094d9da3b553b07dea47277569c30a6545dad4823829ef341ff8cb9ac4fc65",
             "patch_size": 1602304
           }
+        },
+        "1.0.1.1.1": {
+          "win": {
+            "file_hash": "1ab4cfaee3c18060c9f14d48baf4b2611786cd8e282a81c44c5dc1ba8620a008",
+            "file_size": 30378399,
+            "filename": "TribalWarsBot-win-1.0.1b1.zip",
+            "patch_name": "TribalWarsBot-win-beta-103",
+            "patch_hash": "b48ffa6ab65679104e33d44e20d34dd6042f58d0694014a5fda80b66f621b840",
+            "patch_size": 1892281
+          }
+        },
+        "1.0.2.1.1": {
+          "win": {
+            "file_hash": "d1fb6accd158c9696a24082e1893e5a8629e392bd037baab223c9abb7cf624ca",
+            "file_size": 30378413,
+            "filename": "TribalWarsBot-win-1.0.2b1.zip",
+            "patch_name": "TribalWarsBot-win-beta-104",
+            "patch_hash": "511f78bdf1c7dbc961e34a471fb0c8c8da4b1975fe0c9a73d4365f2039e66466",
+            "patch_size": 1325027
+          }
+        },
+        "1.0.2.1.2": {
+          "win": {
+            "file_hash": "50b8af959585ffe14a19583439753f866449b2f446edd0f9a4e3edb2d33da7f4",
+            "file_size": 30378520,
+            "filename": "TribalWarsBot-win-1.0.2b2.zip",
+            "patch_name": "TribalWarsBot-win-beta-105",
+            "patch_hash": "dbc0ef93ff13b844fa5bdc2b5a734809e253a2f36230d760597c181171012be0",
+            "patch_size": 1575052
+          }
+        },
+        "1.0.2.1.3": {
+          "win": {
+            "file_hash": "5a2630f6a310eb828bf965e3c12407f263d4c445b938ccad71e54cd38aa78dd6",
+            "file_size": 30378328,
+            "filename": "TribalWarsBot-win-1.0.2b3.zip",
+            "patch_name": "TribalWarsBot-win-beta-106",
+            "patch_hash": "f20236e1e75701dde57c9dd79e0c174fcb24cd0428c760016e442b6d624bc226",
+            "patch_size": 1540877
+          }
+        },
+        "1.0.2.1.4": {
+          "win": {
+            "file_hash": "d255d35e765332628fffbf816384aba8c44a738b42c4aedb9be71d628624a0fb",
+            "file_size": 30378895,
+            "filename": "TribalWarsBot-win-1.0.2b4.zip",
+            "patch_name": "TribalWarsBot-win-beta-107",
+            "patch_hash": "b1b8c92e4983216bf73104f5c6765eecacabb98e12878b63c571b85908687eec",
+            "patch_size": 1711747
+          }
         }
       }
     },
@@ -444,18 +494,18 @@
           "win": "1.0.1.2.0"
         },
         "beta": {
-          "win": "0.9.8.1.1"
+          "win": "1.0.2.1.4"
         }
       }
     }
   },
   "py_repo_config": {
     "patches": {
-      "TribalWarsBot": 102
+      "TribalWarsBot": 107
     },
     "package": {
       "TribalWarsBot": {
-        "win": "1.0.1.2.0"
+        "win": "1.0.2.1.4"
       }
     }
   }

@@ -28,6 +28,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from ttkbootstrap.toast import ToastNotification
 
 import email_notifications
+from config import ANY_CAPTCHA_API_KEY, SMS_API_TOKEN
+from decorators import log_errors
 from gui_functions import custom_error
 
 logger = logging.getLogger(__name__)
@@ -228,7 +230,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
             url = "https://sms-api.ddns.net/send_sms"
             headers = {
                 "Content-Type": "application/json",
-                "Authorization": "***REMOVED***",
+                "Authorization": SMS_API_TOKEN,
             }
             if "attacks_info" not in locals():
                 attacks_info = get_attacks_info()
@@ -600,6 +602,7 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         )
 
 
+@log_errors(re_raise=True)
 def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     """Check for captcha existence.
 
@@ -645,7 +648,7 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
 
         def get_token() -> str | bool:
 
-            api_key = "***REMOVED***"
+            api_key = ANY_CAPTCHA_API_KEY
             website_url = driver.current_url[: driver.current_url.rfind("/")]
             website_key = re.search(
                 r"&sitekey=(.*?)&",
@@ -1570,6 +1573,10 @@ def player_villages(driver: webdriver.Chrome) -> dict:
 def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
     """Umożliwia automatyczną sprzedaż lub zakup surwców za punkty premium"""
 
+    # Check if has premium account
+    if not driver.execute_script("return premium"):
+        return
+
     current_village_id = int(
         driver.execute_script("return window.game_data.village.id")
     )
@@ -1593,13 +1600,16 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
         html_response = get_player_production_page()
     except BaseException:
         log_in(driver=driver, settings=settings)
+        captcha_check(driver=driver, settings=settings)
         html_response = get_player_production_page()
     doc = lxml.html.fromstring(html_response)
     try:
         production = doc.get_element_by_id("production_table")
     except:
         driver.get(player_production_url)
-        captcha_check(driver=driver, settings=settings)
+        if captcha_check(driver=driver, settings=settings):
+            if not driver.find_elements(By.ID, "production_table"):
+                driver.get(player_production_url)
         doc = lxml.html.fromstring(driver.page_source)
         production = doc.get_element_by_id("production_table")
 

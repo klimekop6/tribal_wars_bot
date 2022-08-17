@@ -2,6 +2,7 @@ import logging
 
 import pyodbc
 
+from config import DB_CONNECTION, DB_DATABASE, DB_PASSWORD, DB_USERNAME
 from gui_functions import custom_error
 
 logger = logging.getLogger(__name__)
@@ -24,11 +25,11 @@ class DataBaseConnection:
     def __enter__(self):
         try:
             self.cnxn = pyodbc.connect(
-                """DRIVER={ODBC Driver 17 for SQL Server};
-                                        SERVER=***REMOVED***;
-                                        DATABASE=Plemiona;
-                                        UID=***REMOVED***;
-                                        PWD=***REMOVED***""",
+                f"""DRIVER={{ODBC Driver 17 for SQL Server}};
+                                        SERVER={DB_CONNECTION};
+                                        DATABASE={DB_DATABASE};
+                                        UID={DB_USERNAME};
+                                        PWD={DB_PASSWORD}""",
                 timeout=3,
             )
             self.cursor = self.cnxn.cursor()
