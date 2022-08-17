@@ -47,7 +47,9 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
 
     COUNTRY_CODE: str = settings["country_code"]
 
-    if not int(driver.execute_script("return window.game_data.player.incomings")):
+    if not int(
+        driver.execute_script("return window.game_data.player.incomings")
+    ) or not driver.execute_script("return premium"):
         return False
 
     # Open incoming attacks tab with group id = 0 which points to all villages
@@ -244,7 +246,9 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
             ).start()
 
         if notifications["sound_notifications"]:
-            winsound.PlaySound("alarm.wav", winsound.SND_ASYNC + winsound.SND_LOOP)
+            winsound.PlaySound(
+                "sounds//alarm.wav", winsound.SND_ASYNC + winsound.SND_LOOP
+            )
             toast = ToastNotification(
                 title="TribalWarsBot Alert!",
                 message="Wykryto nadchodzące grubasy. Kliknij w komunikat w celu wyłączenia alertu.",

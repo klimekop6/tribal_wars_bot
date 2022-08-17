@@ -427,7 +427,9 @@ def run_driver(settings: dict) -> webdriver.Chrome:
         chrome_options.add_argument("user-data-dir=" + settings["path"])
         chrome_options.add_argument("start-maximized")
         chrome_options.add_argument("--no-sandbox")
-        chrome_options.add_extension(extension="captcha_callback_hooker.crx")
+        chrome_options.add_extension(
+            extension="browser_extensions//captcha_callback_hooker.crx"
+        )
         chrome_options.add_experimental_option("useAutomationExtension", False)
         chrome_options.add_experimental_option(
             "excludeSwitches", ["enable-automation", "disable-popup-blocking"]

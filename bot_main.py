@@ -33,22 +33,12 @@ import bot_functions
 from client_config import ClientConfig
 from database_connection import DataBaseConnection, get_user_data
 from decorators import log_errors
-from gui_functions import (
-    center,
-    change_state,
-    custom_error,
-    fill_entry_from_settings,
-    first_app_lunch,
-    forget_row,
-    get_pos,
-    get_villages_id,
-    invoke_checkbuttons,
-    load_settings,
-    on_button_release,
-    paid,
-    run_driver,
-    save_entry_to_settings,
-)
+from gui_functions import (center, change_state, custom_error,
+                           fill_entry_from_settings, first_app_lunch,
+                           forget_row, get_pos, get_villages_id,
+                           invoke_checkbuttons, load_settings,
+                           on_button_release, paid, run_driver,
+                           save_entry_to_settings)
 from log_in_window import LogInWindow
 from my_widgets import ScrollableFrame, TopLevel
 
@@ -4356,7 +4346,7 @@ def check_for_updates(
 ) -> None:
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "1.0.2b7"
+    APP_VERSION = "1.0.2"
 
     client = Client(ClientConfig())
     client.refresh()
