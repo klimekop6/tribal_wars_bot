@@ -2,6 +2,8 @@ import json
 import logging
 import os
 
+from app_logging import CustomLogFormatter, CustomLoggingHandler
+
 if not os.path.exists("logs"):
     os.mkdir("logs")
 
@@ -33,12 +35,22 @@ import bot_functions
 from client_config import ClientConfig
 from database_connection import DataBaseConnection, get_user_data
 from decorators import log_errors
-from gui_functions import (center, change_state, custom_error,
-                           fill_entry_from_settings, first_app_lunch,
-                           forget_row, get_pos, get_villages_id,
-                           invoke_checkbuttons, load_settings,
-                           on_button_release, paid, run_driver,
-                           save_entry_to_settings)
+from gui_functions import (
+    center,
+    change_state,
+    custom_error,
+    fill_entry_from_settings,
+    first_app_lunch,
+    forget_row,
+    get_pos,
+    get_villages_id,
+    invoke_checkbuttons,
+    load_settings,
+    on_button_release,
+    paid,
+    run_driver,
+    save_entry_to_settings,
+)
 from log_in_window import LogInWindow
 from my_widgets import ScrollableFrame, TopLevel
 
@@ -47,7 +59,7 @@ os.environ["WDM_LOG"] = "false"
 # Change root logger path file
 root_logger = logging.getLogger("")
 root_logger.handlers = []
-root_format = logging.Formatter(
+root_format = CustomLogFormatter(
     "%(levelname)s:%(name)s:%(message)s", datefmt="%d-%m-%Y %H:%M:%S"
 )
 root_handler = logging.FileHandler("logs/pyu.txt")
@@ -58,18 +70,20 @@ root_logger.addHandler(root_handler)
 # Default app log file
 logger = logging.getLogger(__name__)
 f_handler = logging.FileHandler("logs/log.txt")
-f_format = logging.Formatter(
-    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+f_format = CustomLogFormatter(
+    "%(levelname)s | %(name)s | %(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
 )
 f_handler.setFormatter(f_format)
 f_handler.setLevel(logging.ERROR)
 logger.addHandler(f_handler)
 
+
 # Log debug if debug.txt file exist
 if os.path.exists("logs/debug.txt"):
     debug_handler = logging.FileHandler("logs/debug.txt")
-    f_format = logging.Formatter(
-        "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+    f_format = CustomLogFormatter(
+        "%(levelname)s | %(name)s | %(asctime)s %(message)s",
+        datefmt="%d-%m-%Y %H:%M:%S",
     )
     debug_handler.setFormatter(f_format)
     debug_handler.setLevel(logging.DEBUG)
@@ -80,7 +94,7 @@ logger.propagate = False
 
 
 class Farm:
-    """"""
+    """Content and functions to put in notebook frame f1 named 'Farma'."""
 
     def __init__(
         self,
@@ -2294,6 +2308,8 @@ class Gathering:
 
 
 class Market:
+    """Content and functions to put in notebook frame f4 named 'Rynek'."""
+
     def __init__(
         self,
         parent: ttk.Frame,
@@ -3264,6 +3280,16 @@ class MainWindow:
             settings.update(self.settings_by_worlds[server_world])
 
             return True
+
+    def add_event_handler(self, settings: dict) -> None:
+
+        logging_handler = CustomLoggingHandler(user_name=settings["user_name"])
+        logger.addHandler(logging_handler)
+        logging.getLogger("bot_functions").addHandler(logging_handler)
+        logging.getLogger("database_connection").addHandler(logging_handler)
+        logging.getLogger("decorators").addHandler(logging_handler)
+        logging.getLogger("log_in_window").addHandler(logging_handler)
+        logging.getLogger("gui_functions").addHandler(logging_handler)
 
     def check_groups(self, settings: dict):
 
@@ -4346,7 +4372,7 @@ def check_for_updates(
 ) -> None:
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "1.0.2"
+    APP_VERSION = "1.0.41"
 
     client = Client(ClientConfig())
     client.refresh()
@@ -4442,6 +4468,7 @@ def configure_style(style: ttk.Style) -> None:
     # style.configure("TCheckbutton", font=("Courier New", 10))
     # style.configure("TRadiobutton", font=("Courier New", 10))
     # style.configure("TButton", font=("Courier New", 10))
+
     # primary.TButton
     style.map(
         "TButton",

@@ -2,13 +2,14 @@ import logging
 
 import pyodbc
 
+from app_logging import CustomLogFormatter
 from config import DB_CONNECTION, DB_DATABASE, DB_PASSWORD, DB_USERNAME
 from gui_functions import custom_error
 
 logger = logging.getLogger(__name__)
 f_handler = logging.FileHandler("logs/log.txt")
-f_format = logging.Formatter(
-    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+f_format = CustomLogFormatter(
+    "%(levelname)s | %(name)s | %(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
 )
 f_handler.setFormatter(f_format)
 f_handler.setLevel(logging.ERROR)
