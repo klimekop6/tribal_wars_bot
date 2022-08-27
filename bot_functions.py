@@ -26,6 +26,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from ttkbootstrap.toast import ToastNotification
+from app_logging import CustomLogFormatter
 
 import email_notifications
 from config import ANY_CAPTCHA_API_KEY, SMS_API_TOKEN
@@ -34,8 +35,8 @@ from gui_functions import custom_error
 
 logger = logging.getLogger(__name__)
 f_handler = logging.FileHandler("logs/log.txt")
-f_format = logging.Formatter(
-    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+f_format = CustomLogFormatter(
+    "%(levelname)s | %(name)s | %(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
 )
 f_handler.setFormatter(f_format)
 logger.addHandler(f_handler)
@@ -351,6 +352,9 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         "snob": 35,
     }
 
+    if "farm_village_to_skip" not in settings["temp"]:
+        settings["temp"]["farm_village_to_skip"] = {}
+
     # Główna pętla funkcji
     while True:
 
@@ -382,9 +386,9 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         )
 
         # Aktualnie dostępne jednostki w wiosce
-        doc = doc.xpath('//*[@id="units_home"]/tbody/tr[2]')[0]
+        troops_home = doc.xpath('//*[@id="units_home"]/tbody/tr[2]')[0]
         available_troops = {
-            troop_name: int(doc.xpath(f'td[@id="{troop_name}"]')[0].text)
+            troop_name: int(troops_home.xpath(f'td[@id="{troop_name}"]')[0].text)
             for troop_name in troops_name
         }
 
@@ -407,19 +411,6 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
             )
             continue
 
-        # Lista poziomów murów
-        walls_level = (
-            driver.find_element(By.ID, "plunder_list")
-            .get_attribute("innerHTML")
-            .split("<tr")[3:]
-        )
-        for index, row in enumerate(walls_level):
-            walls_level[index] = row.split("<td")[7:8]
-        for index, row in enumerate(walls_level):
-            for ele in row:
-                walls_level[index] = ele[ele.find(">") + 1 : ele.find("<")]
-        walls_level = [ele if ele == "?" else int(ele) for ele in walls_level]
-
         # Lista przycisków do wysyłki szablonów A, B i C
         villages_to_farm = {}
 
@@ -438,26 +429,140 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         for index, template in enumerate(villages_to_farm):
             if skip[template]:
                 continue
-            max_attacks_number = settings[template]["attacks_number"]
+
             captcha_solved = False
             if captcha_check(driver=driver, settings=settings):
                 captcha_solved = True
+
+            max_attacks_number = settings[template]["attacks_number"]
             villages_to_farm[template] = driver.find_elements(
                 By.XPATH,
                 f'//*[@id="plunder_list"]/tbody/tr/td[{villages_to_farm[template]}]/a',
             )
 
-            # Farm rules
+            farm = lxml.html.fromstring(
+                driver.find_element(
+                    By.CSS_SELECTOR, "#plunder_list tbody"
+                ).get_attribute("innerHTML")
+            )
+            walls = tuple(
+                "?" if "?" in wall.xpath("text()") else int(wall.xpath("text()")[0])
+                for wall in farm.xpath("tr/td[7]")
+            )
+
+            def get_report_id(index: int) -> str:
+                report_id = farm.xpath(f"tr[{index+3}]/td[4]/a/@href")[0]
+                report_id = re.search(r"view=(\d+)", report_id).group(1)
+                return report_id
+
+            def skip_village(index: int) -> bool:
+                village_id = farm.xpath(f"tr[{index+3}]/@id")[0]
+                report_id = get_report_id(index)
+                if (
+                    village_id in settings["temp"]["farm_village_to_skip"]
+                    and report_id
+                    in settings["temp"]["farm_village_to_skip"][village_id]
+                ):
+                    return True
+                return False
+
             # Loot farm rule
-            villages_loot = ()
+            loot = []
             if settings[template]["farm_rules"]["loot"] != "mix_loot":
-                villages_loot = tuple(  # True for max loot and False for not
-                    loot_info.get_attribute("src").endswith("1.png")
-                    for loot_info in driver.find_elements(
-                        By.XPATH,
-                        f'//*[@id="plunder_list"]/tbody/tr/td[3]/img',
+
+                def get_page(url: str) -> str:
+                    return driver.execute_script(
+                        f"""
+                        const xhr = new XMLHttpRequest();
+                        ready_status = 0;
+                        xhr.onload = () => {{
+                            page_source = xhr.responseXML;
+                            ready_status = 1;
+                        }}
+                        xhr.open("GET", "{url}");
+                        xhr.responseType = "document";
+                        xhr.send();        
+                        """
                     )
-                )
+
+                if "A" in template:
+                    troops_capacity = int(
+                        "".join(
+                            doc.xpath(
+                                "div[2]/div/form/table/tbody/tr[2]/td[last()]/text()"
+                            )
+                        )
+                    )
+                if "B" in template:
+                    troops_capacity = int(
+                        "".join(
+                            doc.xpath(
+                                "div[2]/div/form/table/tbody/tr[4]/td[last()]/text()"
+                            )
+                        )
+                    )
+                if "C" in template:  # Choose bigger from A and B
+                    troops_capacity = max(
+                        int(
+                            "".join(
+                                doc.xpath(
+                                    "div[2]/div/form/table/tbody/tr[2]/td[last()]/text()"
+                                )
+                            )
+                        ),
+                        int(
+                            "".join(
+                                doc.xpath(
+                                    "div[2]/div/form/table/tbody/tr[4]/td[last()]/text()"
+                                )
+                            )
+                        ),
+                    )
+                # Append True to loot if previous full loot or False if not full
+                for index, row in enumerate(farm.xpath("tr/td[3]")):
+                    if row.xpath("img[@src]"):
+                        if row.xpath("img/@src")[0].endswith("1.png"):
+                            loot.append(True)
+                            continue
+                    # Append True if there are more resource than troop can hanle
+                    else:
+                        if skip_village(index=index):
+                            print("skip")
+                            print(settings["temp"]["farm_village_to_skip"])
+                            loot.append(False)
+                            continue
+
+                        get_page(farm.xpath(f"tr[{index+3}]/td[4]/a/@href")[0])
+                        while not driver.execute_script("return ready_status"):
+                            time.sleep(0.01)
+                        report = driver.execute_script(
+                            "return page_source.getElementById('attack_info_def_units').innerHTML"
+                        )
+                        report = lxml.html.fromstring(report)
+                        if sum(
+                            int(troop)
+                            for troop in report.xpath(
+                                "//tbody/tr[last()-1]/td[@class]/text()"
+                            )
+                        ):
+                            # If not empty skip it and add to settings['temp']
+                            village_id = farm.xpath(f"tr[{index+3}]/@id")[0]
+                            settings["temp"]["farm_village_to_skip"][
+                                village_id
+                            ] = get_report_id(index=index)
+                            loot.append(False)
+                            continue
+                        resource = sum(
+                            int("".join(res.xpath("text()")))
+                            for res in farm.xpath(
+                                f'tr[{index+3}]/td[6]/span/span[@class="res"]'
+                            )
+                        )
+                        if resource > troops_capacity:
+                            loot.append(True)
+                            continue
+                    loot.append(False)
+
             if "C" in template:
                 units_home = driver.find_element(
                     By.CSS_SELECTOR, "#units_home tbody"
@@ -474,11 +579,8 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
             # Travel time rule
             max_distance = 0.0
             if settings[template]["farm_rules"]["max_travel_time"]:
-                villages_distance = tuple(
-                    float(ele.text)
-                    for ele in driver.find_elements(
-                        By.XPATH, f'//*[@id="plunder_list"]/tbody/tr/td[8]'
-                    )
+                distance = tuple(
+                    float(row.xpath("text()")[0]) for row in farm.xpath("tr/td[8]")
                 )
                 army_speed = max(
                     troops_speed[unit] for unit in template_troops[template]
@@ -487,8 +589,8 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                     settings[template]["farm_rules"]["max_travel_time"] / army_speed
                 )
 
-            for village_number, (village, wall_level) in enumerate(
-                zip(villages_to_farm[template], walls_level)
+            for village_number, (village, wall) in enumerate(
+                zip(villages_to_farm[template], walls)
             ):
                 # Attacks number requirements
                 if (
@@ -497,29 +599,43 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                 ):
                     break
 
+                # Skip villages which has some troops in
+                if skip_village(village_number):
+                    print("skip2")
+                    print(settings["temp"]["farm_village_to_skip"])
+                    continue
                 # Loot requirements
-                if villages_loot:
+                if loot:
                     # For max_loot
                     if settings[template]["farm_rules"]["loot"] == "max_loot":
-                        if not villages_loot[village_number]:
+                        if village_number >= len(loot):
+                            logger.warning(
+                                msg=f"\nvillage_number {village_number} loot = {len(loot)}\n"
+                                f"villages_to_farm = {len(villages_to_farm[template])} walls = {len(walls)}"
+                            )
+                            break
+                        if not loot[village_number]:
                             continue
                     # For min_loot
                     else:
-                        if villages_loot[village_number]:
+                        if village_number >= len(loot):
+                            logger.warning(
+                                msg=f"\nvillage_number {village_number} loot = {len(loot)}\n"
+                                f"villages_to_farm = {len(villages_to_farm[template])} walls = {len(walls)}"
+                            )
+                            break
+                        if loot[village_number]:
                             continue
                 # Travel time requirements
-                if max_distance and villages_distance[village_number] > max_distance:
+                if max_distance and distance[village_number] > max_distance:
                     break
                 # Walls requirements
-                if (
-                    isinstance(wall_level, str)
-                    and not settings[template]["wall_ignore"]
-                ):
+                if isinstance(wall, str) and not settings[template]["wall_ignore"]:
                     continue
                 if (
                     settings[template]["wall_ignore"]
                     or settings[template]["min_wall"]
-                    <= wall_level
+                    <= wall
                     <= settings[template]["max_wall"]
                 ):
                     # Troops number for template A and B
@@ -707,9 +823,13 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             """
         captcha_selector = driver.execute_script(get_captcha_selector)
 
-        if simple_solve_captcha(captcha_selector):
-            logger.info("captcha solved the easy way")
-            return True
+        try:
+            if simple_solve_captcha(captcha_selector):
+                logger.info("captcha solved the easy way")
+                return True
+        except TimeoutException:
+            driver.switch_to.default_content()
+            logger.error("error when solving the easy way")
 
         if hard_solve_captcha():
             logger.info("captcha solved the hard way")
@@ -1320,16 +1440,9 @@ def get_villages_id(settings: dict[str], update: bool = False) -> dict:
 def log_error(driver: webdriver.Chrome, msg: str = "") -> None:
     """Write erros with traceback into logs/log.txt"""
 
+    logger.error(f"{msg}\n" f"{driver.current_url}\n")
     driver.save_screenshot(
         f'logs/{time.strftime("%d.%m.%Y %H_%M_%S", time.localtime())}.png'
-    )
-    error_str = traceback.format_exc()
-    error_str = error_str[: error_str.find("Stacktrace")]
-    logger.error(
-        f"\n\n{msg}\n\n"
-        f"{driver.current_url}\n\n"
-        f"{error_str}\n"
-        f"-----------------------------------------------------------------------------------\n"
     )
 
 
@@ -1341,6 +1454,10 @@ def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
             driver.get(
                 f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
             )
+            logger.info("123")
+            logger.info("234")
+            log_error(driver, "bleble")
+            log_error(driver, "bleble2")
         except WebDriverException as e:
             if "cannot determine loading status" in e.msg:
                 pass
@@ -1577,83 +1694,83 @@ def player_villages(driver: webdriver.Chrome) -> dict:
 def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
     """Umożliwia automatyczną sprzedaż lub zakup surwców za punkty premium"""
 
-    # Check if has premium account
-    if not driver.execute_script("return premium"):
-        return
-
     current_village_id = int(
         driver.execute_script("return window.game_data.village.id")
     )
     url = driver.current_url
     url = url[: url.rfind("/")]
-    player_production_url = (
-        url
-        + f"/game.php?village={current_village_id}&screen=overview_villages&mode=prod&group=0&page=-1&"
-    )
-
-    def get_player_production_page() -> str:
-        return driver.execute_script(
-            f"""
-            var request = new XMLHttpRequest();
-            request.open("GET", "{player_production_url}", false);
-            request.send(null);   
-            return request.responseText;"""
+    # Check if has premium account
+    if driver.execute_script("return premium"):
+        player_production_url = (
+            url
+            + f"/game.php?village={current_village_id}&screen=overview_villages&mode=prod&group=0&page=-1&"
         )
 
-    try:
-        html_response = get_player_production_page()
-    except BaseException:
-        log_in(driver=driver, settings=settings)
-        captcha_check(driver=driver, settings=settings)
-        html_response = get_player_production_page()
-    doc = lxml.html.fromstring(html_response)
-    try:
-        production = doc.get_element_by_id("production_table")
-    except:
-        driver.get(player_production_url)
-        if captcha_check(driver=driver, settings=settings):
-            if not driver.find_elements(By.ID, "production_table"):
-                driver.get(player_production_url)
-        doc = lxml.html.fromstring(driver.page_source)
-        production = doc.get_element_by_id("production_table")
-
-    villages = {}
-    for village_data in production[1:]:
-        village_id = village_data.xpath("td[2]/span")[0].get("data-id")
-        village_market_url = (
-            f"{url}/game.php?village={village_id}&screen=market&mode=exchange"
-        )
-        village_coords = village_data.xpath("td[2]/span/span/a/span")[0].text
-        village_coords = re.findall(r"\d{3}\|\d{3}", village_coords)[-1]
-        continent = f"k{village_coords[4]}{village_coords[0]}"
-        if continent not in villages:
-            villages[continent] = []
-        village_resources = {}
-        for resource_name, resource_amount in zip(
-            ("wood", "stone", "iron"), village_data.xpath("td[4]/span")
-        ):
-            village_resources[resource_name] = int(
-                resource_amount.text_content().replace(".", "")
+        def get_player_production_page() -> str:
+            return driver.execute_script(
+                f"""
+                var request = new XMLHttpRequest();
+                request.open("GET", "{player_production_url}", false);
+                request.send(null);   
+                return request.responseText;"""
             )
-        market_merchant = village_data.xpath("td[6]")[0].text_content().split("/")
-        market_merchant = {
-            "available": int(market_merchant[0]),
-            "max": int(market_merchant[1]),
-        }
-        villages[continent].append(
-            {
-                "coords": village_coords,
-                "resources": village_resources,
-                "market_url": village_market_url,
-                "market_merchant": market_merchant,
+
+        try:
+            html_response = get_player_production_page()
+        except BaseException:
+            log_in(driver=driver, settings=settings)
+            captcha_check(driver=driver, settings=settings)
+            html_response = get_player_production_page()
+        doc = lxml.html.fromstring(html_response)
+        try:
+            production = doc.get_element_by_id("production_table")
+        except:
+            driver.get(player_production_url)
+            if captcha_check(driver=driver, settings=settings):
+                if not driver.find_elements(By.ID, "production_table"):
+                    driver.get(player_production_url)
+            doc = lxml.html.fromstring(driver.page_source)
+            production = doc.get_element_by_id("production_table")
+
+        villages = {}
+        for village_data in production[1:]:
+            village_id = village_data.xpath("td[2]/span")[0].get("data-id")
+            village_market_url = (
+                f"{url}/game.php?village={village_id}&screen=market&mode=exchange"
+            )
+            village_coords = village_data.xpath("td[2]/span/span/a/span")[0].text
+            village_coords = re.findall(r"\d{3}\|\d{3}", village_coords)[-1]
+            continent = f"k{village_coords[4]}{village_coords[0]}"
+            if continent not in villages:
+                villages[continent] = []
+            village_resources = {}
+            for resource_name, resource_amount in zip(
+                ("wood", "stone", "iron"), village_data.xpath("td[4]/span")
+            ):
+                village_resources[resource_name] = int(
+                    resource_amount.text_content().replace(".", "")
+                )
+            market_merchant = village_data.xpath("td[6]")[0].text_content().split("/")
+            market_merchant = {
+                "available": int(market_merchant[0]),
+                "max": int(market_merchant[1]),
             }
-        )
-    for villages_by_continent in villages.values():
-        villages_by_continent.sort(
-            reverse=True,
-            key=lambda v: sum(v["resources"].values())
-            + v["market_merchant"]["available"] * 2000,
-        )
+            villages[continent].append(
+                {
+                    "coords": village_coords,
+                    "resources": village_resources,
+                    "market_url": village_market_url,
+                    "market_merchant": market_merchant,
+                }
+            )
+        for villages_by_continent in villages.values():
+            villages_by_continent.sort(
+                reverse=True,
+                key=lambda v: sum(v["resources"].values())
+                + v["market_merchant"]["available"] * 2000,
+            )
+    else:
+        ...
 
     # Core loop iterate over all villages
     for continent, village_list in villages.items():

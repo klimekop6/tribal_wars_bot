@@ -5,6 +5,7 @@ import tkinter as tk
 
 import ttkbootstrap as ttk
 
+from app_logging import CustomLogFormatter
 from database_connection import DataBaseConnection
 from gui_functions import (
     center,
@@ -21,8 +22,8 @@ logger = logging.getLogger(__name__)
 if not os.path.exists("logs"):
     os.mkdir("logs")
 f_handler = logging.FileHandler("logs/log.txt")
-f_format = logging.Formatter(
-    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+f_format = CustomLogFormatter(
+    "%(levelname)s | %(name)s | %(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
 )
 f_handler.setFormatter(f_format)
 logger.addHandler(f_handler)
@@ -201,6 +202,7 @@ class LogInWindow:
         main_window.master.attributes("-alpha", 1.0)
         main_window.master.attributes("-topmost", 1)
         main_window.master.focus_force()
+        main_window.add_event_handler(settings=settings)
         self.update_db_running_status(main_window=main_window)
 
     def log_in(self, main_window, settings: dict):

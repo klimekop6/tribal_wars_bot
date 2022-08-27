@@ -1,12 +1,12 @@
 import logging
-import traceback
 
 import email_notifications
+from app_logging import CustomLogFormatter
 
 logger = logging.getLogger(__name__)
 f_handler = logging.FileHandler("logs/log.txt")
-f_format = logging.Formatter(
-    "\n%(levelname)s:%(name)s:%(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
+f_format = CustomLogFormatter(
+    "%(levelname)s | %(name)s | %(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
 )
 f_handler.setFormatter(f_format)
 logger.addHandler(f_handler)
@@ -19,9 +19,7 @@ def log_errors(send_email: bool = False, re_raise: bool = False):
             try:
                 return func(*args, **kwargs)
             except BaseException as exception:
-                error_str = traceback.format_exc()
-                error_str = error_str[: error_str.find("Stacktrace")]
-                logger.error(f"\n{error_str}\n")
+                logger.error("error catched by decorator log_errors")
                 if send_email:
                     email_notifications.send_email(
                         email_recepients=kwargs["settings"]["notifications"][
