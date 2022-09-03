@@ -24,8 +24,6 @@ class CustomLogFormatter(logging.Formatter):
             if message[-1:] != "\n":
                 message = message + "\n"
             message = message + self.formatStack(record.stack_info)
-        if message[-1:] != "\n":
-            message = message + "\n"
 
         return message
 

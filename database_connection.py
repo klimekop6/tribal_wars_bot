@@ -54,6 +54,8 @@ class DataBaseConnection:
 def get_user_data(settings: dict, update: bool = False) -> dict:
     db_answer = None
     user_data = None
+
+    # API GET /user/<user_name> DONE
     with DataBaseConnection() as cursor:
         cursor.execute(
             "SELECT * FROM konta_plemiona WHERE user_name='"

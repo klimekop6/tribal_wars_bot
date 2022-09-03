@@ -26,9 +26,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from ttkbootstrap.toast import ToastNotification
-from app_logging import CustomLogFormatter
 
 import email_notifications
+from app_logging import CustomLogFormatter
 from config import ANY_CAPTCHA_API_KEY, SMS_API_TOKEN
 from decorators import log_errors
 from gui_functions import custom_error
@@ -686,8 +686,8 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                     send_troops_in_the_middle(driver=driver, settings=settings)
 
                     if not captcha_solved:
-                        captcha_check(driver=driver, settings=settings)
-                        captcha_solved = True
+                        if captcha_check(driver=driver, settings=settings):
+                            captcha_solved = True
 
                     while time.time() - start_time < 0.195:
                         time.sleep(0.01)
@@ -731,15 +731,20 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
 
     search_for_captcha = 'return document.querySelector(".h-captcha, .captcha")'
     if driver.execute_script(search_for_captcha):
+        # Skip if it is not logged on page correctly
+        if f"{settings['server_world']}" not in driver.current_url:
+            return False
 
         find_captcha_time = time.time()
         if (
             "last_captcha_solved" in settings["temp"]
             and find_captcha_time - settings["temp"]["last_captcha_solved"] < 60
         ):
+            logger.info("captcha solved less than 60sec ago -> refreshing page")
             driver.refresh()
             # Return if no captcha were find after page refresh
             if not driver.execute_script(search_for_captcha):
+                logger.info("No captcha after refreshing page")
                 return True
 
         logger.info("start solving captcha")
@@ -766,7 +771,7 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
                 ActionChains(driver).send_keys(Keys.ESCAPE).perform()
                 return False
 
-        def get_token() -> str | bool:
+        def get_token(captcha_selector: str) -> str | bool:
 
             api_key = ANY_CAPTCHA_API_KEY
             website_url = driver.current_url[: driver.current_url.rfind("/")]
@@ -775,10 +780,7 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
                 WebDriverWait(driver, 3, 0.05)
                 .until(
                     EC.presence_of_element_located(
-                        (
-                            By.CSS_SELECTOR,
-                            "iframe[title='widget containing checkbox for hCaptcha security challenge']",
-                        )
+                        (By.CSS_SELECTOR, f"{captcha_selector} iframe")
                     )
                 )
                 .get_attribute("src"),
@@ -807,8 +809,8 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
                 # If everything is fine result contain token
                 return result
 
-        def hard_solve_captcha() -> bool:
-            token = get_token()
+        def hard_solve_captcha(captcha_selector: str) -> bool:
+            token = get_token(captcha_selector)
             driver.execute_script("document.querySelector('#kspec').remove();")
             if token:
                 driver.execute_script(
@@ -829,10 +831,27 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
                 return True
         except TimeoutException:
             driver.switch_to.default_content()
-            logger.error("error when solving the easy way")
+            driver.save_screenshot(
+                f'logs/{time.strftime("%d.%m.%Y %H_%M_%S", time.localtime())}.png'
+            )
+            try:
+                captcha_content = driver.find_element(
+                    By.CSS_SELECTOR, captcha_selector
+                ).get_attribute("innerHTML")
+            except:
+                captcha_content = "empty captcha or no captcha"
+            logger.error(f"error when solving the easy way\n {captcha_content}")
 
-        if hard_solve_captcha():
+        if not driver.execute_script(search_for_captcha):
+            logger.info("captcha solved the easy way after error")
+            return True
+
+        if hard_solve_captcha(captcha_selector):
             logger.info("captcha solved the hard way")
+            time.sleep(1)
+            driver.save_screenshot(
+                f'logs/{time.strftime("%d.%m.%Y %H_%M_%S", time.localtime())}.png'
+            )
             settings["temp"]["captcha_counter"].set(
                 settings["temp"]["captcha_counter"].get() + 1
             )
@@ -1454,10 +1473,6 @@ def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
             driver.get(
                 f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
             )
-            logger.info("123")
-            logger.info("234")
-            log_error(driver, "bleble")
-            log_error(driver, "bleble2")
         except WebDriverException as e:
             if "cannot determine loading status" in e.msg:
                 pass
@@ -1719,8 +1734,9 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
             html_response = get_player_production_page()
         except BaseException:
             log_in(driver=driver, settings=settings)
+            driver.get(player_production_url)
             captcha_check(driver=driver, settings=settings)
-            html_response = get_player_production_page()
+            html_response = driver.page_source
         doc = lxml.html.fromstring(html_response)
         try:
             production = doc.get_element_by_id("production_table")

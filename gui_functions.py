@@ -426,7 +426,7 @@ def run_driver(settings: dict) -> webdriver.Chrome:
 
     try:
         chrome_options = Options()
-        chrome_options.add_argument("user-data-dir=" + settings["path"])
+        chrome_options.add_argument(f'user-data-dir={settings["path"]}')
         chrome_options.add_argument("start-maximized")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_extension(

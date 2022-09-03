@@ -37,6 +37,7 @@ class LogInWindow:
             delegate_things_to_other_thread(settings=settings, main_window=main_window)
             db_answer = None
             user_data = None
+            # API POST /login DONE
             with DataBaseConnection() as cursor:
                 cursor.execute(
                     "SELECT * FROM konta_plemiona WHERE user_name='"
@@ -209,6 +210,7 @@ class LogInWindow:
         delegate_things_to_other_thread(settings=settings, main_window=main_window)
         db_answer = None
         user_data = None
+        # API POST /login DONE
         with DataBaseConnection() as cursor:
             if not cursor:
                 return
@@ -278,7 +280,7 @@ class LogInWindow:
                     f"UPDATE konta_plemiona SET currently_running=1 "
                     f"WHERE user_name='{main_window.user_data['user_name']}'"
                 )
-
+            # API PATCH /status DONE
             with DataBaseConnection(ignore_erros=True) as cursor:
                 cursor.execute(sql_str)
 

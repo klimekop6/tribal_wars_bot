@@ -52,6 +52,7 @@ class RegisterWindow:
                 forget_row(widget_name=self.content_frame, row_number=2)
                 self.login_status.set(True)
                 return True
+            # API GET /register DONE
             with DataBaseConnection() as cursor:
                 cursor.execute(
                     "SELECT * FROM konta_plemiona WHERE user_name='"
@@ -162,6 +163,7 @@ class RegisterWindow:
                 forget_row(self.content_frame, row_number=8)
                 self.email_status.set(True)
                 return True
+            # API GET /register DONE
             with DataBaseConnection() as cursor:
                 cursor.execute(
                     "SELECT * FROM konta_plemiona WHERE email='"
@@ -232,6 +234,7 @@ class RegisterWindow:
 
         @validator
         def recomended_by_validation(event=None):
+            # API GET /register DONE
             with DataBaseConnection() as cursor:
                 cursor.execute(
                     "SELECT * FROM konta_plemiona WHERE user_name='"
@@ -327,7 +330,7 @@ class RegisterWindow:
             winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\SQMClient"
         ) as key:
             self.device_id = winreg.QueryValueEx(key, "MachineId")[0]
-
+        # API GET /register DONE
         with DataBaseConnection() as cursor:
             cursor.execute(
                 "SELECT * FROM konta_plemiona WHERE address_mac='"
@@ -370,16 +373,15 @@ class RegisterWindow:
                 invited_by = self.user_data["invited_by"]
                 if self.user_data["invited_by"] != self.recommended_by.get():
                     invited_by = self.recommended_by.get()
-
+                # API PATCH /user/<user_name> DONE
                 with DataBaseConnection() as cursor:
                     cursor.execute(
-                        f"UPDATE Konta_Plemiona "
-                        f"SET user_name='{self.login.get()}', "
+                        f"UPDATE Konta_Plemiona SET "
+                        f"user_name='{self.login.get()}', "
                         f"password='{self.password.get()}', "
                         f"email='{self.email.get()}', "
                         f"address_mac='{self.mac_address}', "
                         f"device_id='{self.device_id}', "
-                        f"currently_running=0, "
                         f"verified_email='{verified_email}', "
                         f"verification_code='{verification_code}', "
                         f"invited_by='{invited_by}' "
@@ -395,6 +397,7 @@ class RegisterWindow:
                 geolocation = geocoder.ip("me")
                 country = geolocation.country
                 city = geolocation.city
+                # API POST /register DONE
                 with DataBaseConnection() as cursor:
                     cursor.execute(
                         f"""INSERT INTO konta_plemiona(

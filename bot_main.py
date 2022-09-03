@@ -2687,6 +2687,7 @@ class MainWindow:
                     "taskkill /IM chromedriver.exe /F /T",
                     creationflags=subprocess.CREATE_NO_WINDOW,
                 )
+            # API /logout DONE
             with DataBaseConnection(ignore_erros=True) as cursor:
                 cursor.execute(
                     f"UPDATE konta_plemiona SET "
@@ -3412,6 +3413,7 @@ class MainWindow:
 
             def verify_email():
                 if verification_code_entry.get() == self.user_data["verification_code"]:
+                    # API PATCH /user/<user_name> DONE
                     with DataBaseConnection() as cursor:
                         cursor.execute(
                             f"UPDATE konta_plemiona SET verified_email=1"
@@ -3420,7 +3422,7 @@ class MainWindow:
                         if (
                             not self.user_data["bonus_email"]
                             and self.user_data["invited_by"]
-                        ):
+                        ):  # API PATCH /bonus DONE
                             cursor.execute(
                                 f"exec add_bonus_email "
                                 f"'{self.user_data['user_name']}', "
@@ -4372,7 +4374,7 @@ def check_for_updates(
 ) -> None:
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "1.0.41"
+    APP_VERSION = "1.0.42"
 
     client = Client(ClientConfig())
     client.refresh()
