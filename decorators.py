@@ -1,16 +1,7 @@
-import logging
-
 import email_notifications
-from app_logging import CustomLogFormatter
+from app_logging import get_logger
 
-logger = logging.getLogger(__name__)
-f_handler = logging.FileHandler("logs/log.txt")
-f_format = CustomLogFormatter(
-    "%(levelname)s | %(name)s | %(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
-)
-f_handler.setFormatter(f_format)
-logger.addHandler(f_handler)
-logger.propagate = False
+logger = get_logger(__name__)
 
 
 def log_errors(send_email: bool = False, re_raise: bool = False):

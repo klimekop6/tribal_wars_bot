@@ -1,33 +1,24 @@
-import logging
 import os
-import threading
 import tkinter as tk
 
 import ttkbootstrap as ttk
 
-from app_logging import CustomLogFormatter
-from database_connection import DataBaseConnection
+from app_functions import delegate_things_to_other_thread
+from app_logging import add_event_handler, get_logger
 from gui_functions import (
     center,
     custom_error,
-    delegate_things_to_other_thread,
     get_pos,
     invoke_checkbuttons,
     show_or_hide_password,
 )
 from register_window import RegisterWindow
+from tribal_wars_bot_api import TribalWarsBotApi
 
 # Logging module settings
-logger = logging.getLogger(__name__)
 if not os.path.exists("logs"):
     os.mkdir("logs")
-f_handler = logging.FileHandler("logs/log.txt")
-f_format = CustomLogFormatter(
-    "%(levelname)s | %(name)s | %(asctime)s %(message)s", datefmt="%d-%m-%Y %H:%M:%S"
-)
-f_handler.setFormatter(f_format)
-logger.addHandler(f_handler)
-logger.propagate = False
+logger = get_logger(__name__)
 
 
 class LogInWindow:
@@ -35,26 +26,16 @@ class LogInWindow:
         settings["logged"] = False
         if "user_password" in settings:
             delegate_things_to_other_thread(settings=settings, main_window=main_window)
-            db_answer = None
-            user_data = None
             # API POST /login DONE
-            with DataBaseConnection() as cursor:
-                cursor.execute(
-                    "SELECT * FROM konta_plemiona WHERE user_name='"
-                    + settings["user_name"]
-                    + "' AND password='"
-                    + settings["user_password"]
-                    + "'"
-                )
-                db_answer = cursor.fetchone()
-                if db_answer:
-                    user_data = {
-                        key[0]: value
-                        for key, value in zip(cursor.description, db_answer)
-                    }
-            if not db_answer:
+            data = {
+                "user_name": settings["user_name"],
+                "user_password": settings["user_password"],
+            }
+            response = TribalWarsBotApi("/login", json=data).post()
+            if not response.ok:
                 custom_error(message="Automatyczne logowanie nie powiodło się.")
             else:
+                user_data = response.json()
                 if user_data["currently_running"]:
                     custom_error(message="Konto jest już obecnie w użyciu.")
                 else:
@@ -180,59 +161,47 @@ class LogInWindow:
             )
         main_window.verified_email = user_data["verified_email"]
         if not user_data["verified_email"]:
-            main_window.verified_email_label.config(
+            main_window.control_panel.verified_email_label.config(
                 text="Zweryfikowany adres e-mail: Nie"
             )
         else:
-            main_window.verified_email_label.config(
+            main_window.control_panel.verified_email_label.config(
                 text="Zweryfikowany adres e-mail: Tak"
             )
 
         settings["account_expire_time"] = str(user_data["active_until"])
-        main_window.acc_expire_time.config(
+        main_window.control_panel.acc_expire_time.config(
             text=f'Konto ważne do {user_data["active_until"]}'
         )
 
         # Remove from grid some widgets for users without privilages
         if user_data["user_name"] not in ("klimekop6", "klimek123"):
-            main_window.mine_coin_frame.grid_remove()
+            main_window.control_panel.mine_coin_frame.grid_remove()
 
         invoke_checkbuttons(parent=main_window.master)
-        center(main_window.master, parent=parent)
         main_window.master.deiconify()
         main_window.master.attributes("-alpha", 1.0)
         main_window.master.attributes("-topmost", 1)
+        center(main_window.master, parent=parent)
         main_window.master.focus_force()
-        main_window.add_event_handler(settings=settings)
+        add_event_handler(settings=settings)
         self.update_db_running_status(main_window=main_window)
 
     def log_in(self, main_window, settings: dict):
         delegate_things_to_other_thread(settings=settings, main_window=main_window)
-        db_answer = None
-        user_data = None
         # API POST /login DONE
-        with DataBaseConnection() as cursor:
-            if not cursor:
-                return
-            cursor.execute(
-                "SELECT * FROM konta_plemiona WHERE user_name='"
-                + self.user_name_input.get()
-                + "' AND password='"
-                + self.user_password_input.get()
-                + "'"
-            )
-            db_answer = cursor.fetchone()
-            if db_answer:
-                user_data = {
-                    key[0]: value for key, value in zip(cursor.description, db_answer)
-                }
-        if not db_answer:
+        data = {
+            "user_name": self.user_name_input.get(),
+            "user_password": self.user_password_input.get(),
+        }
+        response = TribalWarsBotApi("/login", json=data).post()
+        if not response.ok:
             custom_error(message="Wprowadzono nieprawidłowe dane", parent=self.master)
             return
+        user_data = response.json()
         if user_data["currently_running"]:
             custom_error(message="Konto jest już obecnie w użyciu", parent=self.master)
             return
-
         settings["user_name"] = self.user_name_input.get()
         if self.remember_me.get():
             settings["user_password"] = self.user_password_input.get()
@@ -253,7 +222,7 @@ class LogInWindow:
         try:
             self.register_win = RegisterWindow(parent=self.master)
         except:
-            logger.error("RegisterWindow exception", exc_info=True)
+            logger.error("RegisterWindow exception")
             custom_error(
                 message="Wystąpił nieoczekiwany błąd.\nInformację o błędzie zapisane zostały "
                 "w pliku log.txt. Plik znajduję się w podfolderze, o nazwie logs, w głównym folderze aplikacji TribalWarsBot. "
@@ -266,29 +235,14 @@ class LogInWindow:
     def update_db_running_status(self, main_window):
         """Inform database about account activity every 10min"""
 
-        def data_update(main_window) -> None:
-            captcha_counter = main_window.captcha_counter.get()
-            if captcha_counter > 0:
-                sql_str = (
-                    f"UPDATE konta_plemiona "
-                    f"SET currently_running=1, captcha_solved=captcha_solved + {captcha_counter} "
-                    f"WHERE user_name='{main_window.user_data['user_name']}'"
-                )
-                main_window.captcha_counter.set(0)
-            else:
-                sql_str = (
-                    f"UPDATE konta_plemiona SET currently_running=1 "
-                    f"WHERE user_name='{main_window.user_data['user_name']}'"
-                )
-            # API PATCH /status DONE
-            with DataBaseConnection(ignore_erros=True) as cursor:
-                cursor.execute(sql_str)
-
-        threading.Thread(
-            target=lambda: data_update(main_window=main_window),
-            name="status_running_update",
-            daemon=True,
-        ).start()
+        # API PATCH /status DONE
+        captcha_counter = main_window.captcha_counter.get()
+        user_name = main_window.user_data["user_name"]
+        data = {"currently_running": 1, "user_name": user_name}
+        if captcha_counter > 0:
+            data["captcha_solved"] = captcha_counter
+            main_window.captcha_counter.set(0)
+        TribalWarsBotApi("/status", json=data).patch(sync=False)
 
         main_window.master.after(
             ms=595_000,

@@ -4,7 +4,7 @@ import traceback
 
 import requests
 
-from config import LOGGING_API_TOKEN, PYTHON_ANYWHERE_LOGS
+from config import PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN
 
 
 class CustomLogFormatter(logging.Formatter):
@@ -44,15 +44,44 @@ class CustomLoggingHandler(logging.Handler):
 
         headers = {
             "Content-Type": "application/json",
-            "Authorization": LOGGING_API_TOKEN,
+            "Authorization": PYTHON_ANYWHERE_API_TOKEN,
         }
         data = {"owner": self.user_name, "message": msg}
-
         threading.Thread(
             target=requests.post,
             kwargs={
-                "url": PYTHON_ANYWHERE_LOGS,
-                "headers": headers,
+                "url": PYTHON_ANYWHERE_API + "/log",
                 "json": data,
+                "headers": headers,
             },
         ).start()
+
+
+def get_logger(
+    name: str,
+    filename: str = "logs/log.txt",
+    level: int = logging.ERROR,
+) -> logging.Logger:
+    logger = logging.getLogger(name)
+    f_handler = logging.FileHandler(filename)
+    f_format = CustomLogFormatter(
+        "%(levelname)s | %(name)s | %(asctime)s %(message)s",
+        datefmt="%d-%m-%Y %H:%M:%S",
+    )
+    f_handler.setFormatter(f_format)
+    f_handler.setLevel(level)
+    logger.addHandler(f_handler)
+    logger.propagate = False
+
+    return logger
+
+
+def add_event_handler(settings: dict) -> None:
+
+    logging_handler = CustomLoggingHandler(user_name=settings["user_name"])
+    logging.getLogger("bot_main").addHandler(logging_handler)
+    logging.getLogger("bot_functions").addHandler(logging_handler)
+    logging.getLogger("decorators").addHandler(logging_handler)
+    logging.getLogger("log_in_window").addHandler(logging_handler)
+    logging.getLogger("gui_functions").addHandler(logging_handler)
+    logging.getLogger("tribal_wars_bot_api").addHandler(logging_handler)
