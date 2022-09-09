@@ -11,10 +11,10 @@ import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_validation, validator
 
-from database_connection import DataBaseConnection
 from email_notifications import send_email
 from gui_functions import center, custom_error, forget_row, show_or_hide_password
 from my_widgets import TopLevel
+from tribal_wars_bot_api import TribalWarsBotApi
 
 
 class RegisterWindow:
@@ -48,29 +48,29 @@ class RegisterWindow:
 
         @validator
         def login_validation(event=None):
+            def on_error(msg: str) -> None:
+                ttk.Label(
+                    self.content_frame,
+                    text=msg,
+                    bootstyle="danger",
+                ).grid(row=2, column=1, pady=(0, 5))
+                self.login_status.set(False)
+                return False
+
             if exists and self.login.get() == self.user_data["user_name"]:
                 forget_row(widget_name=self.content_frame, row_number=2)
                 self.login_status.set(True)
                 return True
-            with DataBaseConnection() as cursor:
-                cursor.execute(
-                    "SELECT * FROM konta_plemiona WHERE user_name='"
-                    + self.login.get()
-                    + "'"
-                )
-                db_answer = cursor.fetchone()
-                if not db_answer:
-                    forget_row(widget_name=self.content_frame, row_number=2)
-                    self.login_status.set(True)
-                    return True
-                else:
-                    ttk.Label(
-                        self.content_frame,
-                        text="Podany login już istnieje",
-                        bootstyle="danger",
-                    ).grid(row=2, column=1, pady=(0, 5))
-                    self.login_status.set(False)
-                    return False
+            # API GET /register DONE
+            response = TribalWarsBotApi(f"/register?user_name={self.login.get()}").get()
+            if not response.ok:
+                return on_error("Wystąpił błąd bazy danych")
+            if response.json()["no_exist"]:
+                forget_row(widget_name=self.content_frame, row_number=2)
+                self.login_status.set(True)
+                return True
+            else:
+                return on_error("Podany login już istnieje")
 
         add_validation(self.login, login_validation)
 
@@ -162,25 +162,26 @@ class RegisterWindow:
                 forget_row(self.content_frame, row_number=8)
                 self.email_status.set(True)
                 return True
-            with DataBaseConnection() as cursor:
-                cursor.execute(
-                    "SELECT * FROM konta_plemiona WHERE email='"
-                    + self.email.get()
-                    + "'"
-                )
-                db_answer = cursor.fetchone()
-                if db_answer:
-                    ttk.Label(
-                        self.content_frame,
-                        text="Podany adres już istnieje",
-                        bootstyle="danger",
-                    ).grid(row=8, column=1, pady=(0, 5))
-                    self.email_status.set(False)
-                    return False
-                else:
-                    forget_row(self.content_frame, row_number=8)
-                    self.email_status.set(True)
-                    return True
+
+            def on_error(msg: str) -> None:
+                ttk.Label(
+                    self.content_frame,
+                    text=msg,
+                    bootstyle="danger",
+                ).grid(row=8, column=1, pady=(0, 5))
+                self.email_status.set(False)
+                return False
+
+            # API GET /register DONE
+            response = TribalWarsBotApi(f"/register?email={self.email.get()}").get()
+            if not response.ok:
+                return on_error("Wystąpił błąd bazy danych")
+            if response.json()["no_exist"]:
+                forget_row(self.content_frame, row_number=8)
+                self.email_status.set(True)
+                return True
+            else:
+                return on_error("Podany adres już istnieje")
 
         add_validation(self.email, email_validation)
 
@@ -232,25 +233,29 @@ class RegisterWindow:
 
         @validator
         def recomended_by_validation(event=None):
-            with DataBaseConnection() as cursor:
-                cursor.execute(
-                    "SELECT * FROM konta_plemiona WHERE user_name='"
-                    + self.recommended_by.get()
-                    + "'"
-                )
-                db_answer = cursor.fetchone()
-                if db_answer or not self.recommended_by.get():
-                    forget_row(widget_name=self.content_frame, row_number=13)
-                    self.recomended_by_status.set(True)
-                    return True
-                else:
-                    ttk.Label(
-                        self.content_frame,
-                        text="Podany login nie istnieje",
-                        bootstyle="danger",
-                    ).grid(row=13, column=1)
-                    self.recomended_by_status.set(False)
-                    return False
+            def on_error(msg: str) -> None:
+                ttk.Label(
+                    self.content_frame,
+                    text=msg,
+                    bootstyle="danger",
+                ).grid(row=13, column=1)
+                self.recomended_by_status.set(False)
+                return False
+
+            # API GET /register DONE
+            response = TribalWarsBotApi(
+                f"/register?user_name={self.recommended_by.get()}"
+            ).get()
+            if not response.ok:
+                return on_error("Wystąpił błąd bazy danych")
+            if self.recommended_by.get() == self.login.get():
+                return on_error("Czynność zabroniona")
+            if not response.json()["no_exist"] or not self.recommended_by.get():
+                forget_row(widget_name=self.content_frame, row_number=13)
+                self.recomended_by_status.set(True)
+                return True
+            else:
+                return on_error("Podany login nie istnieje")
 
         add_validation(self.recommended_by, recomended_by_validation)
         tip_text = (
@@ -299,23 +304,6 @@ class RegisterWindow:
     def already_created(self, log_in_window) -> bool:
         """Check if user has already created account using this current device"""
 
-        # try:
-        #     key_reg = winreg.OpenKey(
-        #         winreg.HKEY_CURRENT_USER, "Software\\TribalWarsBot\\AccountRegistered"
-        #     )
-        #     key_reg.Close()
-        #     custom_error(
-        #         message="Utworzono już konto z tego komputera\n"
-        #         "Utworzenie nowego spowoduję jego nadpisanie nowymi danymi\n"
-        #         "Z wyjątkiem daty ważności konta i loginu osoby polecającej",
-        #         parent=self.master,
-        #     )
-        #     self.master.withdraw()
-        #     self.register_win = RegisterWindow(parent=self.master)
-        #     return
-        # except OSError:
-        #     pass
-
         self.mac_address = "-".join(
             [
                 "{:02x}".format((uuid.getnode() >> ele) & 0xFF)
@@ -327,29 +315,36 @@ class RegisterWindow:
             winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\SQMClient"
         ) as key:
             self.device_id = winreg.QueryValueEx(key, "MachineId")[0]
-
-        with DataBaseConnection() as cursor:
-            cursor.execute(
-                "SELECT * FROM konta_plemiona WHERE address_mac='"
-                + self.mac_address
-                + "' or device_id='"
-                + self.device_id
-                + "'"
+        # API GET /register DONE
+        response = TribalWarsBotApi(
+            f"/register?address_mac={self.mac_address}&device_id={self.device_id}&operator=or"
+        ).get()
+        if not response.ok:
+            custom_error(
+                message="Wystąpił błąd bazy danych, spróbuj później.",
+                parent=log_in_window,
             )
-            db_answer = cursor.fetchone()
-            if db_answer != None:
-                log_in_window.update()
+            return False
+        if not response.json()["no_exist"]:
+            log_in_window.update()
+            custom_error(
+                message="Utworzono już konto z tego komputera\n"
+                "Utworzenie nowego spowoduję jego nadpisanie nowymi danymi\n"
+                "Z wyjątkiem daty ważności konta i loginu osoby polecającej",
+                parent=log_in_window,
+            )
+            response = TribalWarsBotApi(
+                f"/user?address_mac={self.mac_address}&device_id={self.device_id}&operator=or"
+            ).get()
+            if not response.ok:
                 custom_error(
-                    message="Utworzono już konto z tego komputera\n"
-                    "Utworzenie nowego spowoduję jego nadpisanie nowymi danymi\n"
-                    "Z wyjątkiem daty ważności konta i loginu osoby polecającej",
+                    message="Wystąpił błąd bazy danych, spróbuj później.",
                     parent=log_in_window,
                 )
-                self.user_data = {
-                    key[0]: value for key, value in zip(cursor.description, db_answer)
-                }
-                return True
-            return False
+                return False
+            self.user_data = response.json()
+            return True
+        return False
 
     def create_account(self, log_in_window, exists: bool) -> None:
         if (
@@ -370,55 +365,42 @@ class RegisterWindow:
                 invited_by = self.user_data["invited_by"]
                 if self.user_data["invited_by"] != self.recommended_by.get():
                     invited_by = self.recommended_by.get()
-
-                with DataBaseConnection() as cursor:
-                    cursor.execute(
-                        f"UPDATE Konta_Plemiona "
-                        f"SET user_name='{self.login.get()}', "
-                        f"password='{self.password.get()}', "
-                        f"email='{self.email.get()}', "
-                        f"address_mac='{self.mac_address}', "
-                        f"device_id='{self.device_id}', "
-                        f"currently_running=0, "
-                        f"verified_email='{verified_email}', "
-                        f"verification_code='{verification_code}', "
-                        f"invited_by='{invited_by}' "
-                        f"WHERE user_name='{self.user_data['user_name']}'"
-                    )
-                    if self.user_data["user_name"] != self.login.get():
-                        cursor.execute(
-                            f"UPDATE Konta_Plemiona "
-                            f"SET invited_by = '{self.login.get()}' "
-                            f"WHERE invited_by = '{self.user_data['user_name']}'"
-                        )
+                # API PATCH /user/<user_name> DONE
+                data = {
+                    "user_name": self.login.get(),
+                    "password": self.password.get(),
+                    "email": self.email.get(),
+                    "address_mac": self.mac_address,
+                    "device_id": self.device_id,
+                    "verified_email": verified_email,
+                    "verification_code": verification_code,
+                    "invited_by": invited_by,
+                }
+                TribalWarsBotApi(
+                    f"/user?user_name={self.user_data['user_name']}", json=data
+                ).patch(sync=False)
+                if self.user_data["user_name"] != self.login.get():
+                    data = {"invited_by": self.login.get()}
+                    TribalWarsBotApi(
+                        f"/user?invited_by={self.user_data['user_name']}", json=data
+                    ).patch(sync=False)
             else:
                 geolocation = geocoder.ip("me")
                 country = geolocation.country
                 city = geolocation.city
-                with DataBaseConnection() as cursor:
-                    cursor.execute(
-                        f"""INSERT INTO konta_plemiona(
-                                user_name,
-                                password,
-                                email,
-                                address_mac,
-                                device_id,
-                                invited_by,
-                                verification_code,
-                                country,
-                                city) 
-                            VALUES (
-                                '{self.login.get()}',
-                                '{self.password.get()}',
-                                '{self.email.get()}',
-                                '{self.mac_address}',
-                                '{self.device_id}',
-                                '{self.recommended_by.get()}',
-                                '{verification_code}',
-                                '{country}',
-                                '{city}'
-                        )"""
-                    )
+                # API POST /register DONE
+                data = {
+                    "user_name": self.login.get(),
+                    "password": self.password.get(),
+                    "email": self.email.get(),
+                    "address_mac": self.mac_address,
+                    "device_id": self.device_id,
+                    "invited_by": self.recommended_by.get(),
+                    "verification_code": verification_code,
+                    "country": country,
+                    "city": city,
+                }
+                TribalWarsBotApi("/register", json=data).post(sync=False)
 
             if not exists or self.email.get() != self.user_data["email"]:
                 threading.Thread(
@@ -444,13 +426,6 @@ class RegisterWindow:
             custom_error(message=message, parent=log_in_window)
             log_in_window.deiconify()
         else:
-            print(
-                self.login_status.get(),
-                self.password_status.get(),
-                self.email_status.get(),
-                self.email_repeat_status.get(),
-                self.recomended_by_status.get(),
-            )
             custom_error(
                 message="Uzupełnij prawidłowo obowiązkowe pola!", parent=self.master
             )

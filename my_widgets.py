@@ -2,6 +2,8 @@ import tkinter as tk
 
 import ttkbootstrap as ttk
 
+from gui_functions import forget_row
+
 
 class TopLevel(tk.Toplevel):
     def __init__(
@@ -101,10 +103,17 @@ class TopLevel(tk.Toplevel):
 class ScrollableFrame:
     """Create scrollable frame on top of canvas"""
 
-    def __init__(self, parent: ttk.Frame = None) -> None:
+    def __init__(
+        self,
+        parent: ttk.Frame = None,
+        max_width: bool = True,
+        show: bool = False,
+        **kwargs,
+    ) -> None:
 
         self.parent = parent
-        parent.columnconfigure(0, weight=1)
+        if max_width:
+            parent.columnconfigure(0, weight=1)
         parent.rowconfigure(0, weight=1)
 
         def on_configure(event: tk.Event):
@@ -113,25 +122,42 @@ class ScrollableFrame:
             self.canvas.configure(scrollregion=self.canvas.bbox("all"))
             if self.canvas.yview() == (0.0, 1.0):
                 self.scrollbar.grid_remove()
+            else:
+                self.scrollbar.grid(row=0, column=1, sticky=tk.NS)
 
-        def _frame_width(event: tk.Event):
-            canvas_width = event.width
+        def _frame_size(event: tk.Event):
+            min_canvas_height = parent.winfo_height()
+            if self.frame.winfo_height() < min_canvas_height:
+                self.canvas.itemconfig(self.canvas_frame, height=min_canvas_height)
+            # No need to create scroll on the right side
+            _fix_width_depend_on_scrollbar_existence(event)
+
+        def _fix_width_depend_on_scrollbar_existence(event: tk.Event) -> None:
             if self.canvas.yview() == (0.0, 1.0):
-                self.canvas.itemconfig(self.canvas_frame, width=canvas_width)
+                self.canvas.itemconfig(self.canvas_frame, width=event.width)
                 return
-            self.canvas.itemconfig(self.canvas_frame, width=canvas_width - 11)
+            self.canvas.itemconfig(self.canvas_frame, width=event.width - 11)
+            self.canvas.update()
 
         # --- Create self.canvas with scrollbar ---
 
         self.canvas = tk.Canvas(parent)
-        self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
-        self.canvas.columnconfigure(0, weight=1)
+        if show:
+            self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
         self.canvas.rowconfigure(0, weight=1)
 
-        self.frame = ttk.Frame(self.canvas)
-        self.frame.grid(row=0, column=0, sticky=tk.NSEW)
-        self.frame.columnconfigure(0, weight=1)
-        self.frame.columnconfigure(1, weight=1)
+        self.container = ttk.Frame(self.canvas)
+        self.container.grid(row=0, column=0, sticky=tk.NSEW)
+        self.container.rowconfigure(0, weight=1)
+
+        self.frame = ttk.Frame(self.container)
+        self.frame.grid(row=0, column=0, sticky=tk.NSEW, **kwargs)
+
+        if max_width:
+            self.canvas.columnconfigure(0, weight=1)
+            self.container.columnconfigure(0, weight=1)
+            self.frame.columnconfigure(0, weight=1)
+            self.frame.columnconfigure(1, weight=1)
 
         self.scrollbar = ttk.Scrollbar(self.canvas, command=self._yview)
         self.scrollbar.grid(row=0, column=1, sticky=tk.NS)
@@ -143,13 +169,17 @@ class ScrollableFrame:
         # --- Put frame in self.canvas ---
 
         self.canvas_frame = self.canvas.create_window(
-            (0, 0), window=self.frame, anchor=tk.NW
+            (0, 0), window=self.container, anchor=tk.NW
         )
 
         # Update scrollregion after starting 'mainloop'
         # when all widgets are in self.canvas.
         self.frame.bind("<Configure>", on_configure)
-        self.canvas.bind("<Configure>", _frame_width)
+        self.canvas.bind("<Configure>", _frame_size)
+
+    def show(self) -> None:
+        forget_row(self.parent, 0)
+        self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
 
     def _bound_to_mousewheel(self, event: tk.Event = None):
         self.canvas.bind_all("<MouseWheel>", lambda event: self._on_mousewheel(event))
