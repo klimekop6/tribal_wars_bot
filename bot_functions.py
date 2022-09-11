@@ -9,7 +9,6 @@ from math import ceil, sqrt
 
 import lxml.html
 import requests
-from anticaptchaofficial.hcaptchaproxyless import *
 from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
@@ -1964,46 +1963,249 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
         to_do.sort(key=lambda sort_by: sort_by["start_time"])
 
 
-def mine_coin(driver: webdriver.Chrome) -> None:
-
-    village_palace_url = (
-        "https://pl173.plemiona.pl/game.php?village=46740&screen=snob",
-        "https://pl173.plemiona.pl/game.php?village=15449&screen=snob",
+def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
+    coins: dict = settings["coins"]
+    base_url = f"https://{settings['server_world']}.{settings['game_url']}/game.php?"
+    villages_palace_url = (
+        f"{base_url}village={village_id}&screen=snob"
+        for village_id in coins["villages"].values()
     )
-    village_market_url = (
-        "https://pl173.plemiona.pl/game.php?village=46740&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=110555&",
-        "https://pl173.plemiona.pl/game.php?village=15449&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=110559&",
+    villages_market_url = (
+        f"{base_url}village={village_id}&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=0"
+        for village_id in coins["villages"].values()
     )
+    # JS script
+    call_resources = (
+        f"var MAX_STORAGE_FILL_PERCENTAGE = {round(coins['resource_fill']/100,2)};"
+        f"var MINIMUM_RESOURCE_REQUEST = 1000;"
+        f"var RESOURCE_SAFE = {coins['resource_left']};"
+        r"""
+        var re;
+        var maxStorage;
+        var wood_atm, stone_atm, iron_atm;
+        var vil;
+        var capacity;
+        var bufor;
+        var wood_av, stone_av, iron_av;
+        var inc_wood, inc_stone, inc_iron;
+        var wood_needed, stone_needed, iron_needed;
+        var inp_wood, inp_stone, inp_iron;
+        var tmp;
+        var inp;
 
-    for palace_url, market_url in zip(village_palace_url, village_market_url):
-        # Wybij monety -> pałac
+        function getResources() {
+        maxStorage = Math.floor(parseInt(game_data.village.storage_max) * MAX_STORAGE_FILL_PERCENTAGE);
+        wood_atm = parseInt(game_data.village.wood);
+        stone_atm = parseInt(game_data.village.stone);
+        iron_atm = parseInt(game_data.village.iron);
+        }
+
+        function getIncoms() {
+        re = /\D+/;
+        inc_wood = $(document).find("#total_wood .res.wood").html();
+        inc_stone = $(document).find("#total_stone .res.stone").html();
+        inc_iron = $(document).find("#total_iron .res.iron").html();
+
+        inc_wood = parseInt(inc_wood.replace(re, ''));
+        inc_stone = parseInt(inc_stone.replace(re, ''));
+        inc_iron = parseInt(inc_iron.replace(re, ''));
+        }
+
+        function veryFirstVill() {
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled)")[0];
+        capacity = vil.getAttribute('data-capacity');
+        capacity = parseInt(capacity);
+
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled) .wood")[0];
+        wood_av = vil.getAttribute('data-res');
+        wood_av = parseInt(wood_av);
+
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled) .stone")[0];
+        stone_av = vil.getAttribute('data-res');
+        stone_av = parseInt(stone_av);
+
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled) .iron")[0];
+        iron_av = vil.getAttribute('data-res');
+        iron_av = parseInt(iron_av);
+
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled)")[0];
+
+        $(vil).addClass('stv-stor-filled');
+        }
+
+        function getNeeds() {
+        wood_needed = maxStorage - wood_atm - inc_wood;
+        stone_needed = maxStorage - stone_atm - inc_stone;
+        iron_needed = maxStorage - iron_atm - inc_iron;
+        }
+
+        function callIt() {
+        inp = $(vil).find('input[name=select-village]');
+        $(inp).trigger('click');
+
+        inp_wood = $(vil).find(".wood input")[0];
+        inp_stone = $(vil).find(".stone input")[0];
+        inp_iron = $(vil).find(".iron input")[0];
+
+        getNeeds();
+
+        if (wood_av > iron_av && iron_av > stone_av){
+            wood_function();
+            iron_function();
+            stone_function();
+        }
+        else if (stone_av > wood_av && wood_av > iron_av){
+            stone_function();
+            wood_function();
+            iron_function();
+        }
+        else if (stone_av > iron_av && iron_av > wood_av){
+            stone_function();
+            iron_function();
+            wood_function();
+        }
+        else if (iron_av > stone_av && stone_av > wood_av){
+            iron_function();
+            stone_function();
+            wood_function();
+        }
+        else if (iron_av > wood_av && wood_av > stone_av){
+            iron_function();
+            wood_function();
+            stone_function();
+        } 
+        else {
+            wood_function();
+            stone_function();
+            iron_function();
+        }
+
+        function wood_function() {
+            if (wood_needed > 0 && capacity > 0 && wood_av > RESOURCE_SAFE) {
+            bufor = wood_needed;
+
+            if (bufor > wood_av - RESOURCE_SAFE) {
+                bufor = wood_av - RESOURCE_SAFE;
+            } else {
+                bufor = bufor;
+            }
+
+            if (bufor > capacity) {
+                bufor = capacity;
+                capacity = 0;
+            } else {
+                capacity = capacity - bufor;
+            }
+
+            } else {
+            bufor = 0;
+            }
+
+            if (bufor < MINIMUM_RESOURCE_REQUEST) {bufor = 0;}
+            $(inp_wood).val(bufor);
+            inc_wood += bufor;
+        }
+        function stone_function() {
+            if (stone_needed > 0 && capacity > 0 && stone_av > RESOURCE_SAFE) {
+            bufor = stone_needed;
+            if (bufor > stone_av - RESOURCE_SAFE) {
+            bufor = stone_av - RESOURCE_SAFE;
+            } else {
+            bufor = bufor;
+            }
+
+            if (bufor > capacity) {
+            bufor = capacity;
+            capacity = 0;
+            } else {
+            capacity = capacity - bufor;
+            }
+
+            } else {
+            bufor = 0;
+            }
+
+
+            if (bufor < MINIMUM_RESOURCE_REQUEST) {bufor = 0;}
+            $(inp_stone).val(bufor);
+            inc_stone += bufor;
+        }
+        function iron_function() {
+            if (iron_needed > 0 && capacity > 0 && iron_av > RESOURCE_SAFE) {
+            bufor = iron_needed;
+            if (bufor > iron_av - RESOURCE_SAFE) {
+            bufor = iron_av - RESOURCE_SAFE;
+            } else {
+            bufor = bufor;
+            }
+
+            if (bufor > capacity) {
+            bufor = capacity;
+            capacity = 0;
+            } else {
+            capacity = capacity - bufor;
+            }
+
+            } else {
+            bufor = 0;
+            }
+
+
+            if (bufor < MINIMUM_RESOURCE_REQUEST) {bufor = 0;}
+            $(inp_iron).val(bufor);
+            inc_iron += bufor;
+        }
+        if ($(inp_iron).val() == 0 && $(inp_stone).val() == 0 && $(inp_wood).val() == 0) {
+        UI.InfoMessage('Spichlerz zapełniony', 5000, 'success');
+        }
+        }
+
+
+        function start() {
+        veryFirstVill();
+        callIt();
+        }
+
+        if (document.getElementById("checkbox_hide_traderless").checked == false) {
+        UI.InfoMessage('Ukryj wioski bez dostępnych kupców.', 5000, 'error');
+        } else {
+        getResources();
+        getIncoms();
+
+        var num_vils = $("#village_list").find("tbody tr:not(.stv-stor-filled)").length;
+
+        for (let i=0; i<num_vils; i++) {
+        start();
+        }
+        }"""
+    )
+    for palace_url, market_url in zip(villages_palace_url, villages_market_url):
         driver.get(palace_url)
         try:
-            max_coin = driver.find_element(By.ID, "coin_mint_fill_max")
-            driver.execute_script(
-                "return arguments[0].scrollIntoView(false);", max_coin
-            )
-            footer_height = driver.find_element(By.ID, "footer").size["height"]
-            driver.execute_script(f"scrollBy(0, {footer_height});")
-            max_coin.click()
-            driver.find_element(
-                By.XPATH,
-                '//*[@id="content_value"]/table[2]/tbody/tr/td[2]/table[4]/tbody/tr[10]/td[2]/form/input[2]',
-            ).click()
+            # Scroll into
+            if driver.execute_script(
+                "if(document.querySelector('#coin_mint_fill_max')) {return true} else {return false}"
+            ):
+                driver.execute_script(
+                    "document.querySelector('#coin_mint_fill_max').scrollIntoView({block: 'center'});"
+                )
+                # Fill max coins in box
+                driver.execute_script(
+                    "document.querySelector('#coin_mint_fill_max').click()"
+                )
+                # Submit all filled coins
+                driver.execute_script(
+                    """document.querySelector('form input[type="submit"]').click()"""
+                )
         except:
-            pass
-        # Wezwij surowce -> rynek
+            logger.error("Error during coin mining")
         driver.get(market_url)
-        driver.find_element(By.ID, "ds_body").send_keys("4")
-        request_resources = driver.find_element(
-            By.XPATH,
-            '//*[@id="content_value"]/table[2]/tbody/tr/td[2]/form[1]/input[2]',
-        )
+        # Request resources
+        driver.execute_script(call_resources)
+        # Submit request
         driver.execute_script(
-            "return arguments[0].scrollIntoView(false);", request_resources
+            """document.querySelector('form input[type="submit"]').click()"""
         )
-        time.sleep(1.5)
-        request_resources.click()
 
 
 # Currently not in use

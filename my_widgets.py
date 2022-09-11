@@ -107,6 +107,7 @@ class ScrollableFrame:
         self,
         parent: ttk.Frame = None,
         max_width: bool = True,
+        max_height: bool = True,
         show: bool = False,
         **kwargs,
     ) -> None:
@@ -127,7 +128,7 @@ class ScrollableFrame:
 
         def _frame_size(event: tk.Event):
             min_canvas_height = parent.winfo_height()
-            if self.frame.winfo_height() < min_canvas_height:
+            if max_height and self.frame.winfo_height() < min_canvas_height:
                 self.canvas.itemconfig(self.canvas_frame, height=min_canvas_height)
             # No need to create scroll on the right side
             _fix_width_depend_on_scrollbar_existence(event)
@@ -149,9 +150,11 @@ class ScrollableFrame:
         self.container = ttk.Frame(self.canvas)
         self.container.grid(row=0, column=0, sticky=tk.NSEW)
         self.container.rowconfigure(0, weight=1)
+        self.container.grid_propagate(1)
 
         self.frame = ttk.Frame(self.container)
         self.frame.grid(row=0, column=0, sticky=tk.NSEW, **kwargs)
+        self.frame.grid_propagate(1)
 
         if max_width:
             self.canvas.columnconfigure(0, weight=1)

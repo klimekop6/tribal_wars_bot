@@ -33,17 +33,10 @@ import bot_functions
 from app_logging import CustomLogFormatter, get_logger
 from client_config import ClientConfig
 from decorators import log_errors
-from gui_functions import (
-    center,
-    change_state,
-    custom_error,
-    fill_entry_from_settings,
-    forget_row,
-    get_pos,
-    invoke_checkbuttons,
-    on_button_release,
-    save_entry_to_settings,
-)
+from gui_functions import (center, change_state, custom_error,
+                           fill_entry_from_settings, forget_row, get_pos,
+                           invoke_checkbuttons, on_button_release,
+                           save_entry_to_settings)
 from log_in_window import LogInWindow
 from my_widgets import ScrollableFrame, TopLevel
 from tribal_wars_bot_api import TribalWarsBotApi
@@ -80,8 +73,6 @@ logger.propagate = False
 
 
 class Farm(ScrollableFrame):
-    """Content and functions to put in notebook frame f1 named 'Farma'."""
-
     def __init__(
         self,
         parent: ttk.Frame,
@@ -89,7 +80,7 @@ class Farm(ScrollableFrame):
         entries_content: dict,
         settings: dict,
     ) -> None:
-        super().__init__(parent)
+        super().__init__(parent, show=True)
 
         self.entries_content = entries_content
 
@@ -145,7 +136,7 @@ class Farm(ScrollableFrame):
             if "farm_group" not in self.entries_content:
                 self.entries_content["farm_group"] = tk.StringVar()
             ttk.Label(frame, text="Grupa farmiąca").grid(
-                row=0, column=0, padx=(5, 0), pady=(10), sticky="W"
+                row=0, column=0, padx=(10, 0), pady=(10), sticky="W"
             )
             self.__setattr__(
                 f"farm_group_{template}",
@@ -173,7 +164,7 @@ class Farm(ScrollableFrame):
             ).grid(row=0, column=2, padx=(0, 25), pady=(10), sticky="E")
 
             ttk.Label(master, text="Poziom muru").grid(
-                row=4, column=0, columnspan=2, pady=(0, 15), padx=5, sticky="W"
+                row=4, column=0, columnspan=2, pady=(0, 15), padx=10, sticky="W"
             )
 
             self.entries_content[template]["wall_ignore"] = tk.BooleanVar()
@@ -184,10 +175,10 @@ class Farm(ScrollableFrame):
                 onvalue=True,
                 offvalue=False,
             )
-            wall_ignore.grid(row=5, column=0, pady=5, padx=(25, 5), sticky="W")
+            wall_ignore.grid(row=5, column=0, pady=5, padx=(30, 5), sticky="W")
 
             ttk.Label(master, text="Min").grid(
-                row=6, column=0, pady=5, padx=(25, 5), sticky="W"
+                row=6, column=0, pady=5, padx=(30, 5), sticky="W"
             )
 
             self.entries_content[template]["min_wall"] = tk.IntVar()
@@ -200,7 +191,7 @@ class Farm(ScrollableFrame):
             min_wall_level_input.grid(row=6, column=1, pady=5, padx=(5, 25), sticky="E")
 
             ttk.Label(master, text="Max").grid(
-                row=7, column=0, pady=5, padx=(25, 5), sticky="W"
+                row=7, column=0, pady=5, padx=(30, 5), sticky="W"
             )
 
             self.entries_content[template]["max_wall"] = tk.IntVar()
@@ -223,7 +214,7 @@ class Farm(ScrollableFrame):
             )
 
             ttk.Label(master, text="Wysyłka ataków").grid(
-                row=8, column=0, columnspan=2, pady=(20, 15), padx=5, sticky="W"
+                row=8, column=0, columnspan=2, pady=(20, 15), padx=10, sticky="W"
             )
 
             self.entries_content[template]["max_attacks"] = tk.BooleanVar()
@@ -240,10 +231,10 @@ class Farm(ScrollableFrame):
             max_attacks: ttk.Checkbutton = self.__getattribute__(
                 f"max_attacks_{template}"
             )
-            max_attacks.grid(row=9, column=0, pady=5, padx=(25, 5), sticky="W")
+            max_attacks.grid(row=9, column=0, pady=5, padx=(30, 5), sticky="W")
 
             ttk.Label(master, text="Ilość ataków").grid(
-                row=10, column=0, pady=(5, 10), padx=(25, 5), sticky="W"
+                row=10, column=0, pady=(5, 10), padx=(30, 5), sticky="W"
             )
 
             self.entries_content[template]["attacks_number"] = tk.IntVar()
@@ -267,11 +258,11 @@ class Farm(ScrollableFrame):
             )
 
             ttk.Label(master, text="Pozostałe ustawienia").grid(
-                row=11, column=0, padx=5, pady=(20, 15), sticky="W"
+                row=11, column=0, padx=10, pady=(20, 15), sticky="W"
             )
 
             ttk.Label(master, text="Powtarzaj ataki w odstępach [min]").grid(
-                row=12, column=0, padx=(25, 5), pady=(0, 5), sticky="W"
+                row=12, column=0, padx=(30, 5), pady=(0, 5), sticky="W"
             )
 
             if "farm_sleep_time" not in self.entries_content:
@@ -295,7 +286,7 @@ class Farm(ScrollableFrame):
 
         for template, row in zip(("A", "B", "C"), (1, 7, 13)):
             ttk.Label(farm_settings_scrolable, text=f"Szablon {template}").grid(
-                row=row, padx=5, pady=16, sticky=tk.W
+                row=row, padx=10, pady=16, sticky=tk.W
             )
             ttk.Label(farm_settings_scrolable, text=f"Wyślij wojsko gdy:").grid(
                 row=row + 1, padx=25, pady=(0, 10), sticky=tk.W
@@ -351,9 +342,926 @@ class Farm(ScrollableFrame):
             ).grid(row=row + 5, column=1, padx=(0, 25), pady=(10, 15), sticky=ttk.E)
 
 
-class Scheduler(ScrollableFrame):
-    """Content and functions to put in notebook frame f3 named 'Planer'."""
+class Gathering(ScrollableFrame):
+    def __init__(
+        self,
+        parent: ttk.Frame,
+        main_window: "MainWindow",
+        entries_content: dict,
+        settings: dict,
+    ) -> None:
 
+        super().__init__(parent)
+
+        self.entries_content = entries_content
+        self.entries_content["gathering"] = {}
+        self.entries_content["gathering_troops"] = {
+            "spear": {
+                "left_in_village": tk.IntVar(),
+                "send_max": tk.IntVar(),
+            },
+            "sword": {
+                "left_in_village": tk.IntVar(),
+                "send_max": tk.IntVar(),
+            },
+            "axe": {
+                "left_in_village": tk.IntVar(),
+                "send_max": tk.IntVar(),
+            },
+            "archer": {
+                "left_in_village": tk.IntVar(),
+                "send_max": tk.IntVar(),
+            },
+            "light": {
+                "left_in_village": tk.IntVar(),
+                "send_max": tk.IntVar(),
+            },
+            "marcher": {
+                "left_in_village": tk.IntVar(),
+                "send_max": tk.IntVar(),
+            },
+            "heavy": {
+                "left_in_village": tk.IntVar(),
+                "send_max": tk.IntVar(),
+            },
+            "knight": {
+                "left_in_village": tk.IntVar(),
+                "send_max": tk.IntVar(),
+            },
+        }
+
+        gathering_troops = self.entries_content["gathering_troops"]
+
+        self.entries_content["gathering"]["active"] = tk.BooleanVar()
+        self.active_gathering = ttk.Checkbutton(
+            self.frame,
+            text="Aktywuj zbieractwo",
+            variable=self.entries_content["gathering"]["active"],
+            onvalue=True,
+            offvalue=False,
+        )
+        self.active_gathering.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
+        self.active_gathering.configure(
+            command=partial(
+                change_state,
+                self.frame,
+                "active",
+                self.entries_content["gathering"],
+                True,
+                self.active_gathering,
+            ),
+        )
+
+        ttk.Separator(self.frame, orient="horizontal").grid(
+            row=1, column=0, columnspan=2, sticky=("W", "E")
+        )
+
+        # ----------------------------------------------------------------
+        ttk.Label(self.frame, text="Ustawienia").grid(
+            row=5, columnspan=2, padx=10, pady=(20, 15), sticky="W"
+        )
+
+        ttk.Label(self.frame, text="Grupa zbieractwa").grid(
+            row=6, column=0, padx=(30, 5), pady=5, sticky="W"
+        )
+
+        self.entries_content["gathering_group"] = tk.StringVar()
+        self.gathering_group = ttk.Combobox(
+            self.frame,
+            textvariable=self.entries_content["gathering_group"],
+            justify="center",
+            width=16,
+            state="readonly",
+        )
+        self.gathering_group.grid(row=6, column=1, padx=(5, 30), pady=5, sticky="E")
+        self.gathering_group.set("Wybierz grupę")
+        self.gathering_group["values"] = settings["groups"]
+
+        self.gathering_max_resources = ttk.Label(
+            self.frame, text="Maks surowców do zebrania"
+        )
+        self.gathering_max_resources.grid(
+            row=7, column=0, padx=(30, 5), pady=(10, 5), sticky="W"
+        )
+
+        self.entries_content["gathering_max_resources"] = tk.IntVar()
+        self.gathering_max_resources_input = ttk.Entry(
+            self.frame,
+            textvariable=self.entries_content["gathering_max_resources"],
+            justify="center",
+            width=18,
+        )
+        self.gathering_max_resources_input.grid(
+            row=7, column=1, padx=(5, 30), pady=(10, 5), sticky="E"
+        )
+
+        # ------------------------------------------------------------------------------------------------------------------
+        ttk.Label(self.frame, text="Dozwolone jednostki do wysłania").grid(
+            row=8, columnspan=2, padx=10, pady=(20, 15), sticky="W"
+        )
+
+        troops_frame = ttk.Frame(self.frame)
+        troops_frame.grid(row=9, columnspan=2, sticky="EW")
+        troops_frame.columnconfigure(1, weight=1)
+        troops_frame.columnconfigure(2, weight=1)
+        troops_frame.columnconfigure(4, weight=1)
+        troops_frame.columnconfigure(5, weight=1)
+
+        ttk.Label(troops_frame, text="Zostaw min").grid(row=8, column=1)
+        ttk.Label(troops_frame, text="Wyślij max").grid(row=8, column=2)
+        ttk.Label(troops_frame, text="Zostaw min").grid(row=8, column=4)
+        ttk.Label(troops_frame, text="Wyślij max").grid(row=8, column=5, padx=(0, 25))
+
+        def troop_entry_state(troop: str):
+            if self.entries_content["gathering_troops"][troop]["use"].get():
+                self.__getattribute__(f"{troop}_left").config(state="normal")
+                self.__getattribute__(f"{troop}_max").config(state="normal")
+            else:
+                self.__getattribute__(f"{troop}_left").config(state="disabled")
+                self.__getattribute__(f"{troop}_max").config(state="disabled")
+
+        self.entries_content["gathering_troops"]["spear"]["use"] = tk.BooleanVar()
+        self.gathering_spear = ttk.Checkbutton(
+            troops_frame,
+            image=main_window.images.spear,
+            compound="left",
+            variable=self.entries_content["gathering_troops"]["spear"]["use"],
+            onvalue=True,
+            offvalue=False,
+            command=lambda: troop_entry_state("spear"),
+        )
+        self.gathering_spear.grid(row=9, column=0, padx=(25, 0), pady=5, sticky="W")
+        self.spear_left = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["spear"]["left_in_village"],
+            justify=tk.CENTER,
+        )
+        self.spear_left.grid(row=9, column=1, pady=5)
+        self.spear_max = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["spear"]["send_max"],
+            justify=tk.CENTER,
+        )
+        self.spear_max.grid(row=9, column=2, pady=5)
+
+        self.entries_content["gathering_troops"]["light"]["use"] = tk.BooleanVar()
+        self.gathering_light = ttk.Checkbutton(
+            troops_frame,
+            image=main_window.images.light,
+            compound="left",
+            variable=self.entries_content["gathering_troops"]["light"]["use"],
+            onvalue=True,
+            offvalue=False,
+            command=lambda: troop_entry_state("light"),
+        )
+        self.gathering_light.grid(row=9, column=3, pady=5, sticky="W")
+        self.light_left = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["light"]["left_in_village"],
+            justify=tk.CENTER,
+        )
+        self.light_left.grid(row=9, column=4, pady=5)
+        self.light_max = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["light"]["send_max"],
+            justify=tk.CENTER,
+        )
+        self.light_max.grid(row=9, column=5, pady=5, padx=(0, 25))
+
+        self.entries_content["gathering_troops"]["sword"]["use"] = tk.BooleanVar()
+        self.gathering_sword = ttk.Checkbutton(
+            troops_frame,
+            image=main_window.images.sword,
+            compound="left",
+            variable=self.entries_content["gathering_troops"]["sword"]["use"],
+            onvalue=True,
+            offvalue=False,
+            command=lambda: troop_entry_state("sword"),
+        )
+        self.gathering_sword.grid(row=10, column=0, padx=(25, 0), pady=5, sticky="W")
+        self.sword_left = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["sword"]["left_in_village"],
+            justify=tk.CENTER,
+        )
+        self.sword_left.grid(row=10, column=1, pady=5)
+        self.sword_max = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["sword"]["send_max"],
+            justify=tk.CENTER,
+        )
+        self.sword_max.grid(row=10, column=2, pady=5)
+
+        self.entries_content["gathering_troops"]["marcher"]["use"] = tk.BooleanVar()
+        self.gathering_marcher = ttk.Checkbutton(
+            troops_frame,
+            image=main_window.images.marcher,
+            compound="left",
+            variable=self.entries_content["gathering_troops"]["marcher"]["use"],
+            onvalue=True,
+            offvalue=False,
+            command=lambda: troop_entry_state("marcher"),
+        )
+        self.gathering_marcher.grid(row=10, column=3, pady=5, sticky="W")
+        self.marcher_left = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["marcher"]["left_in_village"],
+            justify=tk.CENTER,
+        )
+        self.marcher_left.grid(row=10, column=4, pady=5)
+        self.marcher_max = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["marcher"]["send_max"],
+            justify=tk.CENTER,
+        )
+        self.marcher_max.grid(row=10, column=5, pady=5, padx=(0, 25))
+
+        self.entries_content["gathering_troops"]["axe"]["use"] = tk.BooleanVar()
+        self.gathering_axe = ttk.Checkbutton(
+            troops_frame,
+            image=main_window.images.axe,
+            compound="left",
+            variable=self.entries_content["gathering_troops"]["axe"]["use"],
+            onvalue=True,
+            offvalue=False,
+            command=lambda: troop_entry_state("axe"),
+        )
+        self.gathering_axe.grid(row=11, column=0, padx=(25, 0), pady=5, sticky="W")
+        self.axe_left = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["axe"]["left_in_village"],
+            justify=tk.CENTER,
+        )
+        self.axe_left.grid(row=11, column=1, pady=5)
+        self.axe_max = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["axe"]["send_max"],
+            justify=tk.CENTER,
+        )
+        self.axe_max.grid(row=11, column=2, pady=5)
+
+        self.entries_content["gathering_troops"]["heavy"]["use"] = tk.BooleanVar()
+        self.gathering_heavy = ttk.Checkbutton(
+            troops_frame,
+            image=main_window.images.heavy,
+            compound="left",
+            variable=self.entries_content["gathering_troops"]["heavy"]["use"],
+            onvalue=True,
+            offvalue=False,
+            command=lambda: troop_entry_state("heavy"),
+        )
+        self.gathering_heavy.grid(row=11, column=3, pady=5, sticky="W")
+        self.heavy_left = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["heavy"]["left_in_village"],
+            justify=tk.CENTER,
+        )
+        self.heavy_left.grid(row=11, column=4, pady=5)
+        self.heavy_max = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["heavy"]["send_max"],
+            justify=tk.CENTER,
+        )
+        self.heavy_max.grid(row=11, column=5, pady=5, padx=(0, 25))
+
+        self.entries_content["gathering_troops"]["archer"]["use"] = tk.BooleanVar()
+        self.gathering_archer = ttk.Checkbutton(
+            troops_frame,
+            image=main_window.images.archer,
+            compound="left",
+            variable=self.entries_content["gathering_troops"]["archer"]["use"],
+            onvalue=True,
+            offvalue=False,
+            command=lambda: troop_entry_state("archer"),
+        )
+        self.gathering_archer.grid(
+            row=12, column=0, padx=(25, 0), pady=(5, 10), sticky="W"
+        )
+        self.archer_left = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["archer"]["left_in_village"],
+            justify=tk.CENTER,
+        )
+        self.archer_left.grid(row=12, column=1, pady=5)
+        self.archer_max = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["archer"]["send_max"],
+            justify=tk.CENTER,
+        )
+        self.archer_max.grid(row=12, column=2, pady=5)
+
+        self.entries_content["gathering_troops"]["knight"]["use"] = tk.BooleanVar()
+        self.gathering_knight = ttk.Checkbutton(
+            troops_frame,
+            image=main_window.images.knight,
+            compound="left",
+            variable=self.entries_content["gathering_troops"]["knight"]["use"],
+            onvalue=True,
+            offvalue=False,
+            command=lambda: troop_entry_state("knight"),
+        )
+        self.gathering_knight.grid(row=12, column=3, pady=(5, 10), sticky="W")
+        self.knight_left = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["knight"]["left_in_village"],
+            justify=tk.CENTER,
+        )
+        self.knight_left.grid(row=12, column=4, pady=5)
+        self.knight_max = ttk.Entry(
+            troops_frame,
+            width=5,
+            textvariable=gathering_troops["knight"]["send_max"],
+            justify=tk.CENTER,
+        )
+        self.knight_max.grid(row=12, column=5, pady=5, padx=(0, 25))
+
+        # ------------------------------------------------------------------------------------------------------------------
+        ttk.Label(self.frame, text="Poziomy zbieractwa do pominięcia").grid(
+            row=13, columnspan=2, padx=10, pady=(20, 15), sticky="W"
+        )
+
+        f2_1 = ttk.Frame(self.frame)
+        f2_1.grid(row=14, column=0, columnspan=2)
+
+        self.entries_content["gathering"]["ommit"] = {}
+        self.entries_content["gathering"]["ommit"][
+            "first_level_gathering"
+        ] = tk.BooleanVar()
+        self.ommit_first_level_gathering = ttk.Checkbutton(
+            f2_1,
+            text="Pierwszy",
+            variable=self.entries_content["gathering"]["ommit"][
+                "first_level_gathering"
+            ],
+            onvalue=True,
+            offvalue=False,
+        )
+        self.ommit_first_level_gathering.grid(
+            row=14, column=0, padx=(25, 5), pady=(5, 10)
+        )
+
+        self.entries_content["gathering"]["ommit"][
+            "second_level_gathering"
+        ] = tk.BooleanVar()
+        self.ommit_second_level_gathering = ttk.Checkbutton(
+            f2_1,
+            text="Drugi",
+            variable=self.entries_content["gathering"]["ommit"][
+                "second_level_gathering"
+            ],
+            onvalue=True,
+            offvalue=False,
+        )
+        self.ommit_second_level_gathering.grid(row=14, column=1, padx=10, pady=(5, 10))
+
+        self.entries_content["gathering"]["ommit"][
+            "thrid_level_gathering"
+        ] = tk.BooleanVar()
+        self.ommit_thrid_level_gathering = ttk.Checkbutton(
+            f2_1,
+            text="Trzeci",
+            variable=self.entries_content["gathering"]["ommit"][
+                "thrid_level_gathering"
+            ],
+            onvalue=True,
+            offvalue=False,
+        )
+        self.ommit_thrid_level_gathering.grid(row=14, column=2, padx=10, pady=(5, 10))
+
+        self.entries_content["gathering"]["ommit"][
+            "fourth_level_gathering"
+        ] = tk.BooleanVar()
+        self.ommit_fourth_level_gathering = ttk.Checkbutton(
+            f2_1,
+            text="Czwarty",
+            variable=self.entries_content["gathering"]["ommit"][
+                "fourth_level_gathering"
+            ],
+            onvalue=True,
+            offvalue=False,
+        )
+        self.ommit_fourth_level_gathering.grid(
+            row=14, column=3, padx=(5, 25), pady=(5, 10)
+        )
+
+        self.entries_content["gathering"]["stop_if_incoming_attacks"] = tk.BooleanVar()
+        self.stop_if_incoming_attacks = ttk.Checkbutton(
+            self.frame,
+            text="Wstrzymaj wysyłkę wojsk gdy wykryto nadchodzące ataki",
+            variable=self.entries_content["gathering"]["stop_if_incoming_attacks"],
+            onvalue=True,
+            offvalue=False,
+        )
+        self.stop_if_incoming_attacks.grid(
+            row=15, column=0, columnspan=2, padx=25, pady=(10, 5)
+        )
+
+
+class Market(ScrollableFrame):
+    def __init__(
+        self,
+        parent: ttk.Frame,
+        main_window: "MainWindow",
+        entries_content: dict,
+        settings: dict,
+    ) -> None:
+
+        super().__init__(parent)
+
+        entries_content["market"] = {"wood": {}, "stone": {}, "iron": {}}
+        market = entries_content["market"]
+
+        market["premium_exchange"] = tk.BooleanVar()
+        self.active_premium_exchange = ttk.Checkbutton(
+            self.frame,
+            text="Aktywuj giełdę premium",
+            variable=market["premium_exchange"],
+            onvalue=True,
+            offvalue=False,
+        )
+        self.active_premium_exchange.configure(
+            command=partial(
+                change_state,
+                self.frame,
+                "premium_exchange",
+                market,
+                True,
+                self.active_premium_exchange,
+            ),
+        )
+        self.active_premium_exchange.grid(
+            row=0, column=0, columnspan=2, padx=5, pady=20
+        )
+
+        ttk.Separator(self.frame, orient="horizontal").grid(
+            row=1, column=0, columnspan=2, sticky=("W", "E")
+        )
+
+        # Maksymalny kurs sprzedaży
+        ttk.Label(self.frame, text="Maksymalny kurs sprzedaży").grid(
+            row=3, column=0, padx=10, pady=(20, 10), sticky="W"
+        )
+
+        self.wood_photo = tk.PhotoImage(file="icons//wood.png")
+        ttk.Label(
+            self.frame,
+            text="Drewno",
+            image=self.wood_photo,
+            compound="left",
+        ).grid(row=4, column=0, padx=(30, 5), pady=(10, 5), sticky="W")
+        market["wood"]["max_exchange_rate"] = tk.IntVar()
+        self.max_wood_exchange_rate = ttk.Entry(
+            self.frame,
+            textvariable=market["wood"]["max_exchange_rate"],
+            justify="center",
+            width=6,
+        )
+        self.max_wood_exchange_rate.grid(
+            row=4, column=1, padx=(5, 30), pady=(10, 5), sticky="E"
+        )
+
+        self.stone_photo = tk.PhotoImage(file="icons//stone.png")
+        ttk.Label(
+            self.frame,
+            text="Cegła",
+            image=self.stone_photo,
+            compound="left",
+        ).grid(row=5, column=0, padx=(30, 5), pady=(10, 5), sticky="W")
+        market["stone"]["max_exchange_rate"] = tk.IntVar()
+        self.max_stone_exchange_rate = ttk.Entry(
+            self.frame,
+            textvariable=market["stone"]["max_exchange_rate"],
+            justify="center",
+            width=6,
+        )
+        self.max_stone_exchange_rate.grid(
+            row=5, column=1, padx=(5, 30), pady=(10, 5), sticky="E"
+        )
+
+        self.iron_photo = tk.PhotoImage(file="icons//iron.png")
+        ttk.Label(
+            self.frame,
+            text="Żelazo",
+            image=self.iron_photo,
+            compound="left",
+        ).grid(row=6, column=0, padx=(30, 5), pady=(10, 5), sticky="W")
+        market["iron"]["max_exchange_rate"] = tk.IntVar()
+        self.max_iron_exchange_rate = ttk.Entry(
+            self.frame,
+            textvariable=market["iron"]["max_exchange_rate"],
+            justify="center",
+            width=6,
+        )
+        self.max_iron_exchange_rate.grid(
+            row=6, column=1, padx=(5, 30), pady=(10, 5), sticky="E"
+        )
+
+        # Zapas surowców w wioskach
+        ttk.Label(self.frame, text="Zapas surowców w wioskach").grid(
+            row=9, column=0, padx=10, pady=(15, 10), sticky="W"
+        )
+
+        ttk.Label(
+            self.frame,
+            text="Drewno",
+            image=self.wood_photo,
+            compound="left",
+        ).grid(row=10, column=0, padx=(30, 5), pady=(10, 5), sticky="W")
+        market["wood"]["leave_in_storage"] = tk.IntVar()
+        self.min_wood_left_in_storage = ttk.Entry(
+            self.frame,
+            textvariable=market["wood"]["leave_in_storage"],
+            justify="center",
+            width=6,
+        )
+        self.min_wood_left_in_storage.grid(
+            row=10, column=1, padx=(5, 30), pady=(10, 5), sticky="E"
+        )
+        ttk.Label(
+            self.frame,
+            text="Cegła",
+            image=self.stone_photo,
+            compound="left",
+        ).grid(row=11, column=0, padx=(30, 5), pady=(10, 5), sticky="W")
+        market["stone"]["leave_in_storage"] = tk.IntVar()
+        self.min_stone_left_in_storage = ttk.Entry(
+            self.frame,
+            textvariable=market["stone"]["leave_in_storage"],
+            justify="center",
+            width=6,
+        )
+        self.min_stone_left_in_storage.grid(
+            row=11, column=1, padx=(5, 30), pady=(10, 5), sticky="E"
+        )
+        ttk.Label(
+            self.frame,
+            text="Żelazo",
+            image=self.iron_photo,
+            compound="left",
+        ).grid(row=12, column=0, padx=(30, 5), pady=(10, 5), sticky="W")
+        market["iron"]["leave_in_storage"] = tk.IntVar()
+        self.min_iron_left_in_storage = ttk.Entry(
+            self.frame,
+            textvariable=market["iron"]["leave_in_storage"],
+            justify="center",
+            width=6,
+        )
+        self.min_iron_left_in_storage.grid(
+            row=12, column=1, padx=(5, 30), pady=(10, 5), sticky="E"
+        )
+
+        # Pozostałe ustawienia
+        ttk.Label(self.frame, text="Pozostałe ustawienia").grid(
+            row=13, column=0, padx=10, pady=(15, 10), sticky="W"
+        )
+
+        ttk.Label(self.frame, text="Sprawdzaj kursy surowców co [min]").grid(
+            row=14, column=0, padx=(30, 5), pady=(10, 5), sticky="W"
+        )
+        market["check_every"] = tk.IntVar()
+        ttk.Entry(
+            self.frame,
+            textvariable=market["check_every"],
+            justify="center",
+            width=6,
+        ).grid(row=14, column=1, padx=(5, 30), pady=(10, 5), sticky="E")
+
+        def show_label_and_text_widget() -> None:
+            def clear_text_widget(event) -> None:
+                if self.villages_to_ommit_text.get("1.0", "1.5") == "Wklej":
+                    self.villages_to_ommit_text.delete("1.0", "end")
+                    self.villages_to_ommit_text.unbind("<Button-1>")
+
+            def add_villages_list() -> None:
+                if self.villages_to_ommit_text.compare("end-1c", "==", "1.0"):
+                    self.villages_to_ommit_text.insert(
+                        "1.0",
+                        "Wklej wioski w formacie XXX|YYY które chcesz aby były pomijane. "
+                        "Wioski powinny być oddzielone spacją, tabulatorem lub enterem. "
+                        "Możesz także podać cały kontynet np. k45 lub K45",
+                    )
+                    return
+                if self.villages_to_ommit_text.get("1.0", "1.5") == "Wklej":
+                    market["market_exclude_villages"].set("")
+                else:
+                    market["market_exclude_villages"].set(
+                        self.villages_to_ommit_text.get("1.0", "end")
+                    )
+                    settings["market"][
+                        "market_exclude_villages"
+                    ] = self.villages_to_ommit_text.get("1.0", "end")
+                self.villages_to_ommit_text.grid_forget()
+                self.confirm_button.grid_forget()
+
+                self.success_label = ttk.Label(self.frame, text="Dodano!")
+                self.success_label.grid(
+                    row=21, column=0, columnspan=2, padx=5, pady=(10, 15)
+                )
+                self.frame.update()
+                self.frame.after(
+                    1500,
+                    lambda: [
+                        self.success_label.grid_forget(),
+                        self.frame.update_idletasks(),
+                        self.canvas.itemconfig(
+                            self.canvas_frame,
+                            height=self.frame.winfo_reqheight(),
+                        ),
+                    ],
+                )
+                del self.villages_to_ommit_text
+
+            if hasattr(self, "villages_to_ommit_text"):
+                self.villages_to_ommit_text.grid_forget()
+                self.confirm_button.grid_forget()
+                del self.villages_to_ommit_text
+                return
+
+            self.villages_to_ommit_text = tk.Text(
+                self.frame, height=6, width=50, wrap="word"
+            )
+            self.villages_to_ommit_text.grid(
+                row=21, column=0, columnspan=2, padx=5, pady=10
+            )
+            if (
+                settings["market"]["market_exclude_villages"]
+                and settings["market"]["market_exclude_villages"] != "0"
+            ):
+                self.villages_to_ommit_text.insert(
+                    "1.0", settings["market"]["market_exclude_villages"]
+                )
+            else:
+                self.villages_to_ommit_text.insert(
+                    "1.0",
+                    "Wklej wioski w formacie XXX|YYY które chcesz aby były pomijane. "
+                    "Wioski powinny być oddzielone spacją, tabulatorem lub enterem. "
+                    "Możesz także podać cały kontynet np. k45 lub K45",
+                )
+
+            self.confirm_button = ttk.Button(
+                self.frame, text="Dodaj", command=add_villages_list
+            )
+            self.confirm_button.grid(
+                row=22, column=0, columnspan=2, padx=5, pady=(5, 10)
+            )
+            self.frame.update_idletasks()
+            self.canvas.itemconfig(
+                self.canvas_frame,
+                height=self.frame.winfo_reqheight(),
+            )
+            self.canvas.after_idle(lambda: self.canvas.yview_moveto(1))
+            self.villages_to_ommit_text.bind("<Button-1>", clear_text_widget)
+            self.villages_to_ommit_text.bind("<Enter>", self._unbound_to_mousewheel)
+            self.villages_to_ommit_text.bind("<Leave>", self._bound_to_mousewheel)
+
+        market["market_exclude_villages"] = tk.StringVar()
+        self.add_village_exceptions_button = ttk.Button(
+            self.frame,
+            text="Dodaj wioski do pominięcia",
+            command=show_label_and_text_widget,
+        )
+        self.add_village_exceptions_button.grid(
+            row=20, column=0, columnspan=2, padx=5, pady=(25, 5)
+        )
+
+
+class Coins(ScrollableFrame):
+    def __init__(
+        self,
+        parent: ttk.Frame,
+        main_window: "MainWindow",
+        entries_content: dict,
+        settings: dict,
+    ) -> None:
+        super().__init__(parent)
+
+        self.main_window = main_window
+        self.settings = settings
+        settings.setdefault("coins", {"villages": {}})
+        settings["coins"].setdefault("villages", {})
+        entries_content.setdefault("coins", {})
+
+        entries_content["coins"]["mine_coin"] = tk.BooleanVar()
+        self.check_mine_coin = ttk.Checkbutton(
+            self.frame,
+            text="Wybijanie monet",
+            variable=entries_content["coins"]["mine_coin"],
+            onvalue=True,
+            offvalue=False,
+        )
+        self.check_mine_coin.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
+        self.check_mine_coin.configure(
+            command=partial(
+                change_state,
+                self.frame,
+                "mine_coin",
+                entries_content["coins"],
+                True,
+                self.check_mine_coin,
+            ),
+        )
+
+        ttk.Separator(self.frame, orient="horizontal").grid(
+            row=1, column=0, columnspan=2, sticky=("W", "E")
+        )
+
+        self.villages_frame = ttk.Labelframe(
+            self.frame, text="Wioski", height=110, width=340, labelanchor=tk.N
+        )
+        self.villages_frame.grid(row=2, column=0, columnspan=2, pady=(20, 5))
+        self.villages_frame.grid_propagate(0)
+        self.scrollable_frame = ScrollableFrame(
+            self.villages_frame, show=True, max_height=False
+        )
+        self.scrollable_frame.frame.columnconfigure(
+            (0, 1, 2), weight=1, uniform="column"
+        )
+
+        frame = ttk.Frame(self.frame)
+        frame.grid(row=3, column=0, columnspan=2, pady=(20, 5))
+
+        self.villages = ttk.Entry(
+            frame,
+            justify=ttk.CENTER,
+            width=8,
+        )
+        self.villages.grid(row=3, column=0, padx=5)
+
+        def add_village() -> None:
+
+            village = self.villages.get().strip()
+            villages = app_functions.get_villages_id(settings=settings)
+            if village in villages:
+                village_id = villages[village][:-1]
+            else:
+                villages = app_functions.get_villages_id(settings=settings, update=True)
+                if village not in villages:
+                    custom_error(
+                        message=f"Wioska {village} nie istnieje.", parent=self.canvas
+                    )
+                    return
+                village_id = villages[village][:-1]
+            if village in settings["coins"]["villages"]:
+                custom_error("Taka wioska jest już dodana.", parent=self.canvas)
+            settings["coins"]["villages"][village] = village_id
+            self.villages.delete(0, "end")
+            self.VillageButton(self, self.scrollable_frame.frame, village)
+
+        def clear_hint(widget: ttk.Entry) -> None:
+            if widget.get() == "XXX|YYY" and str(widget["state"]) != "disable":
+                widget.config(foreground="white")
+                widget.delete(0, "end")
+                widget.unbind("<Button-1>")
+
+        def text_hint(widget: ttk.Entry) -> None:
+            widget.config(foreground="#555555")
+            widget.insert(0, "XXX|YYY")
+
+        text_hint(self.villages)
+        self.villages.bind("<Button-1>", lambda _: clear_hint(self.villages))
+
+        self.add_village_to_mine_coin = ttk.Button(
+            frame,
+            text="Dodaj",
+            command=add_village,
+        )
+        self.add_village_to_mine_coin.grid(row=3, column=1, padx=5)
+
+        ttk.Label(self.frame, text="Zapełniaj spichlerze do [%]",).grid(
+            row=4,
+            column=0,
+            columnspan=2,
+            padx=(30, 0),
+            pady=(40, 0),
+            sticky=tk.W,
+        )
+        entries_content["coins"]["resource_fill"] = ttk.IntVar()
+        self.resource_fill = ttk.Entry(
+            self.frame,
+            width=6,
+            textvariable=entries_content["coins"]["resource_fill"],
+            justify=tk.CENTER,
+        )
+        self.resource_fill.grid(
+            row=4, column=1, padx=(5, 30), pady=(40, 0), sticky=tk.E
+        )
+
+        ttk.Label(self.frame, text="Zapas każdego surowca w wioskach",).grid(
+            row=5,
+            column=0,
+            columnspan=2,
+            padx=(30, 0),
+            pady=(20, 0),
+            sticky=tk.W,
+        )
+        entries_content["coins"]["resource_left"] = ttk.IntVar()
+        self.resource_left = ttk.Entry(
+            self.frame,
+            width=6,
+            textvariable=entries_content["coins"]["resource_left"],
+            justify=tk.CENTER,
+        )
+        self.resource_left.grid(
+            row=5, column=1, padx=(5, 30), pady=(20, 0), sticky=tk.E
+        )
+
+        ttk.Label(self.frame, text="Wybijaj monety i wzywaj surowce co [min]",).grid(
+            row=6,
+            column=0,
+            columnspan=2,
+            padx=(30, 0),
+            pady=(20, 0),
+            sticky=tk.W,
+        )
+        entries_content["coins"]["check_every"] = ttk.IntVar()
+        self.check_every = ttk.Entry(
+            self.frame,
+            width=6,
+            textvariable=entries_content["coins"]["check_every"],
+            justify=tk.CENTER,
+        )
+        self.check_every.grid(row=6, column=1, padx=(5, 30), pady=(20, 0), sticky=tk.E)
+
+        self.draw_choosed_villges()
+
+    def draw_choosed_villges(self) -> None:
+        for index, village in enumerate(self.settings["coins"]["villages"]):
+            row = index // 3
+            column = index % 3
+            self.VillageButton(
+                self,
+                self.scrollable_frame.frame,
+                village,
+                row=row,
+                column=column,
+            )
+
+    def redraw_choosed_villges(self) -> None:
+        for widget in self.scrollable_frame.frame.grid_slaves():
+            widget.destroy()
+        self.draw_choosed_villges()
+
+    class VillageButton:
+        def __init__(
+            self, parent: "Coins", master: ttk.Labelframe, village: str, **kwargs
+        ) -> None:
+            self.parent = parent
+            self.master = master
+            self.village = village
+            self.frame = ttk.Frame(master, borderwidth=1, relief="solid")
+            if kwargs:
+                self.frame.grid(padx=10, pady=(10, 0), **kwargs)
+            else:
+                self.frame.grid(padx=10, pady=(10, 0), **self.calc_grid_settings())
+            self.coords = ttk.Label(
+                self.frame, text=village, anchor=tk.CENTER, border=0
+            )
+            self.coords.grid(row=0, column=0, padx=(8, 7), pady=(3, 4))
+            ttk.Separator(
+                self.frame, orient=tk.VERTICAL, style="default.TSeparator"
+            ).grid(row=0, column=1, sticky=tk.NS)
+            self.exit = ttk.Label(
+                self.frame, image=parent.main_window.images.exit, border=0
+            )
+            self.exit.grid(row=0, column=2, padx=(2, 3))
+
+            def enter(event) -> None:
+                self.exit.config(image=parent.main_window.images.exit_hover)
+
+            def leave(event) -> None:
+                self.exit.config(image=parent.main_window.images.exit)
+
+            self.exit.bind("<Button-1>", lambda _: self.delete())
+            self.exit.bind("<Enter>", enter)
+            self.exit.bind("<Leave>", leave)
+
+        def calc_grid_settings(self) -> dict:
+            villages = len(self.parent.settings["coins"]["villages"]) - 1
+            row = villages // 3
+            column = villages % 3
+            return {"row": row, "column": column}
+
+        def delete(self) -> None:
+            del self.parent.settings["coins"]["villages"][self.village]
+            self.frame.destroy()
+
+
+class Scheduler(ScrollableFrame):
     def __init__(
         self,
         parent: ttk.Frame,
@@ -369,15 +1277,15 @@ class Scheduler(ScrollableFrame):
         entries_content["scheduler"] = {}
 
         ttk.Label(self.frame, text="Data wejścia wojsk").grid(
-            row=2, column=0, columnspan=2, padx=5, pady=(15, 5), sticky=ttk.W
+            row=2, column=0, columnspan=2, padx=10, pady=(15, 5), sticky=ttk.W
         )
 
         # Date entry settings
         date_frame = ttk.Frame(self.frame)
         date_frame.grid(row=3, column=0, columnspan=2, pady=(5, 0), sticky=ttk.EW)
 
-        ttk.Label(date_frame, text="Od:").grid(row=0, column=0, pady=5, padx=(25, 5))
-        ttk.Label(date_frame, text="Do:").grid(row=1, column=0, pady=5, padx=(25, 5))
+        ttk.Label(date_frame, text="Od:").grid(row=0, column=0, pady=5, padx=(30, 5))
+        ttk.Label(date_frame, text="Do:").grid(row=1, column=0, pady=5, padx=(30, 5))
 
         self.destiny_date = ttk.DateEntry(
             date_frame, dateformat="%d.%m.%Y %H:%M:%S:%f", firstweekday=0
@@ -453,10 +1361,10 @@ class Scheduler(ScrollableFrame):
 
         # Text widgets
         ttk.Label(self.frame, text="Wioski startowe").grid(
-            row=0, column=0, padx=5, pady=10
+            row=0, column=0, padx=(5, 0), pady=10
         )
         ttk.Label(self.frame, text="Wioski docelowe").grid(
-            row=0, column=1, padx=5, pady=10
+            row=0, column=1, padx=(0, 5), pady=10
         )
 
         def clear_hint(text_widget: ttk.Text) -> None:
@@ -502,7 +1410,9 @@ class Scheduler(ScrollableFrame):
 
         # Wioski startowe
         self.villages_to_use = tk.Text(self.frame, wrap="word", height=5, width=28)
-        self.villages_to_use.grid(row=1, column=0, padx=5, pady=(0, 5), sticky=ttk.EW)
+        self.villages_to_use.grid(
+            row=1, column=0, padx=(10, 5), pady=(0, 5), sticky=ttk.EW
+        )
         self.villages_to_use.bind("<<Paste>>", split_text)
         self.villages_to_use.bind(
             "<Enter>", lambda event: text_mouse_scroll(self.villages_to_use)
@@ -516,7 +1426,9 @@ class Scheduler(ScrollableFrame):
 
         # Wioski docelowe
         self.villages_destiny = tk.Text(self.frame, wrap="word", height=5, width=28)
-        self.villages_destiny.grid(row=1, column=1, padx=5, pady=(0, 5), sticky=ttk.EW)
+        self.villages_destiny.grid(
+            row=1, column=1, padx=(5, 10), pady=(0, 5), sticky=ttk.EW
+        )
         self.villages_destiny.bind("<<Paste>>", split_text)
         self.villages_destiny.bind(
             "<Enter>", lambda event: text_mouse_scroll(self.villages_destiny)
@@ -533,7 +1445,7 @@ class Scheduler(ScrollableFrame):
 
         # Rodzaj komendy -> atak lub wsparcie
         ttk.Label(self.frame, text="Rodzaj komendy").grid(
-            row=5, column=0, columnspan=2, padx=5, pady=(10, 5), sticky=tk.W
+            row=5, column=0, columnspan=2, padx=10, pady=(10, 5), sticky=tk.W
         )
         self.command_type = tk.StringVar()
         self.command_type_attack = ttk.Radiobutton(
@@ -543,7 +1455,7 @@ class Scheduler(ScrollableFrame):
             variable=self.command_type,
         )
         self.command_type_attack.grid(
-            row=6, column=0, padx=(25, 5), pady=5, sticky=tk.W
+            row=6, column=0, padx=(30, 5), pady=5, sticky=tk.W
         )
         self.command_type_support = ttk.Radiobutton(
             self.frame,
@@ -552,12 +1464,12 @@ class Scheduler(ScrollableFrame):
             variable=self.command_type,
         )
         self.command_type_support.grid(
-            row=7, column=0, padx=(25, 5), pady=5, sticky=tk.W
+            row=7, column=0, padx=(30, 5), pady=5, sticky=tk.W
         )
 
         # Szablon wojsk
         ttk.Label(self.frame, text="Szablon wojsk").grid(
-            row=8, column=0, padx=5, pady=(10, 5), sticky=tk.W
+            row=8, column=0, padx=10, pady=(10, 5), sticky=tk.W
         )
 
         # Wyślij wszystkie
@@ -596,7 +1508,7 @@ class Scheduler(ScrollableFrame):
             ],
         )
         self.all_troops_radiobutton.grid(
-            row=9, column=0, columnspan=2, padx=(25, 5), pady=5, sticky=tk.W
+            row=9, column=0, columnspan=2, padx=(30, 5), pady=5, sticky=tk.W
         )
 
         self.army_type = tk.StringVar()  # Wysłać jednostki off czy deff
@@ -608,7 +1520,7 @@ class Scheduler(ScrollableFrame):
             command=lambda: self.all_troops_radiobutton.invoke(),
         )
         self.only_off_radiobutton.grid(
-            row=14, column=0, columnspan=2, padx=(45, 5), pady=5, sticky=tk.W
+            row=14, column=0, columnspan=2, padx=(50, 5), pady=5, sticky=tk.W
         )
 
         self.only_deff_radiobutton = ttk.Radiobutton(
@@ -619,7 +1531,7 @@ class Scheduler(ScrollableFrame):
             command=lambda: self.all_troops_radiobutton.invoke(),
         )
         self.only_deff_radiobutton.grid(
-            row=15, column=0, columnspan=2, padx=(45, 5), pady=5, sticky=tk.W
+            row=15, column=0, columnspan=2, padx=(50, 5), pady=5, sticky=tk.W
         )
 
         self.send_snob = tk.StringVar()  # Czy wysłać szlachtę
@@ -636,7 +1548,7 @@ class Scheduler(ScrollableFrame):
             ],
         )
         self.no_snob_radiobutton.grid(
-            row=10, column=0, columnspan=2, padx=(45, 5), pady=5, sticky=tk.W
+            row=10, column=0, columnspan=2, padx=(50, 5), pady=5, sticky=tk.W
         )
 
         self.send_snob_radiobutton = ttk.Radiobutton(
@@ -652,11 +1564,11 @@ class Scheduler(ScrollableFrame):
             ],
         )
         self.send_snob_radiobutton.grid(
-            row=11, column=0, columnspan=2, padx=(45, 5), pady=5, sticky=tk.W
+            row=11, column=0, columnspan=2, padx=(50, 5), pady=5, sticky=tk.W
         )
 
         ttk.Label(self.frame, text="Liczba szlachiców").grid(
-            row=12, column=0, columnspan=2, padx=(65, 5), pady=(5, 0), sticky=tk.W
+            row=12, column=0, columnspan=2, padx=(70, 5), pady=(5, 0), sticky=tk.W
         )
         self.snob_amount = tk.IntVar()  # Ile grubych wysłać
         self.snob_amount_entry = ttk.Entry(
@@ -671,7 +1583,7 @@ class Scheduler(ScrollableFrame):
         )
 
         ttk.Label(self.frame, text="Obstawa pierwszego szlachcica [%]").grid(
-            row=13, column=0, columnspan=2, padx=(65, 5), pady=5, sticky=tk.W
+            row=13, column=0, columnspan=2, padx=(70, 5), pady=5, sticky=tk.W
         )
         self.first_snob_army_size = (
             tk.IntVar()
@@ -688,7 +1600,7 @@ class Scheduler(ScrollableFrame):
         )
 
         ttk.Label(self.frame, text="Najwolniejsza jednostka").grid(
-            row=16, column=0, columnspan=2, padx=(45, 5), pady=(10, 5), sticky=tk.W
+            row=16, column=0, columnspan=2, padx=(50, 5), pady=(10, 5), sticky=tk.W
         )
         self.slowest_troop = tk.StringVar()
         self.choose_slowest_troop = ttk.Combobox(
@@ -717,7 +1629,7 @@ class Scheduler(ScrollableFrame):
         )
 
         ttk.Label(self.frame, text="Cel ostrzału katapultami").grid(
-            row=17, column=0, columnspan=2, padx=(45, 5), pady=(5, 10), sticky=tk.W
+            row=17, column=0, columnspan=2, padx=(50, 5), pady=(5, 10), sticky=tk.W
         )
         self.catapult_target = tk.StringVar()
         self.choose_catapult_target = ttk.Combobox(
@@ -754,11 +1666,11 @@ class Scheduler(ScrollableFrame):
             ],
         )
         self.fake_troops_radiobutton.grid(
-            row=18, column=0, columnspan=2, padx=(25, 5), pady=5, sticky=tk.W
+            row=18, column=0, columnspan=2, padx=(30, 5), pady=5, sticky=tk.W
         )
 
         ttk.Label(self.frame, text="Dostępne szablony").grid(
-            row=19, column=0, columnspan=2, padx=(45, 5), pady=5, sticky=tk.W
+            row=19, column=0, columnspan=2, padx=(50, 5), pady=5, sticky=tk.W
         )
 
         settings.setdefault("scheduler", {})
@@ -777,7 +1689,7 @@ class Scheduler(ScrollableFrame):
 
         button_info_frame = ttk.Frame(self.frame)
         button_info_frame.grid(
-            row=41, column=0, columnspan=2, padx=(25, 5), pady=10, sticky=tk.W
+            row=41, column=0, columnspan=2, padx=(30, 5), pady=10, sticky=tk.W
         )
         # endregion
 
@@ -793,7 +1705,7 @@ class Scheduler(ScrollableFrame):
                     row=43,
                     column=0,
                     columnspan=2,
-                    padx=(45, 5),
+                    padx=(50, 5),
                     pady=(15, 0),
                     sticky=tk.W,
                 )
@@ -801,7 +1713,7 @@ class Scheduler(ScrollableFrame):
                     row=43,
                     column=0,
                     columnspan=2,
-                    padx=(5, 25),
+                    padx=(5, 30),
                     pady=(15, 0),
                     sticky=tk.E,
                 )
@@ -1132,7 +2044,7 @@ class Scheduler(ScrollableFrame):
             state="disabled",
         )
         self.total_attacks_number_entry.grid(
-            row=45, columnspan=2, padx=(5, 25), pady=10, sticky=tk.E
+            row=45, columnspan=2, padx=(5, 30), pady=10, sticky=tk.E
         )
 
         # endregion
@@ -1179,7 +2091,7 @@ class Scheduler(ScrollableFrame):
 
         if not fake_templates:
             ttk.Label(self.frame, text="Brak dostępnych szablonów").grid(
-                row=20, column=0, columnspan=2, padx=(65, 5), pady=(0, 5), sticky=tk.W
+                row=20, column=0, columnspan=2, padx=(70, 5), pady=(0, 5), sticky=tk.W
             )
 
         for index, template_name in enumerate(fake_templates):
@@ -1191,7 +2103,7 @@ class Scheduler(ScrollableFrame):
                 command=lambda: self.fake_troops_radiobutton.invoke(),
             )
             template_button.grid(
-                row=20 + index, column=0, columnspan=2, padx=(65, 5), sticky=tk.W
+                row=20 + index, column=0, columnspan=2, padx=(70, 5), sticky=tk.W
             )
             text = "\n".join(
                 f'{troop["priority_number"]} {troop_name.upper()}  Min={troop["min_value"]}  Max={troop["max_value"]}'
@@ -1238,7 +2150,10 @@ class Scheduler(ScrollableFrame):
         ):
             local_custom_error("Wybierz szablon fejków do wysłania", False)
             return
-        if "" in self.template_type.get() and not self.repeat_attack.get():
+        if (
+            "send_my_template" in self.template_type.get()
+            and not self.repeat_attack.get()
+        ):
             local_custom_error("Liczba ataków powinna być większa od 0", False)
             return
 
@@ -1424,7 +2339,7 @@ class Scheduler(ScrollableFrame):
                 except KeyError:
                     custom_error(
                         message=f"Wioska {send_from} nie istnieje.",
-                        parent=main_window.master,
+                        parent=self.canvas,
                     )
                     self.canvas.yview_moveto(0)
                     return
@@ -1433,7 +2348,7 @@ class Scheduler(ScrollableFrame):
                 except KeyError:
                     custom_error(
                         message=f"Wioska {send_to} nie istnieje.",
-                        parent=main_window.master,
+                        parent=self.canvas,
                     )
                     self.canvas.yview_moveto(0)
                     return
@@ -1531,9 +2446,7 @@ class Scheduler(ScrollableFrame):
             send_info_list.append(send_info)
 
         if not send_info_list:
-            custom_error(
-                message="Termin wysyłki wojsk już minął", parent=main_window.master
-            )
+            custom_error(message="Termin wysyłki wojsk już minął", parent=self.canvas)
             self.canvas.yview_moveto(0)
             return
 
@@ -1570,9 +2483,7 @@ class Scheduler(ScrollableFrame):
         self.villages_to_use.delete("1.0", tk.END)
         self.villages_destiny.delete("1.0", tk.END)
 
-        custom_error(
-            message="Dodano do planera!", auto_hide=True, parent=main_window.master
-        )
+        custom_error(message="Dodano do planera!", auto_hide=True, parent=self.canvas)
 
     @log_errors()
     def create_template(self, settings: dict) -> None:
@@ -1835,708 +2746,6 @@ class Scheduler(ScrollableFrame):
         self.existing_schedule_window.attributes("-alpha", 1.0)
 
 
-class Gathering(ScrollableFrame):
-    """Content and functions to put in notebook frame f2 named 'Zbieractwo'."""
-
-    def __init__(
-        self,
-        parent: ttk.Frame,
-        main_window: "MainWindow",
-        entries_content: dict,
-        settings: dict,
-    ) -> None:
-
-        super().__init__(parent)
-
-        self.entries_content = entries_content
-        self.entries_content["gathering"] = {}
-        self.entries_content["gathering_troops"] = {
-            "spear": {
-                "left_in_village": tk.IntVar(),
-                "send_max": tk.IntVar(),
-            },
-            "sword": {
-                "left_in_village": tk.IntVar(),
-                "send_max": tk.IntVar(),
-            },
-            "axe": {
-                "left_in_village": tk.IntVar(),
-                "send_max": tk.IntVar(),
-            },
-            "archer": {
-                "left_in_village": tk.IntVar(),
-                "send_max": tk.IntVar(),
-            },
-            "light": {
-                "left_in_village": tk.IntVar(),
-                "send_max": tk.IntVar(),
-            },
-            "marcher": {
-                "left_in_village": tk.IntVar(),
-                "send_max": tk.IntVar(),
-            },
-            "heavy": {
-                "left_in_village": tk.IntVar(),
-                "send_max": tk.IntVar(),
-            },
-            "knight": {
-                "left_in_village": tk.IntVar(),
-                "send_max": tk.IntVar(),
-            },
-        }
-
-        gathering_troops = self.entries_content["gathering_troops"]
-
-        self.entries_content["gathering"]["active"] = tk.BooleanVar()
-        self.active_gathering = ttk.Checkbutton(
-            self.frame,
-            text="Aktywuj zbieractwo",
-            variable=self.entries_content["gathering"]["active"],
-            onvalue=True,
-            offvalue=False,
-        )
-        self.active_gathering.grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        self.active_gathering.configure(
-            command=partial(
-                change_state,
-                self.frame,
-                "active",
-                self.entries_content["gathering"],
-                True,
-                self.active_gathering,
-            ),
-        )
-
-        ttk.Separator(self.frame, orient="horizontal").grid(
-            row=1, column=0, columnspan=2, sticky=("W", "E")
-        )
-
-        # ----------------------------------------------------------------
-        ttk.Label(self.frame, text="Ustawienia").grid(
-            row=5, columnspan=2, padx=5, pady=(20, 15), sticky="W"
-        )
-
-        ttk.Label(self.frame, text="Grupa zbieractwa").grid(
-            row=6, column=0, padx=(25, 5), pady=5, sticky="W"
-        )
-
-        self.entries_content["gathering_group"] = tk.StringVar()
-        self.gathering_group = ttk.Combobox(
-            self.frame,
-            textvariable=self.entries_content["gathering_group"],
-            justify="center",
-            width=16,
-            state="readonly",
-        )
-        self.gathering_group.grid(row=6, column=1, padx=(5, 25), pady=5, sticky="E")
-        self.gathering_group.set("Wybierz grupę")
-        self.gathering_group["values"] = settings["groups"]
-
-        self.gathering_max_resources = ttk.Label(
-            self.frame, text="Maks surowców do zebrania"
-        )
-        self.gathering_max_resources.grid(
-            row=7, column=0, padx=(25, 5), pady=(10, 5), sticky="W"
-        )
-
-        self.entries_content["gathering_max_resources"] = tk.IntVar()
-        self.gathering_max_resources_input = ttk.Entry(
-            self.frame,
-            textvariable=self.entries_content["gathering_max_resources"],
-            justify="center",
-            width=18,
-        )
-        self.gathering_max_resources_input.grid(
-            row=7, column=1, padx=(5, 25), pady=(10, 5), sticky="E"
-        )
-
-        # ------------------------------------------------------------------------------------------------------------------
-        ttk.Label(self.frame, text="Dozwolone jednostki do wysłania").grid(
-            row=8, columnspan=2, padx=5, pady=(20, 15), sticky="W"
-        )
-
-        troops_frame = ttk.Frame(self.frame)
-        troops_frame.grid(row=9, columnspan=2, sticky="EW")
-        troops_frame.columnconfigure(1, weight=1)
-        troops_frame.columnconfigure(2, weight=1)
-        troops_frame.columnconfigure(4, weight=1)
-        troops_frame.columnconfigure(5, weight=1)
-
-        ttk.Label(troops_frame, text="Zostaw min").grid(row=8, column=1)
-        ttk.Label(troops_frame, text="Wyślij max").grid(row=8, column=2)
-        ttk.Label(troops_frame, text="Zostaw min").grid(row=8, column=4)
-        ttk.Label(troops_frame, text="Wyślij max").grid(row=8, column=5, padx=(0, 25))
-
-        def troop_entry_state(troop: str):
-            if self.entries_content["gathering_troops"][troop]["use"].get():
-                self.__getattribute__(f"{troop}_left").config(state="normal")
-                self.__getattribute__(f"{troop}_max").config(state="normal")
-            else:
-                self.__getattribute__(f"{troop}_left").config(state="disabled")
-                self.__getattribute__(f"{troop}_max").config(state="disabled")
-
-        self.entries_content["gathering_troops"]["spear"]["use"] = tk.BooleanVar()
-        self.gathering_spear = ttk.Checkbutton(
-            troops_frame,
-            image=main_window.images.spear,
-            compound="left",
-            variable=self.entries_content["gathering_troops"]["spear"]["use"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: troop_entry_state("spear"),
-        )
-        self.gathering_spear.grid(row=9, column=0, padx=(25, 0), pady=5, sticky="W")
-        self.spear_left = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["spear"]["left_in_village"],
-            justify=tk.CENTER,
-        )
-        self.spear_left.grid(row=9, column=1, pady=5)
-        self.spear_max = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["spear"]["send_max"],
-            justify=tk.CENTER,
-        )
-        self.spear_max.grid(row=9, column=2, pady=5)
-
-        self.entries_content["gathering_troops"]["light"]["use"] = tk.BooleanVar()
-        self.gathering_light = ttk.Checkbutton(
-            troops_frame,
-            image=main_window.images.light,
-            compound="left",
-            variable=self.entries_content["gathering_troops"]["light"]["use"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: troop_entry_state("light"),
-        )
-        self.gathering_light.grid(row=9, column=3, pady=5, sticky="W")
-        self.light_left = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["light"]["left_in_village"],
-            justify=tk.CENTER,
-        )
-        self.light_left.grid(row=9, column=4, pady=5)
-        self.light_max = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["light"]["send_max"],
-            justify=tk.CENTER,
-        )
-        self.light_max.grid(row=9, column=5, pady=5, padx=(0, 25))
-
-        self.entries_content["gathering_troops"]["sword"]["use"] = tk.BooleanVar()
-        self.gathering_sword = ttk.Checkbutton(
-            troops_frame,
-            image=main_window.images.sword,
-            compound="left",
-            variable=self.entries_content["gathering_troops"]["sword"]["use"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: troop_entry_state("sword"),
-        )
-        self.gathering_sword.grid(row=10, column=0, padx=(25, 0), pady=5, sticky="W")
-        self.sword_left = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["sword"]["left_in_village"],
-            justify=tk.CENTER,
-        )
-        self.sword_left.grid(row=10, column=1, pady=5)
-        self.sword_max = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["sword"]["send_max"],
-            justify=tk.CENTER,
-        )
-        self.sword_max.grid(row=10, column=2, pady=5)
-
-        self.entries_content["gathering_troops"]["marcher"]["use"] = tk.BooleanVar()
-        self.gathering_marcher = ttk.Checkbutton(
-            troops_frame,
-            image=main_window.images.marcher,
-            compound="left",
-            variable=self.entries_content["gathering_troops"]["marcher"]["use"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: troop_entry_state("marcher"),
-        )
-        self.gathering_marcher.grid(row=10, column=3, pady=5, sticky="W")
-        self.marcher_left = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["marcher"]["left_in_village"],
-            justify=tk.CENTER,
-        )
-        self.marcher_left.grid(row=10, column=4, pady=5)
-        self.marcher_max = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["marcher"]["send_max"],
-            justify=tk.CENTER,
-        )
-        self.marcher_max.grid(row=10, column=5, pady=5, padx=(0, 25))
-
-        self.entries_content["gathering_troops"]["axe"]["use"] = tk.BooleanVar()
-        self.gathering_axe = ttk.Checkbutton(
-            troops_frame,
-            image=main_window.images.axe,
-            compound="left",
-            variable=self.entries_content["gathering_troops"]["axe"]["use"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: troop_entry_state("axe"),
-        )
-        self.gathering_axe.grid(row=11, column=0, padx=(25, 0), pady=5, sticky="W")
-        self.axe_left = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["axe"]["left_in_village"],
-            justify=tk.CENTER,
-        )
-        self.axe_left.grid(row=11, column=1, pady=5)
-        self.axe_max = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["axe"]["send_max"],
-            justify=tk.CENTER,
-        )
-        self.axe_max.grid(row=11, column=2, pady=5)
-
-        self.entries_content["gathering_troops"]["heavy"]["use"] = tk.BooleanVar()
-        self.gathering_heavy = ttk.Checkbutton(
-            troops_frame,
-            image=main_window.images.heavy,
-            compound="left",
-            variable=self.entries_content["gathering_troops"]["heavy"]["use"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: troop_entry_state("heavy"),
-        )
-        self.gathering_heavy.grid(row=11, column=3, pady=5, sticky="W")
-        self.heavy_left = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["heavy"]["left_in_village"],
-            justify=tk.CENTER,
-        )
-        self.heavy_left.grid(row=11, column=4, pady=5)
-        self.heavy_max = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["heavy"]["send_max"],
-            justify=tk.CENTER,
-        )
-        self.heavy_max.grid(row=11, column=5, pady=5, padx=(0, 25))
-
-        self.entries_content["gathering_troops"]["archer"]["use"] = tk.BooleanVar()
-        self.gathering_archer = ttk.Checkbutton(
-            troops_frame,
-            image=main_window.images.archer,
-            compound="left",
-            variable=self.entries_content["gathering_troops"]["archer"]["use"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: troop_entry_state("archer"),
-        )
-        self.gathering_archer.grid(
-            row=12, column=0, padx=(25, 0), pady=(5, 10), sticky="W"
-        )
-        self.archer_left = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["archer"]["left_in_village"],
-            justify=tk.CENTER,
-        )
-        self.archer_left.grid(row=12, column=1, pady=5)
-        self.archer_max = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["archer"]["send_max"],
-            justify=tk.CENTER,
-        )
-        self.archer_max.grid(row=12, column=2, pady=5)
-
-        self.entries_content["gathering_troops"]["knight"]["use"] = tk.BooleanVar()
-        self.gathering_knight = ttk.Checkbutton(
-            troops_frame,
-            image=main_window.images.knight,
-            compound="left",
-            variable=self.entries_content["gathering_troops"]["knight"]["use"],
-            onvalue=True,
-            offvalue=False,
-            command=lambda: troop_entry_state("knight"),
-        )
-        self.gathering_knight.grid(row=12, column=3, pady=(5, 10), sticky="W")
-        self.knight_left = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["knight"]["left_in_village"],
-            justify=tk.CENTER,
-        )
-        self.knight_left.grid(row=12, column=4, pady=5)
-        self.knight_max = ttk.Entry(
-            troops_frame,
-            width=5,
-            textvariable=gathering_troops["knight"]["send_max"],
-            justify=tk.CENTER,
-        )
-        self.knight_max.grid(row=12, column=5, pady=5, padx=(0, 25))
-
-        # ------------------------------------------------------------------------------------------------------------------
-        ttk.Label(self.frame, text="Poziomy zbieractwa do pominięcia").grid(
-            row=13, columnspan=2, padx=5, pady=(20, 15), sticky="W"
-        )
-
-        f2_1 = ttk.Frame(self.frame)
-        f2_1.grid(row=14, column=0, columnspan=2)
-
-        self.entries_content["gathering"]["ommit"] = {}
-        self.entries_content["gathering"]["ommit"][
-            "first_level_gathering"
-        ] = tk.BooleanVar()
-        self.ommit_first_level_gathering = ttk.Checkbutton(
-            f2_1,
-            text="Pierwszy",
-            variable=self.entries_content["gathering"]["ommit"][
-                "first_level_gathering"
-            ],
-            onvalue=True,
-            offvalue=False,
-        )
-        self.ommit_first_level_gathering.grid(
-            row=14, column=0, padx=(25, 5), pady=(5, 10)
-        )
-
-        self.entries_content["gathering"]["ommit"][
-            "second_level_gathering"
-        ] = tk.BooleanVar()
-        self.ommit_second_level_gathering = ttk.Checkbutton(
-            f2_1,
-            text="Drugi",
-            variable=self.entries_content["gathering"]["ommit"][
-                "second_level_gathering"
-            ],
-            onvalue=True,
-            offvalue=False,
-        )
-        self.ommit_second_level_gathering.grid(row=14, column=1, padx=10, pady=(5, 10))
-
-        self.entries_content["gathering"]["ommit"][
-            "thrid_level_gathering"
-        ] = tk.BooleanVar()
-        self.ommit_thrid_level_gathering = ttk.Checkbutton(
-            f2_1,
-            text="Trzeci",
-            variable=self.entries_content["gathering"]["ommit"][
-                "thrid_level_gathering"
-            ],
-            onvalue=True,
-            offvalue=False,
-        )
-        self.ommit_thrid_level_gathering.grid(row=14, column=2, padx=10, pady=(5, 10))
-
-        self.entries_content["gathering"]["ommit"][
-            "fourth_level_gathering"
-        ] = tk.BooleanVar()
-        self.ommit_fourth_level_gathering = ttk.Checkbutton(
-            f2_1,
-            text="Czwarty",
-            variable=self.entries_content["gathering"]["ommit"][
-                "fourth_level_gathering"
-            ],
-            onvalue=True,
-            offvalue=False,
-        )
-        self.ommit_fourth_level_gathering.grid(
-            row=14, column=3, padx=(5, 25), pady=(5, 10)
-        )
-
-        self.entries_content["gathering"]["stop_if_incoming_attacks"] = tk.BooleanVar()
-        self.stop_if_incoming_attacks = ttk.Checkbutton(
-            self.frame,
-            text="Wstrzymaj wysyłkę wojsk gdy wykryto nadchodzące ataki",
-            variable=self.entries_content["gathering"]["stop_if_incoming_attacks"],
-            onvalue=True,
-            offvalue=False,
-        )
-        self.stop_if_incoming_attacks.grid(
-            row=15, column=0, columnspan=2, padx=25, pady=(10, 5)
-        )
-
-
-class Market(ScrollableFrame):
-    """Content and functions to put in notebook frame f4 named 'Rynek'."""
-
-    def __init__(
-        self,
-        parent: ttk.Frame,
-        main_window: "MainWindow",
-        entries_content: dict,
-        settings: dict,
-    ) -> None:
-
-        super().__init__(parent)
-
-        entries_content["market"] = {"wood": {}, "stone": {}, "iron": {}}
-        market = entries_content["market"]
-
-        market["premium_exchange"] = tk.BooleanVar()
-        self.active_premium_exchange = ttk.Checkbutton(
-            self.frame,
-            text="Aktywuj giełdę premium",
-            variable=market["premium_exchange"],
-            onvalue=True,
-            offvalue=False,
-        )
-        self.active_premium_exchange.configure(
-            command=partial(
-                change_state,
-                self.frame,
-                "premium_exchange",
-                market,
-                True,
-                self.active_premium_exchange,
-            ),
-        )
-        self.active_premium_exchange.grid(
-            row=0, column=0, columnspan=2, padx=5, pady=20
-        )
-
-        ttk.Separator(self.frame, orient="horizontal").grid(
-            row=1, column=0, columnspan=2, sticky=("W", "E")
-        )
-
-        # Maksymalny kurs sprzedaży
-        ttk.Label(self.frame, text="Maksymalny kurs sprzedaży").grid(
-            row=3, column=0, padx=5, pady=(20, 10), sticky="W"
-        )
-
-        self.wood_photo = tk.PhotoImage(file="icons//wood.png")
-        ttk.Label(
-            self.frame,
-            text="Drewno",
-            image=self.wood_photo,
-            compound="left",
-        ).grid(row=4, column=0, padx=(25, 5), pady=(10, 5), sticky="W")
-        market["wood"]["max_exchange_rate"] = tk.IntVar()
-        self.max_wood_exchange_rate = ttk.Entry(
-            self.frame,
-            textvariable=market["wood"]["max_exchange_rate"],
-            justify="center",
-            width=6,
-        )
-        self.max_wood_exchange_rate.grid(
-            row=4, column=1, padx=(5, 25), pady=(10, 5), sticky="E"
-        )
-
-        self.stone_photo = tk.PhotoImage(file="icons//stone.png")
-        ttk.Label(
-            self.frame,
-            text="Cegła",
-            image=self.stone_photo,
-            compound="left",
-        ).grid(row=5, column=0, padx=(25, 5), pady=(10, 5), sticky="W")
-        market["stone"]["max_exchange_rate"] = tk.IntVar()
-        self.max_stone_exchange_rate = ttk.Entry(
-            self.frame,
-            textvariable=market["stone"]["max_exchange_rate"],
-            justify="center",
-            width=6,
-        )
-        self.max_stone_exchange_rate.grid(
-            row=5, column=1, padx=(5, 25), pady=(10, 5), sticky="E"
-        )
-
-        self.iron_photo = tk.PhotoImage(file="icons//iron.png")
-        ttk.Label(
-            self.frame,
-            text="Żelazo",
-            image=self.iron_photo,
-            compound="left",
-        ).grid(row=6, column=0, padx=(25, 5), pady=(10, 5), sticky="W")
-        market["iron"]["max_exchange_rate"] = tk.IntVar()
-        self.max_iron_exchange_rate = ttk.Entry(
-            self.frame,
-            textvariable=market["iron"]["max_exchange_rate"],
-            justify="center",
-            width=6,
-        )
-        self.max_iron_exchange_rate.grid(
-            row=6, column=1, padx=(5, 25), pady=(10, 5), sticky="E"
-        )
-
-        # Zapas surowców w wioskach
-        ttk.Label(self.frame, text="Zapas surowców w wioskach").grid(
-            row=9, column=0, padx=5, pady=(15, 10), sticky="W"
-        )
-
-        ttk.Label(
-            self.frame,
-            text="Drewno",
-            image=self.wood_photo,
-            compound="left",
-        ).grid(row=10, column=0, padx=(25, 5), pady=(10, 5), sticky="W")
-        market["wood"]["leave_in_storage"] = tk.IntVar()
-        self.min_wood_left_in_storage = ttk.Entry(
-            self.frame,
-            textvariable=market["wood"]["leave_in_storage"],
-            justify="center",
-            width=6,
-        )
-        self.min_wood_left_in_storage.grid(
-            row=10, column=1, padx=(5, 25), pady=(10, 5), sticky="E"
-        )
-        ttk.Label(
-            self.frame,
-            text="Cegła",
-            image=self.stone_photo,
-            compound="left",
-        ).grid(row=11, column=0, padx=(25, 5), pady=(10, 5), sticky="W")
-        market["stone"]["leave_in_storage"] = tk.IntVar()
-        self.min_stone_left_in_storage = ttk.Entry(
-            self.frame,
-            textvariable=market["stone"]["leave_in_storage"],
-            justify="center",
-            width=6,
-        )
-        self.min_stone_left_in_storage.grid(
-            row=11, column=1, padx=(5, 25), pady=(10, 5), sticky="E"
-        )
-        ttk.Label(
-            self.frame,
-            text="Żelazo",
-            image=self.iron_photo,
-            compound="left",
-        ).grid(row=12, column=0, padx=(25, 5), pady=(10, 5), sticky="W")
-        market["iron"]["leave_in_storage"] = tk.IntVar()
-        self.min_iron_left_in_storage = ttk.Entry(
-            self.frame,
-            textvariable=market["iron"]["leave_in_storage"],
-            justify="center",
-            width=6,
-        )
-        self.min_iron_left_in_storage.grid(
-            row=12, column=1, padx=(5, 25), pady=(10, 5), sticky="E"
-        )
-
-        # Pozostałe ustawienia
-        ttk.Label(self.frame, text="Pozostałe ustawienia").grid(
-            row=13, column=0, padx=5, pady=(15, 10), sticky="W"
-        )
-
-        ttk.Label(self.frame, text="Sprawdzaj kursy surowców co [min]").grid(
-            row=14, column=0, padx=(25, 5), pady=(10, 5), sticky="W"
-        )
-        market["check_every"] = tk.IntVar()
-        ttk.Entry(
-            self.frame,
-            textvariable=market["check_every"],
-            justify="center",
-            width=6,
-        ).grid(row=14, column=1, padx=(5, 25), pady=(10, 5), sticky="E")
-
-        def show_label_and_text_widget() -> None:
-            def clear_text_widget(event) -> None:
-                if self.villages_to_ommit_text.get("1.0", "1.5") == "Wklej":
-                    self.villages_to_ommit_text.delete("1.0", "end")
-                    self.villages_to_ommit_text.unbind("<Button-1>")
-
-            def add_villages_list() -> None:
-                if self.villages_to_ommit_text.compare("end-1c", "==", "1.0"):
-                    self.villages_to_ommit_text.insert(
-                        "1.0",
-                        "Wklej wioski w formacie XXX|YYY które chcesz aby były pomijane. "
-                        "Wioski powinny być oddzielone spacją, tabulatorem lub enterem. "
-                        "Możesz także podać cały kontynet np. k45 lub K45",
-                    )
-                    return
-                if self.villages_to_ommit_text.get("1.0", "1.5") == "Wklej":
-                    market["market_exclude_villages"].set("")
-                else:
-                    market["market_exclude_villages"].set(
-                        self.villages_to_ommit_text.get("1.0", "end")
-                    )
-                    settings["market"][
-                        "market_exclude_villages"
-                    ] = self.villages_to_ommit_text.get("1.0", "end")
-                self.villages_to_ommit_text.grid_forget()
-                self.confirm_button.grid_forget()
-
-                self.success_label = ttk.Label(self.frame, text="Dodano!")
-                self.success_label.grid(
-                    row=21, column=0, columnspan=2, padx=5, pady=(10, 15)
-                )
-                self.frame.update()
-                self.frame.after(
-                    1500,
-                    lambda: [
-                        self.success_label.grid_forget(),
-                        self.frame.update_idletasks(),
-                        self.canvas.itemconfig(
-                            self.canvas_frame,
-                            height=self.frame.winfo_reqheight(),
-                        ),
-                    ],
-                )
-                del self.villages_to_ommit_text
-
-            if hasattr(self, "villages_to_ommit_text"):
-                self.villages_to_ommit_text.grid_forget()
-                self.confirm_button.grid_forget()
-                del self.villages_to_ommit_text
-                return
-
-            self.villages_to_ommit_text = tk.Text(
-                self.frame, height=6, width=50, wrap="word"
-            )
-            self.villages_to_ommit_text.grid(
-                row=21, column=0, columnspan=2, padx=5, pady=10
-            )
-            if (
-                settings["market"]["market_exclude_villages"]
-                and settings["market"]["market_exclude_villages"] != "0"
-            ):
-                self.villages_to_ommit_text.insert(
-                    "1.0", settings["market"]["market_exclude_villages"]
-                )
-            else:
-                self.villages_to_ommit_text.insert(
-                    "1.0",
-                    "Wklej wioski w formacie XXX|YYY które chcesz aby były pomijane. "
-                    "Wioski powinny być oddzielone spacją, tabulatorem lub enterem. "
-                    "Możesz także podać cały kontynet np. k45 lub K45",
-                )
-
-            self.confirm_button = ttk.Button(
-                self.frame, text="Dodaj", command=add_villages_list
-            )
-            self.confirm_button.grid(
-                row=22, column=0, columnspan=2, padx=5, pady=(5, 10)
-            )
-            self.frame.update_idletasks()
-            self.canvas.itemconfig(
-                self.canvas_frame,
-                height=self.frame.winfo_reqheight(),
-            )
-            self.canvas.after_idle(lambda: self.canvas.yview_moveto(1))
-            self.villages_to_ommit_text.bind("<Button-1>", clear_text_widget)
-            self.villages_to_ommit_text.bind("<Enter>", self._unbound_to_mousewheel)
-            self.villages_to_ommit_text.bind("<Leave>", self._bound_to_mousewheel)
-
-        market["market_exclude_villages"] = tk.StringVar()
-        self.add_village_exceptions_button = ttk.Button(
-            self.frame,
-            text="Dodaj wioski do pominięcia",
-            command=show_label_and_text_widget,
-        )
-        self.add_village_exceptions_button.grid(
-            row=20, column=0, columnspan=2, padx=5, pady=(25, 5)
-        )
-
-
 class Settings(ScrollableFrame):
     def __init__(
         self,
@@ -2553,7 +2762,7 @@ class Settings(ScrollableFrame):
         self.entries_content = entries_content
 
         ttk.Label(self.frame, text="Wybierz serwer i numer świata").grid(
-            row=0, column=0, padx=5, pady=(15, 5), sticky="W"
+            row=0, column=0, padx=(15, 0), pady=(15, 5), sticky="W"
         )
 
         entries_content["game_url"] = tk.StringVar()
@@ -2564,7 +2773,7 @@ class Settings(ScrollableFrame):
             justify="center",
             width=20,
         )
-        self.game_url.grid(row=0, column=1, padx=5, pady=(15, 5))
+        self.game_url.grid(row=0, column=1, padx=10, pady=(15, 5))
         self.game_url.set("Wybierz serwer")
         self.game_url["values"] = [
             "die-staemme.de",
@@ -2602,7 +2811,9 @@ class Settings(ScrollableFrame):
             width=5,
             justify="center",
         )
-        self.world_number_input.grid(row=0, column=2, padx=5, pady=(15, 5), sticky="E")
+        self.world_number_input.grid(
+            row=0, column=2, padx=(0, 15), pady=(15, 10), sticky="E"
+        )
 
         self.game_url.bind(
             "<FocusOut>",
@@ -2618,7 +2829,7 @@ class Settings(ScrollableFrame):
         )
 
         ttk.Label(self.frame, text="Dostępne grupy wiosek").grid(
-            row=2, column=0, padx=(5, 0), pady=(10), sticky="W"
+            row=2, column=0, padx=(15, 0), pady=(10), sticky="W"
         )
         self.villages_groups = ttk.Combobox(
             self.frame,
@@ -2640,58 +2851,7 @@ class Settings(ScrollableFrame):
                 name="checking_groups",
                 daemon=True,
             ).start(),
-        ).grid(row=2, column=2, padx=5, pady=(10), sticky="E")
-
-        # Coin mine
-
-        self.mine_coin_frame = ttk.Frame(self.frame)
-        self.mine_coin_frame.grid(row=4, column=0, columnspan=3, sticky=ttk.NSEW)
-        self.mine_coin_frame.columnconfigure(0, weight=1)
-        self.mine_coin_frame.columnconfigure(1, weight=1)
-
-        entries_content["mine_coin"] = tk.BooleanVar()
-        self.check_mine_coin = ttk.Checkbutton(
-            self.mine_coin_frame,
-            text="Wybijanie monet",
-            variable=entries_content["mine_coin"],
-            onvalue=True,
-            offvalue=False,
-        )
-        self.check_mine_coin.grid(row=0, column=0, columnspan=2, padx=5, pady=10)
-
-        self.villages_to_mine_coin = ttk.Entry(
-            self.mine_coin_frame,
-            justify=ttk.CENTER,
-            width=7,
-        )
-        self.villages_to_mine_coin.grid(row=1, column=0, padx=5, pady=5, sticky=ttk.E)
-
-        def add_village_to_mine_coin_villages_list() -> None:
-            village = self.villages_to_mine_coin.get()
-            villages = app_functions.get_villages_id(settings=settings)
-            if village in villages:
-                village_id = villages[village][:-1]
-            else:
-                villages = app_functions.get_villages_id(settings=settings, update=True)
-                if village not in villages:
-                    custom_error(
-                        message=f"Wioska {village} nie istnieje.", parent=parent
-                    )
-                    return
-                village_id = villages[village][:-1]
-            settings.setdefault("villages_to_mine_coin", [])
-            settings["villages_to_mine_coin"].append(
-                {"coords": village, "id": village_id}
-            )
-
-        self.add_village_to_mine_coin = ttk.Button(
-            self.mine_coin_frame,
-            text="Dodaj",
-            command=add_village_to_mine_coin_villages_list,
-        )
-        self.add_village_to_mine_coin.grid(
-            row=1, column=1, padx=5, pady=5, sticky=ttk.W
-        )
+        ).grid(row=2, column=2, padx=(10, 15), pady=(10), sticky="E")
 
         # Disable stable release
         entries_content["stable_release"] = ttk.BooleanVar(value=True)
@@ -2739,8 +2899,8 @@ class Settings(ScrollableFrame):
                 return
 
             def on_error(message: str) -> None:
-                main_window.notebook.select(4)
-                custom_error(message=message, parent=self.parent)
+                self.show()
+                custom_error(message=message, parent=self.canvas)
                 if "world_number" in settings:
                     self.entries_content["world_number"].set(settings["world_number"])
 
@@ -2748,13 +2908,12 @@ class Settings(ScrollableFrame):
                 on_error("Numer świata powinien składać się z samych cyfr.")
                 return
 
-            if not main_window.add_new_world(
+            main_window.add_new_world(
                 settings=settings,
                 game_url=self.entries_content["game_url"].get(),
                 world_number=self.entries_content["world_number"].get(),
                 entry_change=True,
-            ):
-                on_error("Błąd. Upewnij się, że taki świat nadal istnieje.")
+            )
 
         if (
             settings["world_number"] != self.entries_content["world_number"].get()
@@ -2779,7 +2938,7 @@ class Notifications(ScrollableFrame):
         notifications = entries_content["notifications"]
 
         ttk.Label(self.frame, text="Etykiety ataków").grid(
-            row=0, column=0, padx=5, pady=20, sticky="W"
+            row=0, column=0, padx=10, pady=20, sticky="W"
         )
 
         notifications["check_incoming_attacks"] = tk.BooleanVar()
@@ -2802,14 +2961,14 @@ class Notifications(ScrollableFrame):
             ),
         )
         self.check_incoming_attacks.grid(
-            row=7, column=0, columnspan=2, padx=(25, 5), pady=(0, 10), sticky="W"
+            row=7, column=0, columnspan=2, padx=(30, 5), pady=(0, 10), sticky="W"
         )
 
         self.check_incoming_attacks_label = ttk.Label(
             self.frame, text="Twórz etykiety ataków co [min]"
         )
         self.check_incoming_attacks_label.grid(
-            row=8, column=0, padx=(25, 5), pady=5, sticky="W"
+            row=8, column=0, padx=(30, 5), pady=5, sticky="W"
         )
 
         notifications["check_incoming_attacks_sleep_time"] = tk.IntVar()
@@ -2820,11 +2979,11 @@ class Notifications(ScrollableFrame):
             justify="center",
         )
         self.check_incoming_attacks_sleep_time.grid(
-            row=8, column=1, padx=(5, 25), pady=5, sticky="E"
+            row=8, column=1, padx=(5, 30), pady=5, sticky="E"
         )
 
         ttk.Label(self.frame, text="Powiadomienia").grid(
-            row=9, column=0, padx=5, pady=(20, 10), sticky="W"
+            row=9, column=0, padx=10, pady=(20, 10), sticky="W"
         )
 
         notifications["email_notifications"] = tk.BooleanVar()
@@ -2840,11 +2999,11 @@ class Notifications(ScrollableFrame):
             ),
         )
         self.email_notifications.grid(
-            row=10, column=0, columnspan=2, padx=(25, 5), pady=10, sticky="W"
+            row=10, column=0, columnspan=2, padx=(30, 5), pady=10, sticky="W"
         )
 
         ttk.Label(self.frame, text="Wyślij powiadomienia na adres:").grid(
-            row=11, column=0, padx=(25, 5), pady=10, sticky="W"
+            row=11, column=0, padx=(30, 5), pady=10, sticky="W"
         )
         notifications["email_address"] = tk.StringVar()
         self.email_notifications_entry = ttk.Entry(
@@ -2853,7 +3012,7 @@ class Notifications(ScrollableFrame):
             justify="center",
         )
         self.email_notifications_entry.grid(
-            row=11, column=1, padx=(5, 25), pady=10, sticky="E"
+            row=11, column=1, padx=(5, 30), pady=10, sticky="E"
         )
 
         notifications["sms_notifications"] = tk.BooleanVar()
@@ -2869,11 +3028,11 @@ class Notifications(ScrollableFrame):
             ),
         )
         self.sms_notifications.grid(
-            row=12, column=0, columnspan=2, padx=(25, 5), pady=10, sticky="W"
+            row=12, column=0, columnspan=2, padx=(30, 5), pady=10, sticky="W"
         )
 
         ttk.Label(self.frame, text="Wyślij powiadomienia na numer:").grid(
-            row=13, column=0, padx=(25, 5), pady=10, sticky="W"
+            row=13, column=0, padx=(30, 5), pady=10, sticky="W"
         )
         notifications["phone_number"] = tk.StringVar()
         self.sms_notifications_entry = ttk.Entry(
@@ -2882,7 +3041,7 @@ class Notifications(ScrollableFrame):
             justify="center",
         )
         self.sms_notifications_entry.grid(
-            row=13, column=1, padx=(5, 25), pady=10, sticky="E"
+            row=13, column=1, padx=(5, 30), pady=10, sticky="E"
         )
         ToolTip(
             self.sms_notifications_entry,
@@ -2902,12 +3061,14 @@ class Notifications(ScrollableFrame):
             offvalue=False,
         )
         self.sound_notifications.grid(
-            row=14, column=0, columnspan=2, padx=(25, 5), pady=10, sticky="W"
+            row=14, column=0, columnspan=2, padx=(30, 5), pady=10, sticky="W"
         )
 
 
 class NavigationBar(ScrollableFrame):
-    def __init__(self, main_window: "MainWindow", parent: ttk.Frame = None) -> None:
+    def __init__(
+        self, main_window: "MainWindow", settings: dict, parent: ttk.Frame = None
+    ) -> None:
         self.header = ttk.Frame(parent)
         self.header.grid(row=0, column=0, pady=5, sticky=tk.NS)
         super().__init__(self.header, max_width=False, show=True)
@@ -2915,11 +3076,15 @@ class NavigationBar(ScrollableFrame):
         self.footer.grid(row=1, column=0, sticky=tk.EW)
         self.footer.columnconfigure(0, weight=1)
 
+        self.settings = settings
+        self.main_window = main_window
+
         # Header
         # region
         self.home = ttk.Button(
             self.frame,
             text="Informacje",
+            state="disabled",
             command=lambda: main_window.farm.show(),
         )
         self.home.grid(row=0, column=0, sticky=tk.EW)
@@ -2948,8 +3113,7 @@ class NavigationBar(ScrollableFrame):
         self.coins = ttk.Button(
             self.frame,
             text="Monety",
-            state="disabled",
-            command=lambda: main_window.notifications.show(),
+            command=lambda: main_window.coins.show(),
         )
         self.coins.grid(row=4, column=0, sticky=tk.EW)
 
@@ -2990,10 +3154,34 @@ class NavigationBar(ScrollableFrame):
             command=lambda: main_window.notifications.show(),
         )
         self.notifications.grid(row=9, column=0, sticky=tk.EW)
+
+        ToolTip(
+            self.home,
+            text="Funkcja w trakcie przygotowania..",
+            topmost=True,
+        )
+        ToolTip(
+            self.dodge,
+            text="Funkcja w trakcie przygotowania..",
+            topmost=True,
+        )
+        ToolTip(
+            self.counter_attack,
+            text="Funkcja w trakcie przygotowania..",
+            topmost=True,
+        )
+        ToolTip(
+            self.manager,
+            text="Funkcja w trakcie przygotowania..",
+            topmost=True,
+        )
+
         # endregion
 
         # Footer
         # region
+
+        # Settings button
         self.control_panel = ttk.Label(
             self.footer,
             image=main_window.images.settings,
@@ -3013,53 +3201,61 @@ class NavigationBar(ScrollableFrame):
             "<Button-1>", lambda _: main_window.control_panel.show()
         )
 
-        self.run_button = ttk.Label(
+        # Start/stop button
+        self.start_button = ttk.Label(
             self.footer, image=main_window.images.start, cursor="hand2"
         )
-        self.run_button.grid(row=1, column=0, pady=20)
-
-        def run_button_enter(event) -> None:
-            self.run_button.config(image=main_window.images.start_hover)
-
-        def run_button_leave(event) -> None:
-            self.run_button.config(image=main_window.images.start)
-
-        def stop_button_enter(event) -> None:
-            self.run_button.config(image=main_window.images.stop_hover)
-
-        def stop_button_leave(event) -> None:
-            self.run_button.config(image=main_window.images.stop)
+        self.start_button.grid(row=1, column=0, pady=20)
 
         def start_or_stop_bot(event) -> None:
             if not main_window.running:
-                main_window.running = True
-                # threading.Thread(
-                #     target=lambda: main_window.run(settings=settings),
-                #     name="main_function",
-                #     daemon=True,
-                # ).start()
-                self.run_button.unbind("<Enter>")
-                self.run_button.unbind("<Leave>")
-                self.run_button.bind("<Enter>", stop_button_enter)
-                self.run_button.bind("<Leave>", stop_button_leave)
-                self.run_button.config(image=main_window.images.stop)
+                self.start()
             else:
-                main_window.running = False
-                self.run_button.unbind("<Enter>")
-                self.run_button.unbind("<Leave>")
-                self.run_button.bind("<Enter>", run_button_enter)
-                self.run_button.bind("<Leave>", run_button_leave)
-                self.run_button.config(image=main_window.images.start)
+                self.stop()
 
-        self.run_button.bind("<Enter>", run_button_enter)
-        self.run_button.bind("<Leave>", run_button_leave)
-        self.run_button.bind("<Button-1>", start_or_stop_bot)
+        self.start_button.bind("<Enter>", self.start_button_enter)
+        self.start_button.bind("<Leave>", self.start_button_leave)
+        self.start_button.bind("<Button-1>", start_or_stop_bot)
+
         # endregion
 
         def set_canvas_size(event=None):
             self.canvas.config(width=self.frame.winfo_reqwidth())
 
         self.frame.bind("<Map>", set_canvas_size)
+
+    def start_button_enter(self, event) -> None:
+        self.start_button.config(image=self.main_window.images.start_hover)
+
+    def start_button_leave(self, event) -> None:
+        self.start_button.config(image=self.main_window.images.start)
+
+    def stop_button_enter(self, event) -> None:
+        self.start_button.config(image=self.main_window.images.stop_hover)
+
+    def stop_button_leave(self, event) -> None:
+        self.start_button.config(image=self.main_window.images.stop)
+
+    def start(self) -> None:
+        self.main_window.running = True
+        threading.Thread(
+            target=lambda: self.main_window.run(settings=self.settings),
+            name="main_function",
+            daemon=True,
+        ).start()
+        self.start_button.unbind("<Enter>")
+        self.start_button.unbind("<Leave>")
+        self.start_button.bind("<Enter>", self.stop_button_enter)
+        self.start_button.bind("<Leave>", self.stop_button_leave)
+        self.start_button.config(image=self.main_window.images.stop)
+
+    def stop(self) -> None:
+        self.main_window.running = False
+        self.start_button.unbind("<Enter>")
+        self.start_button.unbind("<Leave>")
+        self.start_button.bind("<Enter>", self.start_button_enter)
+        self.start_button.bind("<Leave>", self.start_button_leave)
+        self.start_button.config(image=self.main_window.images.start)
 
 
 class MainWindow:
@@ -3075,7 +3271,7 @@ class MainWindow:
         self.master = master
         self.running = False
 
-        master.geometry("620x700")
+        master.geometry("620x660")
         master.attributes("-alpha", 0.0)
         master.iconbitmap(default="icons//ikona.ico")
         master.title("Tribal Wars 24/7")
@@ -3096,6 +3292,7 @@ class MainWindow:
             stop: tk.PhotoImage = tk.PhotoImage(file="icons//stop.png")
             stop_hover: tk.PhotoImage = tk.PhotoImage(file="icons//stop_hover.png")
             exit: tk.PhotoImage = tk.PhotoImage(file="icons//exit.png")
+            exit_hover: tk.PhotoImage = tk.PhotoImage(file="icons//exit_hover.png")
             minimize: tk.PhotoImage = tk.PhotoImage(file="icons//minimize.png")
             plus: tk.PhotoImage = tk.PhotoImage(file="icons//plus.png")
             refresh: tk.PhotoImage = tk.PhotoImage(file="icons//refresh.png")
@@ -3244,7 +3441,9 @@ class MainWindow:
 
         # navigation_bar
 
-        self.navigation = NavigationBar(self, parent=self.navigation_frame)
+        self.navigation = NavigationBar(
+            self, parent=self.navigation_frame, settings=settings
+        )
 
         # content_frame
 
@@ -3270,6 +3469,13 @@ class MainWindow:
         )
 
         self.market = Market(
+            parent=self.content_frame,
+            main_window=self,
+            entries_content=self.entries_content,
+            settings=settings,
+        )
+
+        self.coins = Coins(
             parent=self.content_frame,
             main_window=self,
             entries_content=self.entries_content,
@@ -3319,6 +3525,16 @@ class MainWindow:
             try:
                 world_config = xmltodict.parse(response.content)
             except:
+                if entry_change:
+                    self.control_panel.show()
+                    if "world_number" in settings:
+                        self.entries_content["world_number"].set(
+                            settings["world_number"]
+                        )
+                custom_error(
+                    message="Błąd, upewnij się że taki świat nadal istnieje.",
+                    parent=self.master,
+                )
                 return False
 
             settings["world_config"] = {
@@ -3352,8 +3568,11 @@ class MainWindow:
         # Takie ustawienia już istnieją
         if server_world in self.settings_by_worlds:
             if entry_change:
-                self.notebook.select(4)
-                custom_error("Ustawienia tego świata już istnieją!", parent=self.master)
+                self.control_panel.show()
+                custom_error(
+                    "Ustawienia tego świata już istnieją!",
+                    parent=self.control_panel.canvas,
+                )
                 self.entries_content["game_url"].set(settings["game_url"])
                 self.entries_content["world_number"].set(settings["world_number"])
                 self.control_panel.world_number_input.focus_set()
@@ -3461,8 +3680,10 @@ class MainWindow:
     def check_groups(self, settings: dict):
 
         if "server_world" not in settings:
+            self.control_panel.show()
             custom_error(
-                message="Najpierw wybierz serwer i numer świata", parent=self.master
+                message="Najpierw wybierz serwer i numer świata",
+                parent=self.control_panel.canvas,
             )
             return
         self.control_panel.villages_groups.set("Updating..")
@@ -3514,6 +3735,9 @@ class MainWindow:
             # Odświeża okno planera
             self.schedule.redraw_availabe_templates(settings=settings)
 
+            # Odświeża okno monet z wybranymi wioskami
+            self.coins.redraw_choosed_villges()
+
             fill_entry_from_settings(entries=self.entries_content, settings=settings)
 
             # Usuwa z listy nieaktualne terminy wysyłki wojsk (których termin już upłynął)
@@ -3548,10 +3772,7 @@ class MainWindow:
         """Uruchamia całego bota"""
 
         def on_func_stop() -> None:
-            """Change few things on function quit/stop"""
-
-            self.running = False
-            self.run_button.config(text="Uruchom")
+            self.navigation.stop()
 
         save_entry_to_settings(
             entries=self.entries_content,
@@ -3664,7 +3885,7 @@ class MainWindow:
 
         # Check if user choosed/set any game server
         if "server_world" not in settings:
-            self.notebook.select(4)
+            self.control_panel.show()
             custom_error(
                 message="Najpierw wybierz serwer i numer świata", parent=self.master
             )
@@ -3685,7 +3906,7 @@ class MainWindow:
                         world_in_title=_settings["world_in_title"],
                         settings=settings,
                     )
-                    self.notebook.select(0)
+                    self.farm.show()
                     custom_error(
                         message="Nie wybrano grupy wiosek do farmienia.",
                         parent=self.master,
@@ -3700,10 +3921,10 @@ class MainWindow:
                         world_in_title=_settings["world_in_title"],
                         settings=settings,
                     )
-                    self.notebook.select(1)
+                    self.gathering.show()
                     custom_error(
                         message="Nie wybrano grupy wiosek do zbieractwa.",
-                        parent=self.master,
+                        parent=self.gathering.canvas,
                     )
                     on_func_stop()
                     return
@@ -3713,7 +3934,7 @@ class MainWindow:
             if _settings["farm_sleep_time"] == 0 and any(
                 _settings[template]["active"] for template in ("A", "B", "C")
             ):
-                self.notebook.select(0)
+                self.farm.show()
                 self.change_world(
                     server_world=server_world,
                     world_in_title=_settings["world_in_title"],
@@ -3721,7 +3942,7 @@ class MainWindow:
                 )
                 custom_error(
                     message='Ustaw pole "Powtarzaj ataki w odstępach [min]".',
-                    parent=self.master,
+                    parent=self.farm.canvas,
                 )
                 on_func_stop()
                 return
@@ -3735,13 +3956,32 @@ class MainWindow:
                     world_in_title=_settings["world_in_title"],
                     settings=settings,
                 )
-                self.notebook.select(3)
+                self.market.show()
                 custom_error(
-                    message='Ustaw pole "Sprawdzaj kurs co [min]".', parent=self.master
+                    message='Ustaw pole "Sprawdzaj kurs co [min]".',
+                    parent=self.market.canvas,
                 )
                 on_func_stop()
                 return
-            # Check incoming attacks sleep time
+            # Mining coins sleep time
+
+            if (
+                _settings["coins"]["mine_coin"]
+                and _settings["coins"]["check_every"] == 0
+            ):
+                self.change_world(
+                    server_world=server_world,
+                    world_in_title=_settings["world_in_title"],
+                    settings=settings,
+                )
+                self.coins.show()
+                custom_error(
+                    message='Ustaw pole "Wybijaj monety i wzywaj surowce co [min]".',
+                    parent=self.coins.canvas,
+                )
+                on_func_stop()
+                return
+            # Incoming attacks sleep time
             if (
                 _settings["notifications"]["check_incoming_attacks_sleep_time"] == 0
                 and _settings["notifications"]["check_incoming_attacks"]
@@ -3751,10 +3991,10 @@ class MainWindow:
                     world_in_title=_settings["world_in_title"],
                     settings=settings,
                 )
-                self.notebook.select(5)
+                self.notifications.show()
                 custom_error(
                     message='Ustaw pole "Twórz etykiety ataków co [min]".',
-                    parent=self.master,
+                    parent=self.notifications.canvas,
                 )
                 on_func_stop()
                 return
@@ -3801,7 +4041,7 @@ class MainWindow:
             if _settings["market"]["premium_exchange"]:
                 to_do.append({"func": "premium_exchange"})
             # Mine coins
-            if "mine_coin" in _settings and _settings["mine_coin"]:
+            if "mine_coin" in _settings["coins"] and _settings["coins"]["mine_coin"]:
                 to_do.append({"func": "mine_coin"})
 
             # Add start_time and other settings for above functions
@@ -3869,7 +4109,6 @@ class MainWindow:
         while self.running:
             if not self.to_do:
                 self.running = False
-                self.time.set("")
                 custom_error(
                     message="Wszystkie zadania zostały wykonane", parent=self.master
                 )
@@ -4007,10 +4246,10 @@ class MainWindow:
                                 self.to_do.append(_dict)
 
                     case "mine_coin":
-                        bot_functions.mine_coin(driver=self.driver)
-                        self.to_do[0]["start_time"] = time.time() + 5 * random.uniform(
-                            50, 70
-                        )
+                        bot_functions.mine_coin(driver=self.driver, settings=_settings)
+                        self.to_do[0]["start_time"] = time.time() + _settings["coins"][
+                            "check_every"
+                        ] * random.uniform(50, 70)
                         self.to_do[0]["errors_number"] = 0
                         self.to_do.append(self.to_do[0])
 
@@ -4124,9 +4363,9 @@ class MainWindow:
             logged = log_out_when_free_time(_settings)
 
         # Zapis ustawień gdy bot zostanie ręcznie zatrzymany
+        on_func_stop()
         self.time.set("")
         self.title_timer.grid_remove()
-        self.run_button.config(text="Uruchom")
 
     def show_jobs_to_do_window(self, event) -> None:
 
@@ -4212,11 +4451,6 @@ class MainWindow:
                     world_number=world_number.get(),
                 ):
                     master.destroy()
-                else:
-                    custom_error(
-                        "Błąd. Upewnij się, że taki świat nadal istnieje.",
-                        parent=master,
-                    )
 
             add_button = ttk.Button(
                 master.content_frame, text="Dodaj", command=on_add_new_world
@@ -4527,7 +4761,7 @@ def check_for_updates(
 ) -> None:
 
     APP_NAME = "TribalWarsBot"
-    APP_VERSION = "1.0.44"
+    APP_VERSION = "1.0.50b11"
 
     client = Client(ClientConfig())
     client.refresh()

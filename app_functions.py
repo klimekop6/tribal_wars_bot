@@ -20,6 +20,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium_stealth import stealth
 
 from app_logging import get_logger
 from config import ANY_CAPTCHA_API_KEY
@@ -237,6 +238,11 @@ def chrome_profile_path(settings: dict) -> None:
 def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Thread:
     """Used to speedup app start doing stuff while connecting to database or API"""
 
+    def add_new_default_settings(_settings: dict) -> None:
+        _settings.setdefault("coins", {"villages": {}})
+        _settings["coins"].setdefault("villages", {})
+        _settings["coins"].setdefault("mine_coin", False)
+
     def run_in_other_thread() -> None:
 
         # Load settings into settings_by_worlds[server_world]
@@ -246,6 +252,7 @@ def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Th
                 main_window.settings_by_worlds[server_world] = load_settings(
                     f"settings//{settings_file_name}"
                 )
+                add_new_default_settings(main_window.settings_by_worlds[server_world])
         except FileNotFoundError:
             os.mkdir("settings")
 
@@ -498,6 +505,16 @@ def run_driver(settings: dict) -> webdriver.Chrome:
         return driver
     except BaseException as exc:
         logger.error(exc)
+
+    stealth(
+        driver,
+        languages=["en-US", "en"],
+        vendor="Google Inc.",
+        platform="Win32",
+        webgl_vendor="Intel Inc.",
+        renderer="Intel Iris OpenGL Engine",
+        fix_hairline=True,
+    )
 
 
 def save_settings_to_files(settings: dict, settings_by_worlds: dict) -> None:

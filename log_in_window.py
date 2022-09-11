@@ -1,4 +1,5 @@
 import os
+import time
 import tkinter as tk
 
 import ttkbootstrap as ttk
@@ -174,16 +175,13 @@ class LogInWindow:
             text=f'Konto ważne do {user_data["active_until"]}'
         )
 
-        # Remove from grid some widgets for users without privilages
-        if user_data["user_name"] not in ("klimekop6", "klimek123"):
-            main_window.control_panel.mine_coin_frame.grid_remove()
-
         invoke_checkbuttons(parent=main_window.master)
         main_window.master.deiconify()
         main_window.master.attributes("-alpha", 1.0)
-        main_window.master.attributes("-topmost", 1)
+        main_window.master.geometry("-5000-5000")
+        main_window.master.update()
         center(main_window.master, parent=parent)
-        main_window.master.focus_force()
+        main_window.master.attributes("-topmost", 1)
         add_event_handler(settings=settings)
         self.update_db_running_status(main_window=main_window)
 

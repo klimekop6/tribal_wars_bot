@@ -37,11 +37,11 @@ def center(window: tk.Toplevel, parent: tk.Toplevel = None) -> None:
 def change_state(parent, value, entries_content, reverse=False, *ommit) -> None:
     def disableChildren(parent):
         if not parent.winfo_children():
-            if parent.winfo_class() not in ("TFrame", "Labelframe", "TSeparator"):
+            if parent.winfo_class() not in ("TFrame", "TLabelframe", "TSeparator"):
                 parent.config(state="disabled")
         for child in parent.winfo_children():
             wtype = child.winfo_class()
-            if wtype not in ("TFrame", "Labelframe", "TSeparator"):
+            if wtype not in ("TFrame", "TLabelframe", "TSeparator"):
                 if child not in ommit:
                     child.configure(state="disable")
             else:
@@ -49,11 +49,11 @@ def change_state(parent, value, entries_content, reverse=False, *ommit) -> None:
 
     def enableChildren(parent):
         if not parent.winfo_children():
-            if parent.winfo_class() not in ("TFrame", "Labelframe", "TSeparator"):
+            if parent.winfo_class() not in ("TFrame", "TLabelframe", "TSeparator"):
                 parent.config(state="normal")
         for child in parent.winfo_children():
             wtype = child.winfo_class()
-            if wtype not in ("TFrame", "Labelframe", "TSeparator"):
+            if wtype not in ("TFrame", "TLabelframe", "TSeparator"):
                 if child not in ommit:
                     if wtype == "TCombobox":
                         child.configure(state="readonly")
@@ -168,6 +168,12 @@ def fill_entry_from_settings(entries: dict, settings: dict) -> None:
                     loop_over_entries(entries[key], settings[key])
                 else:
                     entries[key].set(settings[key])
+            # If not in settings set default to 0
+            else:
+                if isinstance(entries[key], dict):
+                    loop_over_entries(entries[key], settings)
+                else:
+                    entries[key].set(0)
 
     loop_over_entries(entries=entries, settings=settings)
 
