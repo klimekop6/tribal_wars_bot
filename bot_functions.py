@@ -1108,40 +1108,37 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
     url = url[: url.rfind("/")]
     # Check if has premium account
     if driver.execute_script("return premium"):
-        # Already in good page
-        if "&screen=overview_villages&mode=prod&group=0&page=-1&" in driver.current_url:
-            html_response = driver.page_source
-        else:
-            player_production_url = (
-                url
-                + f"/game.php?village={current_village_id}&screen=overview_villages&mode=prod&group=0&page=-1&"
+        player_production_url = (
+            url
+            + f"/game.php?village={current_village_id}&screen=overview_villages&mode=prod&group=0&page=-1&"
+        )
+
+        def get_player_production_page() -> str:
+            return driver.execute_script(
+                f"""
+                var request = new XMLHttpRequest();
+                request.open("GET", "{player_production_url}", false);
+                request.send(null);   
+                return request.responseText;"""
             )
 
-            def get_player_production_page() -> str:
-                return driver.execute_script(
-                    f"""
-                    var request = new XMLHttpRequest();
-                    request.open("GET", "{player_production_url}", false);
-                    request.send(null);   
-                    return request.responseText;"""
-                )
-
+        try:
+            html_response = get_player_production_page()
+        except BaseException:
+            log_in(driver=driver, settings=settings)
             try:
                 html_response = get_player_production_page()
             except BaseException:
-                log_in(driver=driver, settings=settings)
-                driver.get(player_production_url)
-                captcha_check(driver=driver, settings=settings)
-                html_response = driver.page_source
+                unwanted_page_content(driver=driver, settings=settings)
+                html_response = get_player_production_page()
         doc = lxml.html.fromstring(html_response)
         try:
             production = doc.get_element_by_id("production_table")
         except:
-            driver.get(player_production_url)
-            if captcha_check(driver=driver, settings=settings):
-                if not driver.find_elements(By.ID, "production_table"):
-                    driver.get(player_production_url)
-            doc = lxml.html.fromstring(driver.page_source)
+            log_in(driver=driver, settings=settings)
+            unwanted_page_content(driver=driver, settings=settings)
+            html_response = get_player_production_page()
+            doc = lxml.html.fromstring(html_response)
             production = doc.get_element_by_id("production_table")
 
         villages = {}
@@ -1548,7 +1545,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             if troop_speed > slowest_troop_speed:
                                 del troops_dict[troop_name]
 
-                        driver.find_element(By.ID, "selectAllUnits").click()
+                        driver.execute_script(
+                            f'document.getElementById("selectAllUnits").click();'
+                        )
                         doc = lxml.html.fromstring(
                             driver.find_element(
                                 By.XPATH, '//*[@id="command-data-form"]/table/tbody/tr'
@@ -1585,6 +1584,21 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         "snob": 35,
                     }
 
+                    troops_all = {
+                        "spear": 18,
+                        "sword": 22,
+                        "axe": 18,
+                        "archer": 18,
+                        "spy": 9,
+                        "light": 10,
+                        "marcher": 10,
+                        "heavy": 11,
+                        "ram": 30,
+                        "catapult": 30,
+                        "knight": 10,
+                        "snob": 35,
+                    }
+
                     if (
                         send_info["send_snob"] == "send_snob"
                         and send_info["snob_amount"] > 1
@@ -1599,20 +1613,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 all_troops = troops_deff.keys()
 
                             case _:
-                                all_troops = (
-                                    "spear",
-                                    "sword",
-                                    "axe",
-                                    "archer",
-                                    "spy",
-                                    "light",
-                                    "marcher",
-                                    "heavy",
-                                    "ram",
-                                    "catapult",
-                                    "knight",
-                                    "snob",
-                                )
+                                all_troops = troops_all.keys()
 
                         for troop in all_troops:
                             if settings["world_config"]["archer"] == 0:
@@ -1652,6 +1653,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 choose_all_units_with_exceptions(
                                     troops_dict=troops_deff
                                 )
+
+                            case _:
+                                choose_all_units_with_exceptions(troops_dict=troops_all)
 
                     if send_info["send_snob"] == "send_snob":
                         if send_info["snob_amount"]:
@@ -1722,13 +1726,38 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                 case "send_my_template":
                     # Choose troops to send
                     for troop_name, troop_number in send_info["troops"].items():
-                        if not troop_number:
-                            continue
                         if troop_number == "max":
                             driver.execute_script(
                                 f'document.getElementById("units_entry_all_{troop_name}").click();'
                             )
                             continue
+                        if "-" in troop_number:
+                            min_troop_number, max_troop_number = (
+                                int(value) for value in troop_number.split("-")
+                            )
+                            available_in_village = int(
+                                driver.execute_script(
+                                    f"return document.querySelector('#unit_input_{troop_name}').getAttribute('data-all-count')"
+                                )
+                            )
+                            # less than minimum
+                            if available_in_village < min_troop_number:
+                                if len(list_to_send) == 1:
+                                    return 1, attacks_to_repeat_to_do
+                                break
+                            # between min and max
+                            if (
+                                min_troop_number
+                                <= available_in_village
+                                <= max_troop_number
+                            ):
+                                driver.execute_script(
+                                    f'document.getElementById("units_entry_all_{troop_name}").click();'
+                                )
+                                continue
+                            # more than maximum
+                            troop_number = max_troop_number
+
                         troop_input = driver.find_element(
                             By.ID, f"unit_input_{troop_name}"
                         )
@@ -1979,6 +2008,8 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
         f"var MAX_STORAGE_FILL_PERCENTAGE = {round(coins['resource_fill']/100,2)};"
         f"var MINIMUM_RESOURCE_REQUEST = 1000;"
         f"var RESOURCE_SAFE = {coins['resource_left']};"
+        f"const VILLAGES_TO_SKIP = [{','.join(village_id for village_id in coins['villages'].values())}];"
+        f"const MAX_TIME = '{coins['max_send_time']//60:>01}:{coins['max_send_time']%60:>02}:00';"
         r"""
         var re;
         var maxStorage;
@@ -2125,7 +2156,6 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
             bufor = 0;
             }
 
-
             if (bufor < MINIMUM_RESOURCE_REQUEST) {bufor = 0;}
             $(inp_stone).val(bufor);
             inc_stone += bufor;
@@ -2150,34 +2180,32 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
             bufor = 0;
             }
 
-
             if (bufor < MINIMUM_RESOURCE_REQUEST) {bufor = 0;}
             $(inp_iron).val(bufor);
             inc_iron += bufor;
         }
-        if ($(inp_iron).val() == 0 && $(inp_stone).val() == 0 && $(inp_wood).val() == 0) {
-        UI.InfoMessage('Spichlerz zapełniony', 5000, 'success');
         }
-        }
-
 
         function start() {
         veryFirstVill();
         callIt();
         }
 
-        if (document.getElementById("checkbox_hide_traderless").checked == false) {
-        UI.InfoMessage('Ukryj wioski bez dostępnych kupców.', 5000, 'error');
-        } else {
         getResources();
         getIncoms();
 
         var num_vils = $("#village_list").find("tbody tr:not(.stv-stor-filled)").length;
 
         for (let i=0; i<num_vils; i++) {
-        start();
+            vil = $("#village_list").find("tbody tr:not(.stv-stor-filled)")[0];
+            if ($(vil).children().eq(1).text()>MAX_TIME) {break;}
+            if (VILLAGES_TO_SKIP.includes(parseInt(vil.getAttribute('data-village')))) {
+                $(vil).addClass('stv-stor-filled');
+                continue;
+            }  
+            start();
         }
-        }"""
+        """
     )
     for palace_url, market_url in zip(villages_palace_url, villages_market_url):
         driver.get(palace_url)
@@ -2199,7 +2227,20 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
                 )
         except:
             logger.error("Error during coin mining")
+
+        send_troops_in_the_middle(driver=driver, settings=settings)
+
         driver.get(market_url)
+        # Hide villages with no merchants
+        if driver.execute_script(
+            """
+            if (document.getElementById("checkbox_hide_traderless").checked == false) {
+                document.getElementById("checkbox_hide_traderless").click();
+                return true;
+            }
+            """
+        ):
+            time.sleep(2)
         # Request resources
         driver.execute_script(call_resources)
         # Submit request

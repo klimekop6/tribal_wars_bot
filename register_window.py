@@ -58,7 +58,7 @@ class RegisterWindow:
                 return False
 
             if exists and self.login.get() == self.user_data["user_name"]:
-                forget_row(widget_name=self.content_frame, row_number=2)
+                forget_row(parent=self.content_frame, row_number=2)
                 self.login_status.set(True)
                 return True
             # API GET /register DONE
@@ -66,7 +66,7 @@ class RegisterWindow:
             if not response.ok:
                 return on_error("Wystąpił błąd bazy danych")
             if response.json()["no_exist"]:
-                forget_row(widget_name=self.content_frame, row_number=2)
+                forget_row(parent=self.content_frame, row_number=2)
                 self.login_status.set(True)
                 return True
             else:
@@ -251,7 +251,7 @@ class RegisterWindow:
             if self.recommended_by.get() == self.login.get():
                 return on_error("Czynność zabroniona")
             if not response.json()["no_exist"] or not self.recommended_by.get():
-                forget_row(widget_name=self.content_frame, row_number=13)
+                forget_row(parent=self.content_frame, row_number=13)
                 self.recomended_by_status.set(True)
                 return True
             else:

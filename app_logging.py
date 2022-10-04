@@ -41,7 +41,6 @@ class CustomLoggingHandler(logging.Handler):
 
     def emit(self, *args):
         msg = self.formatter.format(*args)
-
         headers = {
             "Content-Type": "application/json",
             "Authorization": PYTHON_ANYWHERE_API_TOKEN,
@@ -60,16 +59,18 @@ class CustomLoggingHandler(logging.Handler):
 def get_logger(
     name: str,
     filename: str = "logs/log.txt",
-    level: int = logging.ERROR,
+    logger_level: int = logging.DEBUG,
+    f_handler_level: int = logging.ERROR,
 ) -> logging.Logger:
     logger = logging.getLogger(name)
+    logger.setLevel(logger_level)
     f_handler = logging.FileHandler(filename)
+    f_handler.setLevel(f_handler_level)
     f_format = CustomLogFormatter(
         "%(levelname)s | %(name)s | %(asctime)s %(message)s",
         datefmt="%d-%m-%Y %H:%M:%S",
     )
     f_handler.setFormatter(f_format)
-    f_handler.setLevel(level)
     logger.addHandler(f_handler)
     logger.propagate = False
 
@@ -79,7 +80,8 @@ def get_logger(
 def add_event_handler(settings: dict) -> None:
 
     logging_handler = CustomLoggingHandler(user_name=settings["user_name"])
-    logging.getLogger("bot_main").addHandler(logging_handler)
+    logging.getLogger("__main__").addHandler(logging_handler)
+    logging.getLogger("app_functions").addHandler(logging_handler)
     logging.getLogger("bot_functions").addHandler(logging_handler)
     logging.getLogger("decorators").addHandler(logging_handler)
     logging.getLogger("log_in_window").addHandler(logging_handler)

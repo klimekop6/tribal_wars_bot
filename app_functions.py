@@ -4,9 +4,9 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 import winreg
-import threading
 
 import requests
 from anycaptcha import AnycaptchaClient, HCaptchaTaskProxyless
@@ -19,8 +19,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium_stealth import stealth
+from webdriver_manager.chrome import ChromeDriverManager
 
 from app_logging import get_logger
 from config import ANY_CAPTCHA_API_KEY
@@ -99,9 +99,12 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             )
             job = client.createTask(task)
             # Notify user that captcha solving is in process
-            iframe_width = driver.execute_script(
-                f"return document.querySelector('{captcha_selector} iframe').clientWidth"
-            )
+            try:
+                iframe_width = driver.execute_script(
+                    f"return document.querySelector('{captcha_selector} iframe').clientWidth"
+                )
+            except BaseException:
+                iframe_width = 303
             driver.execute_script(
                 f"""const captcha_container = document.querySelectorAll("{captcha_selector} *:last-child")[0];
                 const div_to_add = "<div id='kspec' style='width: {iframe_width};'>Solving captcha please wait..</div>"
@@ -229,7 +232,6 @@ def chrome_profile_path(settings: dict) -> None:
 
     path = os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\User Data\TribalWars")
     settings["path"] = path
-    settings["first_lunch"] = False
 
     with open("settings.json", "w") as settings_json_file:
         json.dump(settings, settings_json_file)
@@ -242,6 +244,7 @@ def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Th
         _settings.setdefault("coins", {"villages": {}})
         _settings["coins"].setdefault("villages", {})
         _settings["coins"].setdefault("mine_coin", False)
+        _settings["coins"].setdefault("max_send_time", 120)
 
     def run_in_other_thread() -> None:
 
@@ -677,7 +680,7 @@ def unwanted_page_content(
 
         # Nieznane -> log_error
         else:
-            log_error(driver=driver, msg="unwanted_page_content -> else(uknown error)")
+            log_error(driver=driver, msg="unwanted_page_content -> uknown error")
             return False
 
     except BaseException:
