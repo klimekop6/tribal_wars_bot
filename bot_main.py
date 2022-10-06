@@ -33,6 +33,7 @@ from ttkbootstrap.validation import add_validation
 import app_functions
 import bot_functions
 from app_logging import CustomLogFormatter, get_logger
+from bot_browser_extensions import COORDS_COPY
 from client_config import ClientConfig
 from config import APP_NAME, APP_VERSION
 from decorators import log_errors
@@ -104,46 +105,75 @@ class Home(ScrollableFrame):
 
         # Current changes
         ttk.Label(self, text="Aktualne zmiany", font=("TkFixedFont", 11)).grid(
-            row=1, column=0, pady=(25, 15), sticky=ttk.W
+            row=1, column=0, pady=(35, 15), sticky=ttk.W
         )
+
         cf_current_changes = CollapsingFrame(self)
         cf_current_changes.grid(row=2, column=0, sticky=ttk.EW)
 
         self.text = Text(cf_current_changes)
-
-        # Message
-        self.text.add("Nowości\n", "h1")
-        self.text.add(
-            "- dodano nową ikonę w menu po kliknięciu w którą wyświetlona zostanie strona z informacjami o aktualnych i przyszłych zmianach w aplikacji\n"
-        )
-        self.text.add("- dodano weryfikację pól w trakcie tworzenia szablonu fejków\n")
-
         self.text.add("Poprawki\n", "h1")
-        self.text.add("- poprawiono rejestrowanie błędów w logach\n")
         self.text.add(
-            "- poprawiono przełączanie zakładek w interfejsie graficznym aplikacji\n"
+            (
+                "- zwiększony limit prób przed ponownym uruchomieniem przeglądarki w przypadku wystąpienia błędu \n"
+            )
         )
         self.text.add(
-            "- udoskonalono wstępne wykrywanie błędnie wypełnionego planera\n"
-        )
-        self.text.add(
-            "- zmniejszono częstotliwość zamykania przeglądarki w trakcie wymiany surowców na punkty premium\n"
+            (
+                "- od teraz zaraz po pierwszym logowaniu przez nowego użytkownika wymagane będzie wstępne ustawienie serwera gry i numeru świata "
+                "jeszcze przed ukazaniem się głównego okna aplikacji \n"
+            )
         )
 
         self.text.tag_add("left_margin", "1.0", "end")
 
         cf_current_changes.add(
-            child=self.text.frame, title="Zmiany w patchu 1.0.64", bootstyle="dark"
+            child=self.text.frame, title="Zmiany w patchu 1.0.66", bootstyle="dark"
+        )
+
+        ttk.Label(self, text="Ostatnie zmiany", font=("TkFixedFont", 11)).grid(
+            row=6, column=0, pady=(25, 15), sticky=ttk.W
+        )
+        cf_last_changes = CollapsingFrame(self)
+        cf_last_changes.grid(row=7, column=0, sticky=ttk.EW)
+
+        self.text_last = Text(cf_last_changes)
+
+        # Message
+        self.text_last.add("Nowości\n", "h1")
+        self.text_last.add(
+            "- dodano nową ikonę w menu po kliknięciu w którą wyświetlona zostanie strona z informacjami o aktualnych i przyszłych zmianach w aplikacji\n"
+        )
+        self.text_last.add(
+            "- dodano weryfikację pól w trakcie tworzenia szablonu fejków\n"
+        )
+
+        self.text_last.add("Poprawki\n", "h1")
+        self.text_last.add("- poprawiono rejestrowanie błędów w logach\n")
+        self.text_last.add(
+            "- poprawiono przełączanie zakładek w interfejsie graficznym aplikacji\n"
+        )
+        self.text_last.add(
+            "- udoskonalono wstępne wykrywanie błędnie wypełnionego planera\n"
+        )
+        self.text_last.add(
+            "- zmniejszono częstotliwość zamykania przeglądarki w trakcie wymiany surowców na punkty premium\n"
+        )
+
+        self.text_last.tag_add("left_margin", "1.0", "end")
+
+        cf_last_changes.add(
+            child=self.text_last.frame, title="Zmiany w patchu 1.0.65", bootstyle="dark"
         )
 
         # Incoming changes
 
         ttk.Label(self, text="Nadchodzące zmiany", font=("TkFixedFont", 11)).grid(
-            row=3, column=0, pady=(25, 15), sticky=ttk.W
+            row=8, column=0, pady=(25, 15), sticky=ttk.W
         )
 
         cf_incoming_changes = CollapsingFrame(self)
-        cf_incoming_changes.grid(row=4, column=0, pady=(0, 20), sticky=ttk.EW)
+        cf_incoming_changes.grid(row=9, column=0, pady=(0, 20), sticky=ttk.EW)
 
         self.text_inc = Text(cf_incoming_changes)
         self.text_inc.add("Nowości\n", "h1")
@@ -158,7 +188,7 @@ class Home(ScrollableFrame):
         self.text_inc.tag_add("left_margin", "1.0", "end")
 
         cf_incoming_changes.add(
-            child=self.text_inc.frame, title="Zmiany w patchu 1.0.65", bootstyle="dark"
+            child=self.text_inc.frame, title="Zmiany w patchu 1.0.7X", bootstyle="dark"
         )
 
         # # Change log
@@ -3885,9 +3915,6 @@ class MainWindow:
 
         # Other things
         fill_entry_from_settings(entries=self.entries_content, settings=settings)
-        if settings["first_lunch"]:
-            set_default_entries(entries=self.entries_content)
-            settings["first_lunch"] = False
         save_entry_to_settings(entries=self.entries_content, settings=settings)
 
         master.unbind_class("TCombobox", "<MouseWheel>")
@@ -3974,7 +4001,9 @@ class MainWindow:
             return False
 
         # Ustawienia pierwszego świata
-        elif len(self.settings_by_worlds) == 0 and entry_change:
+        elif (len(self.settings_by_worlds) == 0 and entry_change) or settings[
+            "first_lunch"
+        ]:
             if not get_world_config():
                 return False
             self.entries_content["world_in_title"].set(
@@ -3988,6 +4017,9 @@ class MainWindow:
             self.settings_by_worlds[server_world].update(settings)
             self.control_panel.game_url.config(bootstyle="default")
             self.control_panel.world_number_input.config(bootstyle="default")
+            if settings["first_lunch"]:
+                self.entries_content["game_url"].set(game_url)
+                self.entries_content["world_number"].set(world_number)
             return True
 
         # Zmiana świata w obrębie wybranej konfiguracji ustawień
@@ -4071,6 +4103,96 @@ class MainWindow:
             settings.update(self.settings_by_worlds[server_world])
 
             return True
+
+    def add_new_world_window(self, settings: dict, obligatory: bool = False) -> None:
+
+        master = TopLevel(title_text="Tribal Wars Bot")
+
+        ttk.Label(master.content_frame, text="Wybierz serwer i numer świata").grid(
+            row=0, column=0, columnspan=2, padx=5, pady=(5, 0)
+        )
+
+        game_url_var = tk.StringVar()
+        game_url = ttk.Combobox(
+            master=master.content_frame,
+            textvariable=game_url_var,
+            state="readonly",
+            justify="center",
+            width=20,
+        )
+        game_url.grid(row=1, column=0, padx=5, pady=(5))
+        game_url.set("Wybierz serwer")
+        game_url["values"] = [
+            "plemiona.pl",
+            "die-staemme.de",
+            "staemme.ch",
+            "tribalwars.net",
+            "tribalwars.nl",
+            "tribalwars.se",
+            "tribalwars.com.br",
+            "tribalwars.com.pt",
+            "divokekmeny.cz",
+            "triburile.ro",
+            "voyna-plemyon.ru",
+            "fyletikesmaxes.gr",
+            "no.tribalwars.com",
+            "divoke-kmene.sk",
+            "klanhaboru.hu",
+            "tribalwars.dk",
+            "tribals.it",
+            "klanlar.org",
+            "guerretribale.fr",
+            "guerrastribales.es",
+            "tribalwars.ae",
+            "tribalwars.co.uk",
+            "vojnaplemen.si",
+            "plemena.com",
+            "tribalwars.asia",
+            "tribalwars.us",
+        ]
+
+        world_number = tk.StringVar()
+        world_number_input = ttk.Entry(
+            master.content_frame,
+            textvariable=world_number,
+            width=5,
+            justify="center",
+        )
+        world_number_input.grid(row=1, column=1, padx=(0, 5), pady=(5), sticky="E")
+
+        def on_add_new_world() -> None:
+            if not world_number.get().isnumeric():
+                custom_error(
+                    "Numer świata powinien składać się z samych cyfr.",
+                    parent=master,
+                )
+                return
+            if self.add_new_world(
+                settings=settings,
+                game_url=game_url_var.get(),
+                world_number=world_number.get(),
+            ):
+                master.destroy()
+
+        add_button = ttk.Button(
+            master.content_frame, text="Dodaj", command=on_add_new_world
+        )
+        add_button.grid(
+            row=2, column=0, columnspan=2, padx=5, pady=(15, 5), sticky=ttk.EW
+        )
+
+        master.bind(
+            "<Return>",
+            lambda _: [
+                world_number_input.event_generate("<Leave>"),
+                add_button.event_generate("<Button-1>"),
+                on_add_new_world(),
+            ],
+        )
+        center(window=master, parent=self.master)
+        master.attributes("-alpha", 1.0)
+        if obligatory:
+            master.wait_window()
 
     def check_groups(self, settings: dict):
 
@@ -4698,9 +4820,12 @@ class MainWindow:
                         if self.jobs_info.master.winfo_exists():
                             self.jobs_info.update_table(main_window=self)
             except NoSuchWindowException:
-                print("yes")
                 logger.error("NoSuchWindowException")
                 self.driver.switch_to.window(self.driver.window_handles[0])
+                # self.driver.execute_cdp_cmd(
+                #     "Page.addScriptToEvaluateOnNewDocument",
+                #     {"source": COORDS_COPY},
+                # )
                 logged = app_functions.log_in(self.driver, _settings)
                 continue
             except BaseException as e:
@@ -4738,10 +4863,14 @@ class MainWindow:
                 html = self.driver.page_source
 
                 # Deal with known things like popups, captcha etc.
-                if app_functions.unwanted_page_content(self.driver, _settings, html):
+                if (
+                    app_functions.unwanted_page_content(self.driver, _settings, html)
+                    or self.to_do[0]["errors_number"] % 2 == 1
+                ):
                     continue
 
                 # Unknown error
+                logger.info(f"restarting browser coused by {self.to_do[0]['func']}")
                 self.driver.quit()
                 self.driver = app_functions.run_driver(settings=_settings)
                 logged = app_functions.log_in(self.driver, _settings)
@@ -4771,92 +4900,7 @@ class MainWindow:
 
         def add_world() -> None:
             self.world_chooser_window.destroy()
-
-            master = TopLevel(title_text="Tribal Wars Bot")
-
-            ttk.Label(master.content_frame, text="Wybierz serwer i numer świata").grid(
-                row=0, column=0, columnspan=2, padx=5, pady=(5, 0)
-            )
-
-            game_url_var = tk.StringVar()
-            game_url = ttk.Combobox(
-                master=master.content_frame,
-                textvariable=game_url_var,
-                state="readonly",
-                justify="center",
-                width=20,
-            )
-            game_url.grid(row=1, column=0, padx=5, pady=(5))
-            game_url.set("Wybierz serwer")
-            game_url["values"] = [
-                "plemiona.pl",
-                "die-staemme.de",
-                "staemme.ch",
-                "tribalwars.net",
-                "tribalwars.nl",
-                "tribalwars.se",
-                "tribalwars.com.br",
-                "tribalwars.com.pt",
-                "divokekmeny.cz",
-                "triburile.ro",
-                "voyna-plemyon.ru",
-                "fyletikesmaxes.gr",
-                "no.tribalwars.com",
-                "divoke-kmene.sk",
-                "klanhaboru.hu",
-                "tribalwars.dk",
-                "tribals.it",
-                "klanlar.org",
-                "guerretribale.fr",
-                "guerrastribales.es",
-                "tribalwars.ae",
-                "tribalwars.co.uk",
-                "vojnaplemen.si",
-                "plemena.com",
-                "tribalwars.asia",
-                "tribalwars.us",
-            ]
-
-            world_number = tk.StringVar()
-            world_number_input = ttk.Entry(
-                master.content_frame,
-                textvariable=world_number,
-                width=5,
-                justify="center",
-            )
-            world_number_input.grid(row=1, column=1, padx=(0, 5), pady=(5), sticky="E")
-
-            def on_add_new_world() -> None:
-                if not world_number.get().isnumeric():
-                    custom_error(
-                        "Numer świata powinien składać się z samych cyfr.",
-                        parent=master,
-                    )
-                    return
-                if self.add_new_world(
-                    settings=settings,
-                    game_url=game_url_var.get(),
-                    world_number=world_number.get(),
-                ):
-                    master.destroy()
-
-            add_button = ttk.Button(
-                master.content_frame, text="Dodaj", command=on_add_new_world
-            )
-            add_button.grid(
-                row=2, column=0, columnspan=2, padx=5, pady=(15, 5), sticky=ttk.EW
-            )
-
-            master.bind(
-                "<Return>",
-                lambda _: [
-                    world_number_input.event_generate("<Leave>"),
-                    add_button.event_generate("<Button-1>"),
-                    on_add_new_world(),
-                ],
-            )
-            center(window=master, parent=self.master)
-            master.attributes("-alpha", 1.0)
+            self.add_new_world_window(settings=settings)
 
         def delete_world(server_world: str) -> None:
 
@@ -5372,6 +5416,7 @@ def thread_monitor(thread: threading.Thread, main_window: MainWindow) -> None:
 def main() -> None:
     driver = None
     settings = app_functions.load_settings()
+    settings["temp"] = {}
 
     # Check for updates
     if hasattr(sys, "frozen"):

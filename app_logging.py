@@ -4,7 +4,7 @@ import traceback
 
 import requests
 
-from config import PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN
+from config import PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN, APP_VERSION
 
 
 class CustomLogFormatter(logging.Formatter):
@@ -35,12 +35,13 @@ class CustomLoggingHandler(logging.Handler):
         super().__init__(level)
         self.user_name = user_name
         self.formatter = CustomLogFormatter(
-            "%(levelname)s | %(name)s | %(asctime)s | %(message)s",
+            f"%(levelname)s | %(name)s | %(asctime)s | v{APP_VERSION} | %(message)s",
             datefmt="%d-%m-%Y %H:%M:%S",
         )
 
     def emit(self, *args):
         msg = self.formatter.format(*args)
+
         headers = {
             "Content-Type": "application/json",
             "Authorization": PYTHON_ANYWHERE_API_TOKEN,
@@ -67,7 +68,7 @@ def get_logger(
     f_handler = logging.FileHandler(filename)
     f_handler.setLevel(f_handler_level)
     f_format = CustomLogFormatter(
-        "%(levelname)s | %(name)s | %(asctime)s %(message)s",
+        "%(levelname)s | %(name)s | %(asctime)s | %(message)s",
         datefmt="%d-%m-%Y %H:%M:%S",
     )
     f_handler.setFormatter(f_format)

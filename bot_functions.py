@@ -337,11 +337,17 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         "snob": 35,
     }
 
-    if "farm_village_to_skip" not in settings["temp"]:
-        settings["temp"]["farm_village_to_skip"] = {}
+    settings["temp"].setdefault("farm_village_to_skip", {})
+    settings["temp"].setdefault("block_until", {})
 
     # Główna pętla funkcji
     while True:
+
+        WebDriverWait(driver, 2, 0.01).until(
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="units_home"]/tbody/tr[2]')
+            )
+        )
 
         # Ukrywa chat
         driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
@@ -350,20 +356,21 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         doc = lxml.html.fromstring(
             driver.find_element(By.ID, "content_value").get_attribute("innerHTML")
         )
+
         template_troops = {
             "A": doc.xpath("div[2]/div/form/table/tbody/tr[2]/td/input"),
             "B": doc.xpath("div[2]/div/form/table/tbody/tr[4]/td/input"),
         }
 
         for key in template_troops:
-            tmp = {}
+            template = {}
             for row in template_troops[key]:
                 troop_number = int(row.get("value"))
                 if troop_number:
                     troop_name = row.get("name")
                     troop_name = re.search(r"[a-z]+", troop_name).group()
-                    tmp[troop_name] = troop_number
-            template_troops[key] = tmp
+                    template[troop_name] = troop_number
+            template_troops[key] = template
 
         # Unikalne nazwy jednostek z szablonów A i B
         troops_name = set(
@@ -512,8 +519,6 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                     # Append True if there are more resource than troop can hanle
                     else:
                         if skip_village(index=index):
-                            print("skip")
-                            print(settings["temp"]["farm_village_to_skip"])
                             loot.append(False)
                             continue
 
@@ -562,14 +567,12 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                     )
 
             # Travel time rule
+            distance = tuple(
+                float(row.xpath("text()")[0]) for row in farm.xpath("tr/td[8]")
+            )
+            army_speed = max(troops_speed[unit] for unit in template_troops[template])
             max_distance = 0.0
             if settings[template]["farm_rules"]["max_travel_time"]:
-                distance = tuple(
-                    float(row.xpath("text()")[0]) for row in farm.xpath("tr/td[8]")
-                )
-                army_speed = max(
-                    troops_speed[unit] for unit in template_troops[template]
-                )
                 max_distance: float = (
                     settings[template]["farm_rules"]["max_travel_time"] / army_speed
                 )
@@ -586,29 +589,15 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
 
                 # Skip villages which has some troops in
                 if skip_village(village_number):
-                    print("skip2")
-                    print(settings["temp"]["farm_village_to_skip"])
                     continue
                 # Loot requirements
                 if loot:
                     # For max_loot
                     if settings[template]["farm_rules"]["loot"] == "max_loot":
-                        if village_number >= len(loot):
-                            logger.warning(
-                                msg=f"\nvillage_number {village_number} loot = {len(loot)}\n"
-                                f"villages_to_farm = {len(villages_to_farm[template])} walls = {len(walls)}"
-                            )
-                            break
                         if not loot[village_number]:
                             continue
                     # For min_loot
                     else:
-                        if village_number >= len(loot):
-                            logger.warning(
-                                msg=f"\nvillage_number {village_number} loot = {len(loot)}\n"
-                                f"villages_to_farm = {len(villages_to_farm[template])} walls = {len(walls)}"
-                            )
-                            break
                         if loot[village_number]:
                             continue
                 # Travel time requirements
@@ -634,8 +623,16 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                             break
                     # Template C
                     else:
-                        if any(
-                            True if number < 0 else False
+                        village_id = farm.xpath(f"tr[{village_number+3}]/@id")[0]
+                        if (
+                            village_id in settings["temp"]["block_until"]
+                            and settings["temp"]["block_until"][village_id]
+                            > time.time()
+                        ):
+                            continue
+
+                        if all(
+                            True if number <= 0 else False
                             for number in template_troops[template].values()
                         ):
                             no_units = True
@@ -684,6 +681,13 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                         village.click()
                     except StaleElementReferenceException:
                         break
+
+                    # Add to block_until
+                    if template == "C":
+                        village_id = farm.xpath(f"tr[{village_number+3}]/@id")[0]
+                        settings["temp"]["block_until"][village_id] = (
+                            time.time() + distance[village_number] * army_speed * 60
+                        )
 
                 start_time = time.time()
 
@@ -1125,7 +1129,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
         try:
             html_response = get_player_production_page()
         except BaseException:
-            log_in(driver=driver, settings=settings)
+            unwanted_page_content(driver=driver, settings=settings)
             try:
                 html_response = get_player_production_page()
             except BaseException:
@@ -1135,7 +1139,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
         try:
             production = doc.get_element_by_id("production_table")
         except:
-            log_in(driver=driver, settings=settings)
+            driver.get(player_production_url)
             unwanted_page_content(driver=driver, settings=settings)
             html_response = get_player_production_page()
             doc = lxml.html.fromstring(html_response)
@@ -1191,6 +1195,10 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
             continue
 
         for village in village_list:
+
+            if not settings["temp"]["main_window"].running:
+                return
+
             market_url, village_coords = village["market_url"], village["coords"]
 
             if village_coords in settings["market"]["market_exclude_villages"]:
@@ -1478,6 +1486,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
 
                     for _ in range(5):
                         send_troops_in_the_middle(driver=driver, settings=settings)
+                        if not settings["temp"]["main_window"].running:
+                            return
                         time.sleep(1)
 
                     transport_capacity = int(
@@ -2209,6 +2219,8 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
     )
     for palace_url, market_url in zip(villages_palace_url, villages_market_url):
         driver.get(palace_url)
+        if not settings["temp"]["main_window"].running:
+            return
         try:
             # Scroll into
             if driver.execute_script(
@@ -2229,6 +2241,8 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
             logger.error("Error during coin mining")
 
         send_troops_in_the_middle(driver=driver, settings=settings)
+        if not settings["temp"]["main_window"].running:
+            return
 
         driver.get(market_url)
         # Hide villages with no merchants

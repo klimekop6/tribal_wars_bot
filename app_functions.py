@@ -23,9 +23,10 @@ from selenium_stealth import stealth
 from webdriver_manager.chrome import ChromeDriverManager
 
 from app_logging import get_logger
+from bot_browser_extensions import COORDS_COPY
 from config import ANY_CAPTCHA_API_KEY
 from decorators import log_errors
-from gui_functions import custom_error
+from gui_functions import custom_error, set_default_entries
 
 logger = get_logger(__name__)
 
@@ -294,6 +295,12 @@ def first_app_lunch(settings: dict) -> None:
         sys.exit()
 
 
+def first_app_login(settings: dict, main_window) -> None:
+    set_default_entries(entries=main_window.entries_content)
+    main_window.add_new_world_window(settings=settings, obligatory=True)
+    settings["first_lunch"] = False
+
+
 def get_villages_id(settings: dict[str], update: bool = False) -> dict:
     """Download, process and save in text file for future use.
     In the end return all villages in the world with proper id.
@@ -497,6 +504,10 @@ def run_driver(settings: dict) -> webdriver.Chrome:
                     ),
                     options=chrome_options,
                 )
+                # driver.execute_cdp_cmd(
+                #     "Page.addScriptToEvaluateOnNewDocument",
+                #     {"source": COORDS_COPY},
+                # )
                 break
             except:
                 time.sleep(2)
@@ -689,3 +700,24 @@ def unwanted_page_content(
             msg="unwanted_page_content -> error while handling common errors",
         )
         return False
+
+
+# def on_new_tab(driver: webdriver.Chrome, settings: dict) -> None:
+#     while True:
+#         main_window = driver.current_window_handle
+#         if "window" not in settings["temp"]:
+#             settings["temp"]["window"] = []
+
+#         switched = False
+#         for window in driver.window_handles:
+#             if window not in settings["temp"]["window"]:
+#                 driver.switch_to.window(window)
+#                 switched = True
+#                 driver.execute_cdp_cmd(
+#                     "Page.addScriptToEvaluateOnNewDocument",
+#                     {"source": coords_copy},
+#                 )
+#                 settings["temp"]["window"].append(window)
+#         if switched:
+#             driver.switch_to.window(main_window)
+#         time.sleep(0.1)
