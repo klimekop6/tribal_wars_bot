@@ -4,7 +4,7 @@ import traceback
 
 import requests
 
-from config import PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN
+from config import PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN, APP_VERSION
 
 
 class CustomLogFormatter(logging.Formatter):
@@ -35,7 +35,7 @@ class CustomLoggingHandler(logging.Handler):
         super().__init__(level)
         self.user_name = user_name
         self.formatter = CustomLogFormatter(
-            "%(levelname)s | %(name)s | %(asctime)s | %(message)s",
+            f"%(levelname)s | %(name)s | %(asctime)s | v{APP_VERSION} | %(message)s",
             datefmt="%d-%m-%Y %H:%M:%S",
         )
 
@@ -60,16 +60,18 @@ class CustomLoggingHandler(logging.Handler):
 def get_logger(
     name: str,
     filename: str = "logs/log.txt",
-    level: int = logging.ERROR,
+    logger_level: int = logging.DEBUG,
+    f_handler_level: int = logging.ERROR,
 ) -> logging.Logger:
     logger = logging.getLogger(name)
+    logger.setLevel(logger_level)
     f_handler = logging.FileHandler(filename)
+    f_handler.setLevel(f_handler_level)
     f_format = CustomLogFormatter(
-        "%(levelname)s | %(name)s | %(asctime)s %(message)s",
+        "%(levelname)s | %(name)s | %(asctime)s | %(message)s",
         datefmt="%d-%m-%Y %H:%M:%S",
     )
     f_handler.setFormatter(f_format)
-    f_handler.setLevel(level)
     logger.addHandler(f_handler)
     logger.propagate = False
 
@@ -79,7 +81,8 @@ def get_logger(
 def add_event_handler(settings: dict) -> None:
 
     logging_handler = CustomLoggingHandler(user_name=settings["user_name"])
-    logging.getLogger("bot_main").addHandler(logging_handler)
+    logging.getLogger("__main__").addHandler(logging_handler)
+    logging.getLogger("app_functions").addHandler(logging_handler)
     logging.getLogger("bot_functions").addHandler(logging_handler)
     logging.getLogger("decorators").addHandler(logging_handler)
     logging.getLogger("log_in_window").addHandler(logging_handler)

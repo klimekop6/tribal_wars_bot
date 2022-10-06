@@ -2,6 +2,8 @@ import textwrap
 import tkinter as tk
 
 import ttkbootstrap as ttk
+from ttkbootstrap.validation import ValidationEvent, validator
+from ttkbootstrap.scrolled import ScrolledFrame
 
 from app_logging import get_logger
 
@@ -34,31 +36,63 @@ def center(window: tk.Toplevel, parent: tk.Toplevel = None) -> None:
             )
 
 
-def change_state(parent, value, entries_content, reverse=False, *ommit) -> None:
-    def disableChildren(parent):
+def change_state(
+    parent: tk.Widget | list[tk.Widget],
+    value,
+    entries_content=None,
+    reverse=False,
+    *ommit,
+) -> None:
+    def disableChildren(parent: tk.Widget):
         if not parent.winfo_children():
-            if parent.winfo_class() not in ("TFrame", "Labelframe", "TSeparator"):
-                parent.config(state="disabled")
+            if parent.winfo_class() not in (
+                "TFrame",
+                "TLabelframe",
+                "TSeparator",
+                "TScrollbar",
+            ):
+                parent.configure(state="disabled")
+                if parent.winfo_class() in ("TEntry") and parent.invalid:
+                    parent.event_generate("<FocusOut>")
+                    parent.explicitly_validate = True
         for child in parent.winfo_children():
             wtype = child.winfo_class()
-            if wtype not in ("TFrame", "Labelframe", "TSeparator"):
+            if wtype not in ("TFrame", "TLabelframe", "TSeparator", "TScrollbar"):
                 if child not in ommit:
-                    child.configure(state="disable")
+                    child.configure(state="disabled")
+                    if wtype in ("TEntry") and child.invalid:
+                        child.event_generate("<FocusOut>")
+                        child.explicitly_validate = True
             else:
                 disableChildren(child)
 
-    def enableChildren(parent):
+    def enableChildren(parent: tk.Widget):
         if not parent.winfo_children():
-            if parent.winfo_class() not in ("TFrame", "Labelframe", "TSeparator"):
-                parent.config(state="normal")
+            if parent.winfo_class() not in (
+                "TFrame",
+                "TLabelframe",
+                "TSeparator",
+                "TScrollbar",
+            ):
+                parent.configure(state="normal")
+                if parent.winfo_class() in ("TEntry") and hasattr(
+                    parent, "explicitly_validate"
+                ):
+                    del parent.explicitly_validate
+                    parent.event_generate("<FocusOut>")
         for child in parent.winfo_children():
             wtype = child.winfo_class()
-            if wtype not in ("TFrame", "Labelframe", "TSeparator"):
+            if wtype not in ("TFrame", "TLabelframe", "TSeparator", "TScrollbar"):
                 if child not in ommit:
                     if wtype == "TCombobox":
                         child.configure(state="readonly")
                     else:
                         child.configure(state="normal")
+                        if wtype in ("TEntry") and hasattr(
+                            child, "explicitly_validate"
+                        ):
+                            del child.explicitly_validate
+                            child.event_generate("<FocusOut>")
             else:
                 enableChildren(child)
 
@@ -73,7 +107,7 @@ def change_state(parent, value, entries_content, reverse=False, *ommit) -> None:
             else:
                 check_button_fix(child)
 
-    if not isinstance(value, int):
+    if not isinstance(value, (int, bool)):
         value = int(entries_content[value].get())
 
     if not isinstance(parent, list):
@@ -172,13 +206,30 @@ def fill_entry_from_settings(entries: dict, settings: dict) -> None:
     loop_over_entries(entries=entries, settings=settings)
 
 
-def forget_row(widget_name, row_number: int = 0, rows_beetwen: tuple = None) -> None:
-    for label in widget_name.grid_slaves():
-        if rows_beetwen:
-            if rows_beetwen[0] < int(label.grid_info()["row"]) < rows_beetwen[1]:
-                label.grid_forget()
-        elif int(label.grid_info()["row"]) == row_number:
-            label.grid_forget()
+def forget_row(
+    parent: tk.Widget,
+    row_number: int = None,
+    rows_beetwen: tuple = None,
+    methods=("grid",),
+) -> None:
+    prefix = ""
+    if isinstance(parent, ScrolledFrame):
+        prefix = "content_"
+    for method in methods:
+        if method == "grid":
+            for widget in getattr(parent, f"{prefix}{method}_slaves")(row=row_number):
+                if rows_beetwen:
+                    if (
+                        rows_beetwen[0]
+                        < int(widget.grid_info()["row"])
+                        < rows_beetwen[1]
+                    ):
+                        widget.grid_forget()
+                elif row_number:
+                    widget.grid_forget()
+        else:
+            for widget in getattr(parent, f"{prefix}{method}_slaves")():
+                getattr(widget, f"{method}_forget")()
 
 
 def get_pos(self, event, *args) -> None:
@@ -261,13 +312,33 @@ def save_entry_to_settings(
                     settings[key] = {}
                 loop_over_entries(entries=entries[key], settings=settings[key])
             else:
-                settings[key] = value.get()
+                try:
+                    settings[key] = value.get()
+                except:
+                    # Just in case user set incorrect value type it won't throw
+                    # error and still it will correclty save settings to file
+                    value.set(0)
+                    settings[key] = value.get()
 
     loop_over_entries(entries=entries, settings=settings)
     if settings_by_worlds:
         loop_over_entries(
             entries=entries, settings=settings_by_worlds[settings["server_world"]]
         )
+
+
+def set_default_entries(entries: dict[tk.Variable]) -> None:
+    """Set default entries if not in settings"""
+
+    for template in ("A", "B", "C"):
+        entries[template]["attacks_number"].set(5)
+    # Share with A, B and C
+    entries["farm_sleep_time"].set(30)
+    entries["gathering_max_resources"].set(500)
+    entries["market"]["check_every"].set(30)
+    entries["coins"]["max_send_time"].set(120)
+    entries["coins"]["check_every"].set(30)
+    entries["notifications"]["check_incoming_attacks_sleep_time"].set(30)
 
 
 def show_or_hide_password(parent, entry: ttk.Entry, button: ttk.Button) -> None:
@@ -280,3 +351,54 @@ def show_or_hide_password(parent, entry: ttk.Entry, button: ttk.Button) -> None:
         entry.config(show="")
         button.config(image=parent.show_image)
     entry.focus_set()
+
+
+@validator
+def is_int(
+    event: ValidationEvent,
+    min: int = 0,
+    default: int = 0,
+    navi_button: ttk.Button = None,
+    parent=None,
+) -> bool:
+    def add_to_invalid() -> None:
+        if parent and event.widget.invalid is False:
+            event.widget.invalid = True
+            if parent.invalid == 0 and navi_button:
+                navi_button.configure(bootstyle="danger")
+                navi_button.invalid = True
+            parent.invalid += 1
+
+    def sub_from_invalid() -> None:
+        if parent and event.widget.invalid is True:
+            event.widget.invalid = False
+            parent.invalid -= 1
+            if parent.invalid == 0 and navi_button:
+                navi_button.configure(bootstyle="primary")
+                navi_button.invalid = False
+
+    if "disabled" in event.widget.state():
+        sub_from_invalid()
+        return True
+
+    if not event.postchangetext.strip():
+        sub_from_invalid()
+        event.widget.after_idle(
+            lambda: [
+                event.widget.delete(0, "end"),
+                event.widget.insert(0, f"{default}"),
+            ]
+        )
+        return True
+
+    if not event.postchangetext.isnumeric():
+        add_to_invalid()
+        return False
+
+    if int(event.postchangetext) < min:
+        add_to_invalid()
+        return False
+
+    if event.postchangetext:
+        sub_from_invalid()
+        return True

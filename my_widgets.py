@@ -1,6 +1,7 @@
 import tkinter as tk
 
 import ttkbootstrap as ttk
+from ttkbootstrap.scrolled import ScrolledFrame
 
 from gui_functions import forget_row
 
@@ -100,97 +101,169 @@ class TopLevel(tk.Toplevel):
             getattr(self, arg).bind("<B1-Motion>", move_window)
 
 
-class ScrollableFrame:
-    """Create scrollable frame on top of canvas"""
-
+class ScrollableFrame(ScrolledFrame):
     def __init__(
         self,
-        parent: ttk.Frame = None,
-        max_width: bool = True,
-        show: bool = False,
+        master=None,
+        padding=0,
+        bootstyle=ttk.DEFAULT,
+        autohide=True,
+        height=200,
+        width=300,
+        scrollheight=None,
+        max_height=False,
         **kwargs,
-    ) -> None:
-
-        self.parent = parent
-        if max_width:
-            parent.columnconfigure(0, weight=1)
-        parent.rowconfigure(0, weight=1)
-
-        def on_configure(event: tk.Event):
-            # Update scrollregion after starting 'mainloop'
-            # when all widgets are in canvas.
-            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-            if self.canvas.yview() == (0.0, 1.0):
-                self.scrollbar.grid_remove()
-            else:
-                self.scrollbar.grid(row=0, column=1, sticky=tk.NS)
-
-        def _frame_size(event: tk.Event):
-            min_canvas_height = parent.winfo_height()
-            if self.frame.winfo_height() < min_canvas_height:
-                self.canvas.itemconfig(self.canvas_frame, height=min_canvas_height)
-            # No need to create scroll on the right side
-            _fix_width_depend_on_scrollbar_existence(event)
-
-        def _fix_width_depend_on_scrollbar_existence(event: tk.Event) -> None:
-            if self.canvas.yview() == (0.0, 1.0):
-                self.canvas.itemconfig(self.canvas_frame, width=event.width)
-                return
-            self.canvas.itemconfig(self.canvas_frame, width=event.width - 11)
-            self.canvas.update()
-
-        # --- Create self.canvas with scrollbar ---
-
-        self.canvas = tk.Canvas(parent)
-        if show:
-            self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
-        self.canvas.rowconfigure(0, weight=1)
-
-        self.container = ttk.Frame(self.canvas)
-        self.container.grid(row=0, column=0, sticky=tk.NSEW)
-        self.container.rowconfigure(0, weight=1)
-
-        self.frame = ttk.Frame(self.container)
-        self.frame.grid(row=0, column=0, sticky=tk.NSEW, **kwargs)
-
-        if max_width:
-            self.canvas.columnconfigure(0, weight=1)
-            self.container.columnconfigure(0, weight=1)
-            self.frame.columnconfigure(0, weight=1)
-            self.frame.columnconfigure(1, weight=1)
-
-        self.scrollbar = ttk.Scrollbar(self.canvas, command=self._yview)
-        self.scrollbar.grid(row=0, column=1, sticky=tk.NS)
-
-        self.canvas.configure(yscrollcommand=self.scrollbar.set)
-        self.canvas.bind("<Enter>", lambda event: self._bound_to_mousewheel(event))
-        self.canvas.bind("<Leave>", lambda event: self._unbound_to_mousewheel(event))
-
-        # --- Put frame in self.canvas ---
-
-        self.canvas_frame = self.canvas.create_window(
-            (0, 0), window=self.container, anchor=tk.NW
+    ):
+        super().__init__(
+            master, padding, bootstyle, autohide, height, width, scrollheight, **kwargs
         )
 
-        # Update scrollregion after starting 'mainloop'
-        # when all widgets are in self.canvas.
-        self.frame.bind("<Configure>", on_configure)
-        self.canvas.bind("<Configure>", _frame_size)
+        self.master = master
+        self.max_height = max_height
 
     def show(self) -> None:
-        forget_row(self.parent, 0)
-        self.canvas.grid(row=0, column=0, sticky=tk.NSEW)
+        forget_row(self.master, methods=("place",))
+        if self.max_height:
+            if hasattr(self, "height_fix"):
+                getattr(self, "height_fix")()
+            elif (self.master.winfo_height() - self.winfo_reqheight()) > 0:
+                self.rowconfigure(
+                    666,
+                    minsize=(self.master.winfo_height() - self.winfo_reqheight()),
+                )
+        self.place(rely=0.0, relheight=1.0, relwidth=1.0)
 
-    def _bound_to_mousewheel(self, event: tk.Event = None):
-        self.canvas.bind_all("<MouseWheel>", lambda event: self._on_mousewheel(event))
+    def scroll_to_widget_top(self, widget: tk.Widget):
+        if self.winfo_height() > self.container.winfo_height():
+            pos = widget.winfo_rooty() - self.winfo_rooty()
+            height = self.winfo_height()
+            self.yview_moveto(pos / height)
 
-    def _unbound_to_mousewheel(self, event: tk.Event = None):
-        self.canvas.unbind_all("<MouseWheel>")
 
-    def _on_mousewheel(self, event: tk.Event):
-        self._yview("scroll", int(-1 * (event.delta / 120)), "units")
+class CollapsingFrame(ttk.Frame):
+    """A collapsible frame widget that opens and closes with a click."""
 
-    def _yview(self, *args):
-        if self.canvas.yview() == (0.0, 1.0):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.columnconfigure(0, weight=1)
+        self.cumulative_rows = 0
+
+        # widget images
+        self.images = [
+            ttk.PhotoImage(file="icons//right_arrow.png"),
+            ttk.PhotoImage(file="icons//down_arrow.png"),
+        ]
+
+    def add(self, child: ttk.Frame, title="", bootstyle=ttk.PRIMARY, **kwargs):
+        """Add a child to the collapsible frame
+
+        Parameters:
+
+            child (Frame):
+                The child frame to add to the widget.
+
+            title (str):
+                The title appearing on the collapsible section header.
+
+            bootstyle (str):
+                The style to apply to the collapsible section header.
+
+            **kwargs (Dict):
+                Other optional keyword arguments.
+        """
+        if child.winfo_class() != "TFrame":
             return
-        self.canvas.yview(*args)
+
+        style_color = ttk.Bootstyle.ttkstyle_widget_color(bootstyle)
+        frame = ttk.Frame(self, bootstyle=style_color)
+        frame.grid(row=self.cumulative_rows, column=0, sticky=ttk.EW)
+
+        # header title
+        header = ttk.Label(
+            master=frame, text=title, bootstyle=(style_color, ttk.INVERSE)
+        )
+        if kwargs.get("textvariable"):
+            header.configure(textvariable=kwargs.get("textvariable"))
+        header.pack(side=ttk.LEFT, fill=ttk.BOTH, padx=10)
+
+        # header toggle button
+        def _func(c=child):
+            return self._toggle_open_close(c)
+
+        btn = ttk.Button(
+            master=frame, image=self.images[0], bootstyle=style_color, command=_func
+        )
+        btn.pack(side=ttk.RIGHT)
+
+        # assign toggle button to child so that it can be toggled
+        child.btn = btn
+
+        # increment the row assignment
+        self.cumulative_rows += 2
+
+    def _toggle_open_close(self, child: ttk.Frame):
+        """Open or close the section and change the toggle button
+        image accordingly.
+
+        Parameters:
+
+            child (Frame):
+                The child element to add or remove from grid manager.
+        """
+        if child.winfo_viewable():
+            child.grid_remove()
+            child.btn.configure(image=self.images[0])
+        else:
+            child.grid(row=self.cumulative_rows + 1, column=0, sticky=ttk.EW)
+            child.btn.configure(image=self.images[1])
+
+
+class Text:
+    def __init__(self, collapsing_frame: CollapsingFrame) -> None:
+        self.text_line = 1
+
+        self.frame = ttk.Frame(collapsing_frame)
+        self.frame.columnconfigure(0, weight=1)
+
+        self.text = tk.Text(
+            self.frame,
+            autostyle=False,
+            background="#222222",
+            borderwidth=0,
+            foreground="white",
+            font=("TkFixedFont", 10),
+            insertbackground="white",
+            padx=15,
+            height=5,
+            wrap="word",
+            spacing1=10,
+            spacing2=5,
+            spacing3=1,
+        )
+        self.text.grid(row=0, column=0, sticky=ttk.EW)
+
+        # Tags
+        self.text.tag_configure("h1", font=("TkFixedFont", 11), spacing1=20)
+        self.text.tag_configure("left_margin", lmargin2=8)
+
+        # Bindings
+        self.text.bind("<Map>", lambda _: self.text.configure(state="disabled"))
+        self.text.bind("<Map>", self._on_map, "+")
+        self.text.bindtags((self.text.bindtags()[0],))
+
+        # Delegate text methods to frame
+        for method in vars(ttk.Text).keys():
+            if any(["pack" in method, "grid" in method, "place" in method]):
+                pass
+            else:
+                setattr(self, method, getattr(self.text, method))
+
+    def add(self, line_of_text: str, *tags) -> None:
+        self.text.insert(f"{self.text_line}.0", line_of_text, *tags)
+        self.text_line += 1
+
+    def _on_map(self, *_):
+        """Callback for when the configure method is used"""
+
+        self.text.update_idletasks()
+        self.text.configure(height=self.text.count("1.0", "end", "displaylines"))

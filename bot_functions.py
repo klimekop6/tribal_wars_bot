@@ -9,7 +9,6 @@ from math import ceil, sqrt
 
 import lxml.html
 import requests
-from anticaptchaofficial.hcaptchaproxyless import *
 from selenium import webdriver
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
@@ -338,11 +337,17 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         "snob": 35,
     }
 
-    if "farm_village_to_skip" not in settings["temp"]:
-        settings["temp"]["farm_village_to_skip"] = {}
+    settings["temp"].setdefault("farm_village_to_skip", {})
+    settings["temp"].setdefault("block_until", {})
 
     # Główna pętla funkcji
     while True:
+
+        WebDriverWait(driver, 2, 0.01).until(
+            EC.presence_of_element_located(
+                (By.XPATH, '//*[@id="units_home"]/tbody/tr[2]')
+            )
+        )
 
         # Ukrywa chat
         driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
@@ -351,20 +356,21 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         doc = lxml.html.fromstring(
             driver.find_element(By.ID, "content_value").get_attribute("innerHTML")
         )
+
         template_troops = {
             "A": doc.xpath("div[2]/div/form/table/tbody/tr[2]/td/input"),
             "B": doc.xpath("div[2]/div/form/table/tbody/tr[4]/td/input"),
         }
 
         for key in template_troops:
-            tmp = {}
+            template = {}
             for row in template_troops[key]:
                 troop_number = int(row.get("value"))
                 if troop_number:
                     troop_name = row.get("name")
                     troop_name = re.search(r"[a-z]+", troop_name).group()
-                    tmp[troop_name] = troop_number
-            template_troops[key] = tmp
+                    template[troop_name] = troop_number
+            template_troops[key] = template
 
         # Unikalne nazwy jednostek z szablonów A i B
         troops_name = set(
@@ -513,8 +519,6 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                     # Append True if there are more resource than troop can hanle
                     else:
                         if skip_village(index=index):
-                            print("skip")
-                            print(settings["temp"]["farm_village_to_skip"])
                             loot.append(False)
                             continue
 
@@ -563,14 +567,12 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                     )
 
             # Travel time rule
+            distance = tuple(
+                float(row.xpath("text()")[0]) for row in farm.xpath("tr/td[8]")
+            )
+            army_speed = max(troops_speed[unit] for unit in template_troops[template])
             max_distance = 0.0
             if settings[template]["farm_rules"]["max_travel_time"]:
-                distance = tuple(
-                    float(row.xpath("text()")[0]) for row in farm.xpath("tr/td[8]")
-                )
-                army_speed = max(
-                    troops_speed[unit] for unit in template_troops[template]
-                )
                 max_distance: float = (
                     settings[template]["farm_rules"]["max_travel_time"] / army_speed
                 )
@@ -587,29 +589,15 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
 
                 # Skip villages which has some troops in
                 if skip_village(village_number):
-                    print("skip2")
-                    print(settings["temp"]["farm_village_to_skip"])
                     continue
                 # Loot requirements
                 if loot:
                     # For max_loot
                     if settings[template]["farm_rules"]["loot"] == "max_loot":
-                        if village_number >= len(loot):
-                            logger.warning(
-                                msg=f"\nvillage_number {village_number} loot = {len(loot)}\n"
-                                f"villages_to_farm = {len(villages_to_farm[template])} walls = {len(walls)}"
-                            )
-                            break
                         if not loot[village_number]:
                             continue
                     # For min_loot
                     else:
-                        if village_number >= len(loot):
-                            logger.warning(
-                                msg=f"\nvillage_number {village_number} loot = {len(loot)}\n"
-                                f"villages_to_farm = {len(villages_to_farm[template])} walls = {len(walls)}"
-                            )
-                            break
                         if loot[village_number]:
                             continue
                 # Travel time requirements
@@ -635,8 +623,16 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                             break
                     # Template C
                     else:
-                        if any(
-                            True if number < 0 else False
+                        village_id = farm.xpath(f"tr[{village_number+3}]/@id")[0]
+                        if (
+                            village_id in settings["temp"]["block_until"]
+                            and settings["temp"]["block_until"][village_id]
+                            > time.time()
+                        ):
+                            continue
+
+                        if all(
+                            True if number <= 0 else False
                             for number in template_troops[template].values()
                         ):
                             no_units = True
@@ -685,6 +681,13 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                         village.click()
                     except StaleElementReferenceException:
                         break
+
+                    # Add to block_until
+                    if template == "C":
+                        village_id = farm.xpath(f"tr[{village_number+3}]/@id")[0]
+                        settings["temp"]["block_until"][village_id] = (
+                            time.time() + distance[village_number] * army_speed * 60
+                        )
 
                 start_time = time.time()
 
@@ -1109,40 +1112,37 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
     url = url[: url.rfind("/")]
     # Check if has premium account
     if driver.execute_script("return premium"):
-        # Already in good page
-        if "&screen=overview_villages&mode=prod&group=0&page=-1&" in driver.current_url:
-            html_response = driver.page_source
-        else:
-            player_production_url = (
-                url
-                + f"/game.php?village={current_village_id}&screen=overview_villages&mode=prod&group=0&page=-1&"
+        player_production_url = (
+            url
+            + f"/game.php?village={current_village_id}&screen=overview_villages&mode=prod&group=0&page=-1&"
+        )
+
+        def get_player_production_page() -> str:
+            return driver.execute_script(
+                f"""
+                var request = new XMLHttpRequest();
+                request.open("GET", "{player_production_url}", false);
+                request.send(null);   
+                return request.responseText;"""
             )
 
-            def get_player_production_page() -> str:
-                return driver.execute_script(
-                    f"""
-                    var request = new XMLHttpRequest();
-                    request.open("GET", "{player_production_url}", false);
-                    request.send(null);   
-                    return request.responseText;"""
-                )
-
+        try:
+            html_response = get_player_production_page()
+        except BaseException:
+            unwanted_page_content(driver=driver, settings=settings)
             try:
                 html_response = get_player_production_page()
             except BaseException:
-                log_in(driver=driver, settings=settings)
-                driver.get(player_production_url)
-                captcha_check(driver=driver, settings=settings)
-                html_response = driver.page_source
+                unwanted_page_content(driver=driver, settings=settings)
+                html_response = get_player_production_page()
         doc = lxml.html.fromstring(html_response)
         try:
             production = doc.get_element_by_id("production_table")
         except:
             driver.get(player_production_url)
-            if captcha_check(driver=driver, settings=settings):
-                if not driver.find_elements(By.ID, "production_table"):
-                    driver.get(player_production_url)
-            doc = lxml.html.fromstring(driver.page_source)
+            unwanted_page_content(driver=driver, settings=settings)
+            html_response = get_player_production_page()
+            doc = lxml.html.fromstring(html_response)
             production = doc.get_element_by_id("production_table")
 
         villages = {}
@@ -1195,6 +1195,10 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
             continue
 
         for village in village_list:
+
+            if not settings["temp"]["main_window"].running:
+                return
+
             market_url, village_coords = village["market_url"], village["coords"]
 
             if village_coords in settings["market"]["market_exclude_villages"]:
@@ -1482,6 +1486,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
 
                     for _ in range(5):
                         send_troops_in_the_middle(driver=driver, settings=settings)
+                        if not settings["temp"]["main_window"].running:
+                            return
                         time.sleep(1)
 
                     transport_capacity = int(
@@ -1549,7 +1555,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             if troop_speed > slowest_troop_speed:
                                 del troops_dict[troop_name]
 
-                        driver.find_element(By.ID, "selectAllUnits").click()
+                        driver.execute_script(
+                            f'document.getElementById("selectAllUnits").click();'
+                        )
                         doc = lxml.html.fromstring(
                             driver.find_element(
                                 By.XPATH, '//*[@id="command-data-form"]/table/tbody/tr'
@@ -1586,6 +1594,21 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         "snob": 35,
                     }
 
+                    troops_all = {
+                        "spear": 18,
+                        "sword": 22,
+                        "axe": 18,
+                        "archer": 18,
+                        "spy": 9,
+                        "light": 10,
+                        "marcher": 10,
+                        "heavy": 11,
+                        "ram": 30,
+                        "catapult": 30,
+                        "knight": 10,
+                        "snob": 35,
+                    }
+
                     if (
                         send_info["send_snob"] == "send_snob"
                         and send_info["snob_amount"] > 1
@@ -1600,20 +1623,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 all_troops = troops_deff.keys()
 
                             case _:
-                                all_troops = (
-                                    "spear",
-                                    "sword",
-                                    "axe",
-                                    "archer",
-                                    "spy",
-                                    "light",
-                                    "marcher",
-                                    "heavy",
-                                    "ram",
-                                    "catapult",
-                                    "knight",
-                                    "snob",
-                                )
+                                all_troops = troops_all.keys()
 
                         for troop in all_troops:
                             if settings["world_config"]["archer"] == 0:
@@ -1653,6 +1663,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 choose_all_units_with_exceptions(
                                     troops_dict=troops_deff
                                 )
+
+                            case _:
+                                choose_all_units_with_exceptions(troops_dict=troops_all)
 
                     if send_info["send_snob"] == "send_snob":
                         if send_info["snob_amount"]:
@@ -1723,13 +1736,38 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                 case "send_my_template":
                     # Choose troops to send
                     for troop_name, troop_number in send_info["troops"].items():
-                        if not troop_number:
-                            continue
                         if troop_number == "max":
                             driver.execute_script(
                                 f'document.getElementById("units_entry_all_{troop_name}").click();'
                             )
                             continue
+                        if "-" in troop_number:
+                            min_troop_number, max_troop_number = (
+                                int(value) for value in troop_number.split("-")
+                            )
+                            available_in_village = int(
+                                driver.execute_script(
+                                    f"return document.querySelector('#unit_input_{troop_name}').getAttribute('data-all-count')"
+                                )
+                            )
+                            # less than minimum
+                            if available_in_village < min_troop_number:
+                                if len(list_to_send) == 1:
+                                    return 1, attacks_to_repeat_to_do
+                                break
+                            # between min and max
+                            if (
+                                min_troop_number
+                                <= available_in_village
+                                <= max_troop_number
+                            ):
+                                driver.execute_script(
+                                    f'document.getElementById("units_entry_all_{troop_name}").click();'
+                                )
+                                continue
+                            # more than maximum
+                            troop_number = max_troop_number
+
                         troop_input = driver.find_element(
                             By.ID, f"unit_input_{troop_name}"
                         )
@@ -1964,46 +2002,265 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
         to_do.sort(key=lambda sort_by: sort_by["start_time"])
 
 
-def mine_coin(driver: webdriver.Chrome) -> None:
-
-    village_palace_url = (
-        "https://pl173.plemiona.pl/game.php?village=46740&screen=snob",
-        "https://pl173.plemiona.pl/game.php?village=15449&screen=snob",
+def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
+    coins: dict = settings["coins"]
+    base_url = f"https://{settings['server_world']}.{settings['game_url']}/game.php?"
+    villages_palace_url = (
+        f"{base_url}village={village_id}&screen=snob"
+        for village_id in coins["villages"].values()
     )
-    village_market_url = (
-        "https://pl173.plemiona.pl/game.php?village=46740&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=110555&",
-        "https://pl173.plemiona.pl/game.php?village=15449&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=110559&",
+    villages_market_url = (
+        f"{base_url}village={village_id}&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=0"
+        for village_id in coins["villages"].values()
     )
+    # JS script
+    call_resources = (
+        f"var MAX_STORAGE_FILL_PERCENTAGE = {round(coins['resource_fill']/100,2)};"
+        f"var MINIMUM_RESOURCE_REQUEST = 1000;"
+        f"var RESOURCE_SAFE = {coins['resource_left']};"
+        f"const VILLAGES_TO_SKIP = [{','.join(village_id for village_id in coins['villages'].values())}];"
+        f"const MAX_TIME = '{coins['max_send_time']//60:>01}:{coins['max_send_time']%60:>02}:00';"
+        r"""
+        var re;
+        var maxStorage;
+        var wood_atm, stone_atm, iron_atm;
+        var vil;
+        var capacity;
+        var bufor;
+        var wood_av, stone_av, iron_av;
+        var inc_wood, inc_stone, inc_iron;
+        var wood_needed, stone_needed, iron_needed;
+        var inp_wood, inp_stone, inp_iron;
+        var tmp;
+        var inp;
 
-    for palace_url, market_url in zip(village_palace_url, village_market_url):
-        # Wybij monety -> pałac
+        function getResources() {
+        maxStorage = Math.floor(parseInt(game_data.village.storage_max) * MAX_STORAGE_FILL_PERCENTAGE);
+        wood_atm = parseInt(game_data.village.wood);
+        stone_atm = parseInt(game_data.village.stone);
+        iron_atm = parseInt(game_data.village.iron);
+        }
+
+        function getIncoms() {
+        re = /\D+/;
+        inc_wood = $(document).find("#total_wood .res.wood").html();
+        inc_stone = $(document).find("#total_stone .res.stone").html();
+        inc_iron = $(document).find("#total_iron .res.iron").html();
+
+        inc_wood = parseInt(inc_wood.replace(re, ''));
+        inc_stone = parseInt(inc_stone.replace(re, ''));
+        inc_iron = parseInt(inc_iron.replace(re, ''));
+        }
+
+        function veryFirstVill() {
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled)")[0];
+        capacity = vil.getAttribute('data-capacity');
+        capacity = parseInt(capacity);
+
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled) .wood")[0];
+        wood_av = vil.getAttribute('data-res');
+        wood_av = parseInt(wood_av);
+
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled) .stone")[0];
+        stone_av = vil.getAttribute('data-res');
+        stone_av = parseInt(stone_av);
+
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled) .iron")[0];
+        iron_av = vil.getAttribute('data-res');
+        iron_av = parseInt(iron_av);
+
+        vil = $("#village_list").find("tbody tr:not(.stv-stor-filled)")[0];
+
+        $(vil).addClass('stv-stor-filled');
+        }
+
+        function getNeeds() {
+        wood_needed = maxStorage - wood_atm - inc_wood;
+        stone_needed = maxStorage - stone_atm - inc_stone;
+        iron_needed = maxStorage - iron_atm - inc_iron;
+        }
+
+        function callIt() {
+        inp = $(vil).find('input[name=select-village]');
+        $(inp).trigger('click');
+
+        inp_wood = $(vil).find(".wood input")[0];
+        inp_stone = $(vil).find(".stone input")[0];
+        inp_iron = $(vil).find(".iron input")[0];
+
+        getNeeds();
+
+        if (wood_av > iron_av && iron_av > stone_av){
+            wood_function();
+            iron_function();
+            stone_function();
+        }
+        else if (stone_av > wood_av && wood_av > iron_av){
+            stone_function();
+            wood_function();
+            iron_function();
+        }
+        else if (stone_av > iron_av && iron_av > wood_av){
+            stone_function();
+            iron_function();
+            wood_function();
+        }
+        else if (iron_av > stone_av && stone_av > wood_av){
+            iron_function();
+            stone_function();
+            wood_function();
+        }
+        else if (iron_av > wood_av && wood_av > stone_av){
+            iron_function();
+            wood_function();
+            stone_function();
+        } 
+        else {
+            wood_function();
+            stone_function();
+            iron_function();
+        }
+
+        function wood_function() {
+            if (wood_needed > 0 && capacity > 0 && wood_av > RESOURCE_SAFE) {
+            bufor = wood_needed;
+
+            if (bufor > wood_av - RESOURCE_SAFE) {
+                bufor = wood_av - RESOURCE_SAFE;
+            } else {
+                bufor = bufor;
+            }
+
+            if (bufor > capacity) {
+                bufor = capacity;
+                capacity = 0;
+            } else {
+                capacity = capacity - bufor;
+            }
+
+            } else {
+            bufor = 0;
+            }
+
+            if (bufor < MINIMUM_RESOURCE_REQUEST) {bufor = 0;}
+            $(inp_wood).val(bufor);
+            inc_wood += bufor;
+        }
+        function stone_function() {
+            if (stone_needed > 0 && capacity > 0 && stone_av > RESOURCE_SAFE) {
+            bufor = stone_needed;
+            if (bufor > stone_av - RESOURCE_SAFE) {
+            bufor = stone_av - RESOURCE_SAFE;
+            } else {
+            bufor = bufor;
+            }
+
+            if (bufor > capacity) {
+            bufor = capacity;
+            capacity = 0;
+            } else {
+            capacity = capacity - bufor;
+            }
+
+            } else {
+            bufor = 0;
+            }
+
+            if (bufor < MINIMUM_RESOURCE_REQUEST) {bufor = 0;}
+            $(inp_stone).val(bufor);
+            inc_stone += bufor;
+        }
+        function iron_function() {
+            if (iron_needed > 0 && capacity > 0 && iron_av > RESOURCE_SAFE) {
+            bufor = iron_needed;
+            if (bufor > iron_av - RESOURCE_SAFE) {
+            bufor = iron_av - RESOURCE_SAFE;
+            } else {
+            bufor = bufor;
+            }
+
+            if (bufor > capacity) {
+            bufor = capacity;
+            capacity = 0;
+            } else {
+            capacity = capacity - bufor;
+            }
+
+            } else {
+            bufor = 0;
+            }
+
+            if (bufor < MINIMUM_RESOURCE_REQUEST) {bufor = 0;}
+            $(inp_iron).val(bufor);
+            inc_iron += bufor;
+        }
+        }
+
+        function start() {
+        veryFirstVill();
+        callIt();
+        }
+
+        getResources();
+        getIncoms();
+
+        var num_vils = $("#village_list").find("tbody tr:not(.stv-stor-filled)").length;
+
+        for (let i=0; i<num_vils; i++) {
+            vil = $("#village_list").find("tbody tr:not(.stv-stor-filled)")[0];
+            if ($(vil).children().eq(1).text()>MAX_TIME) {break;}
+            if (VILLAGES_TO_SKIP.includes(parseInt(vil.getAttribute('data-village')))) {
+                $(vil).addClass('stv-stor-filled');
+                continue;
+            }  
+            start();
+        }
+        """
+    )
+    for palace_url, market_url in zip(villages_palace_url, villages_market_url):
         driver.get(palace_url)
+        if not settings["temp"]["main_window"].running:
+            return
         try:
-            max_coin = driver.find_element(By.ID, "coin_mint_fill_max")
-            driver.execute_script(
-                "return arguments[0].scrollIntoView(false);", max_coin
-            )
-            footer_height = driver.find_element(By.ID, "footer").size["height"]
-            driver.execute_script(f"scrollBy(0, {footer_height});")
-            max_coin.click()
-            driver.find_element(
-                By.XPATH,
-                '//*[@id="content_value"]/table[2]/tbody/tr/td[2]/table[4]/tbody/tr[10]/td[2]/form/input[2]',
-            ).click()
+            # Scroll into
+            if driver.execute_script(
+                "if(document.querySelector('#coin_mint_fill_max')) {return true} else {return false}"
+            ):
+                driver.execute_script(
+                    "document.querySelector('#coin_mint_fill_max').scrollIntoView({block: 'center'});"
+                )
+                # Fill max coins in box
+                driver.execute_script(
+                    "document.querySelector('#coin_mint_fill_max').click()"
+                )
+                # Submit all filled coins
+                driver.execute_script(
+                    """document.querySelector('form input[type="submit"]').click()"""
+                )
         except:
-            pass
-        # Wezwij surowce -> rynek
+            logger.error("Error during coin mining")
+
+        send_troops_in_the_middle(driver=driver, settings=settings)
+        if not settings["temp"]["main_window"].running:
+            return
+
         driver.get(market_url)
-        driver.find_element(By.ID, "ds_body").send_keys("4")
-        request_resources = driver.find_element(
-            By.XPATH,
-            '//*[@id="content_value"]/table[2]/tbody/tr/td[2]/form[1]/input[2]',
-        )
+        # Hide villages with no merchants
+        if driver.execute_script(
+            """
+            if (document.getElementById("checkbox_hide_traderless").checked == false) {
+                document.getElementById("checkbox_hide_traderless").click();
+                return true;
+            }
+            """
+        ):
+            time.sleep(2)
+        # Request resources
+        driver.execute_script(call_resources)
+        # Submit request
         driver.execute_script(
-            "return arguments[0].scrollIntoView(false);", request_resources
+            """document.querySelector('form input[type="submit"]').click()"""
         )
-        time.sleep(1.5)
-        request_resources.click()
 
 
 # Currently not in use

@@ -4,9 +4,9 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 import winreg
-import threading
 
 import requests
 from anycaptcha import AnycaptchaClient, HCaptchaTaskProxyless
@@ -19,12 +19,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium_stealth import stealth
 from webdriver_manager.chrome import ChromeDriverManager
 
 from app_logging import get_logger
+from bot_browser_extensions import COORDS_COPY
 from config import ANY_CAPTCHA_API_KEY
 from decorators import log_errors
-from gui_functions import custom_error
+from gui_functions import custom_error, set_default_entries
 
 logger = get_logger(__name__)
 
@@ -98,9 +100,12 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             )
             job = client.createTask(task)
             # Notify user that captcha solving is in process
-            iframe_width = driver.execute_script(
-                f"return document.querySelector('{captcha_selector} iframe').clientWidth"
-            )
+            try:
+                iframe_width = driver.execute_script(
+                    f"return document.querySelector('{captcha_selector} iframe').clientWidth"
+                )
+            except BaseException:
+                iframe_width = 303
             driver.execute_script(
                 f"""const captcha_container = document.querySelectorAll("{captcha_selector} *:last-child")[0];
                 const div_to_add = "<div id='kspec' style='width: {iframe_width};'>Solving captcha please wait..</div>"
@@ -228,7 +233,6 @@ def chrome_profile_path(settings: dict) -> None:
 
     path = os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\User Data\TribalWars")
     settings["path"] = path
-    settings["first_lunch"] = False
 
     with open("settings.json", "w") as settings_json_file:
         json.dump(settings, settings_json_file)
@@ -236,6 +240,12 @@ def chrome_profile_path(settings: dict) -> None:
 
 def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Thread:
     """Used to speedup app start doing stuff while connecting to database or API"""
+
+    def add_new_default_settings(_settings: dict) -> None:
+        _settings.setdefault("coins", {"villages": {}})
+        _settings["coins"].setdefault("villages", {})
+        _settings["coins"].setdefault("mine_coin", False)
+        _settings["coins"].setdefault("max_send_time", 120)
 
     def run_in_other_thread() -> None:
 
@@ -246,6 +256,7 @@ def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Th
                 main_window.settings_by_worlds[server_world] = load_settings(
                     f"settings//{settings_file_name}"
                 )
+                add_new_default_settings(main_window.settings_by_worlds[server_world])
         except FileNotFoundError:
             os.mkdir("settings")
 
@@ -282,6 +293,12 @@ def first_app_lunch(settings: dict) -> None:
             None, "runas", sys.executable, __file__, None, 1
         )
         sys.exit()
+
+
+def first_app_login(settings: dict, main_window) -> None:
+    set_default_entries(entries=main_window.entries_content)
+    main_window.add_new_world_window(settings=settings, obligatory=True)
+    settings["first_lunch"] = False
 
 
 def get_villages_id(settings: dict[str], update: bool = False) -> dict:
@@ -487,6 +504,10 @@ def run_driver(settings: dict) -> webdriver.Chrome:
                     ),
                     options=chrome_options,
                 )
+                # driver.execute_cdp_cmd(
+                #     "Page.addScriptToEvaluateOnNewDocument",
+                #     {"source": COORDS_COPY},
+                # )
                 break
             except:
                 time.sleep(2)
@@ -498,6 +519,16 @@ def run_driver(settings: dict) -> webdriver.Chrome:
         return driver
     except BaseException as exc:
         logger.error(exc)
+
+    stealth(
+        driver,
+        languages=["en-US", "en"],
+        vendor="Google Inc.",
+        platform="Win32",
+        webgl_vendor="Intel Inc.",
+        renderer="Intel Iris OpenGL Engine",
+        fix_hairline=True,
+    )
 
 
 def save_settings_to_files(settings: dict, settings_by_worlds: dict) -> None:
@@ -660,7 +691,7 @@ def unwanted_page_content(
 
         # Nieznane -> log_error
         else:
-            log_error(driver=driver, msg="unwanted_page_content -> else(uknown error)")
+            log_error(driver=driver, msg="unwanted_page_content -> uknown error")
             return False
 
     except BaseException:
@@ -669,3 +700,24 @@ def unwanted_page_content(
             msg="unwanted_page_content -> error while handling common errors",
         )
         return False
+
+
+# def on_new_tab(driver: webdriver.Chrome, settings: dict) -> None:
+#     while True:
+#         main_window = driver.current_window_handle
+#         if "window" not in settings["temp"]:
+#             settings["temp"]["window"] = []
+
+#         switched = False
+#         for window in driver.window_handles:
+#             if window not in settings["temp"]["window"]:
+#                 driver.switch_to.window(window)
+#                 switched = True
+#                 driver.execute_cdp_cmd(
+#                     "Page.addScriptToEvaluateOnNewDocument",
+#                     {"source": coords_copy},
+#                 )
+#                 settings["temp"]["window"].append(window)
+#         if switched:
+#             driver.switch_to.window(main_window)
+#         time.sleep(0.1)
