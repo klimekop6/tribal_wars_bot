@@ -303,10 +303,16 @@ def on_button_release(event: tk.Event, master: tk.Tk) -> None:
 
 
 def save_entry_to_settings(
-    entries: dict, settings: dict, settings_by_worlds: dict = None
+    entries: dict,
+    settings: dict,
+    settings_by_worlds: dict = None,
 ) -> None:
-    def loop_over_entries(entries: dict | tk.StringVar, settings: dict | str):
+    def loop_over_entries(
+        entries: dict | tk.StringVar, settings: dict | str, exclude_key: str = ""
+    ):
         for key, value in entries.items():
+            if key in exclude_key:
+                continue
             if isinstance(value, dict):
                 if key not in settings:
                     settings[key] = {}
@@ -323,7 +329,9 @@ def save_entry_to_settings(
     loop_over_entries(entries=entries, settings=settings)
     if settings_by_worlds:
         loop_over_entries(
-            entries=entries, settings=settings_by_worlds[settings["server_world"]]
+            entries=entries,
+            settings=settings_by_worlds[settings["server_world"]],
+            exclude_key="globals",
         )
 
 

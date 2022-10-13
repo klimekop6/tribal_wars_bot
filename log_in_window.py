@@ -3,7 +3,11 @@ import tkinter as tk
 
 import ttkbootstrap as ttk
 
-from app_functions import delegate_things_to_other_thread, first_app_login
+from app_functions import (
+    delegate_things_to_other_thread,
+    expiration_warning,
+    first_app_login,
+)
 from app_logging import add_event_handler, get_logger
 from gui_functions import (
     center,
@@ -183,6 +187,7 @@ class LogInWindow:
         self.update_db_running_status(main_window=main_window)
         if settings["first_lunch"]:
             first_app_login(settings=settings, main_window=main_window)
+        expiration_warning(settings=settings, main_window=main_window)
         main_window.master.attributes("-alpha", 1.0)
 
     def log_in(self, main_window, settings: dict):

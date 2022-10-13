@@ -21,9 +21,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium_stealth import stealth
 from webdriver_manager.chrome import ChromeDriverManager
+from ttkbootstrap.toast import ToastNotification
+
 
 from app_logging import get_logger
-from bot_browser_extensions import COORDS_COPY
 from config import ANY_CAPTCHA_API_KEY
 from decorators import log_errors
 from gui_functions import custom_error, set_default_entries
@@ -59,6 +60,10 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
         logger.info("start solving captcha")
 
         def simple_solve_captcha(captcha_selector: str) -> bool:
+            # Scroll to the element with class name equal to captche_selector
+            driver.execute_script(
+                f"document.querySelector('{captcha_selector}').scrollIntoView(false);"
+            )
             # Switch to frame when it is available
             WebDriverWait(driver, 3, 0.05).until(
                 EC.frame_to_be_available_and_switch_to_it(
@@ -269,6 +274,31 @@ def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Th
 
     if not main_window.settings_by_worlds:
         threading.Thread(target=run_in_other_thread).start()
+
+
+def expiration_warning(settings: dict, main_window) -> None:
+
+    time_to_expire = (
+        time.mktime(
+            time.strptime(
+                main_window.user_data["active_until"] + " 23:59:59", "%Y-%m-%d %H:%M:%S"
+            )
+        )
+        - time.time()
+    )
+
+    if 0 < time_to_expire < 86_400:
+        ToastNotification(
+            title="TribalWarsBot Warning",
+            message="Ważność twojego konta niedługo się skończy. ",
+            topmost=True,
+            bootstyle="warning",
+        ).show_toast()
+    elif time_to_expire > 86_400:
+        main_window.master.after(
+            ms=int(time_to_expire - 86_400),
+            func=lambda: expiration_warning(settings=settings, main_window=main_window),
+        )
 
 
 def first_app_lunch(settings: dict) -> None:
@@ -534,7 +564,9 @@ def run_driver(settings: dict) -> webdriver.Chrome:
 def save_settings_to_files(settings: dict, settings_by_worlds: dict) -> None:
     # Make sure that settings is saved in correct self.settings_by_worlds
     if "server_world" in settings and settings["server_world"] in settings_by_worlds:
-        settings_by_worlds[settings["server_world"]].update(settings)
+        settings_by_worlds[settings["server_world"]].update(
+            (k, v) for k, v in settings.items() if k != "globals"
+        )
 
     # Settings per server_world save in file
     for server_world in settings_by_worlds:
@@ -553,7 +585,7 @@ def save_settings_to_files(settings: dict, settings_by_worlds: dict) -> None:
 
 
 def unwanted_page_content(
-    driver: webdriver.Chrome, settings: dict[str], html: str = ""
+    driver: webdriver.Chrome, settings: dict[str], html: str = "", log: bool = True
 ) -> bool:
     """Deal with: chat disconnected, session expired,
     popup boxes like: daily bonus, tribe quests,
@@ -568,6 +600,7 @@ def unwanted_page_content(
         if (
             html.find("chat-disconnected") != -1
             or "session_expired" in driver.current_url
+            or settings["server_world"] not in driver.current_url
         ):
             return log_in(driver, settings)
 
@@ -691,7 +724,8 @@ def unwanted_page_content(
 
         # Nieznane -> log_error
         else:
-            log_error(driver=driver, msg="unwanted_page_content -> uknown error")
+            if log:
+                log_error(driver=driver, msg="unwanted_page_content -> uknown error")
             return False
 
     except BaseException:

@@ -33,7 +33,6 @@ from ttkbootstrap.validation import add_validation
 import app_functions
 import bot_functions
 from app_logging import CustomLogFormatter, get_logger
-from bot_browser_extensions import COORDS_COPY
 from client_config import ClientConfig
 from config import APP_NAME, APP_VERSION
 from decorators import log_errors
@@ -111,84 +110,121 @@ class Home(ScrollableFrame):
         cf_current_changes = CollapsingFrame(self)
         cf_current_changes.grid(row=2, column=0, sticky=ttk.EW)
 
-        self.text = Text(cf_current_changes)
-        self.text.add("Poprawki\n", "h1")
-        self.text.add(
+        text = Text(cf_current_changes)
+        text.add("Poprawki\n", "h1")
+        text.add(
+            "- naprawiono błąd występujący w trakcie farmienia związany z próbą kliknięcia w captche która znajdywała się poza ekranem \n"
+        )
+        text.add(
+            "- wydłużono maksymalny czas oczekiwania na załadowania niektórych stron dla osób posiadający wolniejsze łącze internetowe  \n"
+        )
+
+        text.tag_add("left_margin", "1.0", "end")
+
+        cf_current_changes.add(
+            child=text.frame, title="Zmiany w patchu 1.0.68", bootstyle="dark"
+        )
+
+        # Previous changes
+        ttk.Label(self, text="Ostatnie zmiany", font=("TkFixedFont", 11)).grid(
+            row=5, column=0, pady=(25, 15), sticky=ttk.W
+        )
+
+        # 1.0.67
+        cf_last_changes_1_0_67 = CollapsingFrame(self)
+        cf_last_changes_1_0_67.grid(row=22, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_67)
+        text.add("Nowości\n", "h1")
+        text.add(
+            "- dodano powiadomienie o zbliżającym się terminie wygaśnięcia konta \n"
+        )
+        text.add(
+            "- dodano możliwość wyłączenia konkretnych światów. W tym celu neleży otworzyć okno wyboru świata klikając w numer świata znajdujący się w górnym pasku aplikacji (na lewo od ikony do minimalizacji) \n"
+        )
+
+        text.tag_add("left_margin", "1.0", "end")
+
+        cf_last_changes_1_0_67.add(
+            child=text.frame, title="Zmiany w patchu 1.0.67", bootstyle="dark"
+        )
+
+        # 1.0.66
+        cf_last_changes_1_0_66 = CollapsingFrame(self)
+        cf_last_changes_1_0_66.grid(row=23, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_66)
+        text.add("Poprawki\n", "h1")
+        text.add(
             (
                 "- zwiększony limit prób przed ponownym uruchomieniem przeglądarki w przypadku wystąpienia błędu \n"
             )
         )
-        self.text.add(
+        text.add(
             (
                 "- od teraz zaraz po pierwszym logowaniu przez nowego użytkownika wymagane będzie wstępne ustawienie serwera gry i numeru świata "
                 "jeszcze przed ukazaniem się głównego okna aplikacji \n"
             )
         )
 
-        self.text.tag_add("left_margin", "1.0", "end")
+        text.tag_add("left_margin", "1.0", "end")
 
-        cf_current_changes.add(
-            child=self.text.frame, title="Zmiany w patchu 1.0.66", bootstyle="dark"
+        cf_last_changes_1_0_66.add(
+            child=text.frame, title="Zmiany w patchu 1.0.66", bootstyle="dark"
         )
 
-        ttk.Label(self, text="Ostatnie zmiany", font=("TkFixedFont", 11)).grid(
-            row=6, column=0, pady=(25, 15), sticky=ttk.W
-        )
-        cf_last_changes = CollapsingFrame(self)
-        cf_last_changes.grid(row=7, column=0, sticky=ttk.EW)
+        # 1.0.65
+        cf_last_changes_1_0_65 = CollapsingFrame(self)
+        cf_last_changes_1_0_65.grid(row=24, column=0, sticky=ttk.EW)
 
-        self.text_last = Text(cf_last_changes)
+        text = Text(cf_last_changes_1_0_65)
 
         # Message
-        self.text_last.add("Nowości\n", "h1")
-        self.text_last.add(
+        text.add("Nowości\n", "h1")
+        text.add(
             "- dodano nową ikonę w menu po kliknięciu w którą wyświetlona zostanie strona z informacjami o aktualnych i przyszłych zmianach w aplikacji\n"
         )
-        self.text_last.add(
-            "- dodano weryfikację pól w trakcie tworzenia szablonu fejków\n"
-        )
+        text.add("- dodano weryfikację pól w trakcie tworzenia szablonu fejków\n")
 
-        self.text_last.add("Poprawki\n", "h1")
-        self.text_last.add("- poprawiono rejestrowanie błędów w logach\n")
-        self.text_last.add(
+        text.add("Poprawki\n", "h1")
+        text.add("- poprawiono rejestrowanie błędów w logach\n")
+        text.add(
             "- poprawiono przełączanie zakładek w interfejsie graficznym aplikacji\n"
         )
-        self.text_last.add(
-            "- udoskonalono wstępne wykrywanie błędnie wypełnionego planera\n"
-        )
-        self.text_last.add(
+        text.add("- udoskonalono wstępne wykrywanie błędnie wypełnionego planera\n")
+        text.add(
             "- zmniejszono częstotliwość zamykania przeglądarki w trakcie wymiany surowców na punkty premium\n"
         )
 
-        self.text_last.tag_add("left_margin", "1.0", "end")
+        text.tag_add("left_margin", "1.0", "end")
 
-        cf_last_changes.add(
-            child=self.text_last.frame, title="Zmiany w patchu 1.0.65", bootstyle="dark"
+        cf_last_changes_1_0_65.add(
+            child=text.frame, title="Zmiany w patchu 1.0.65", bootstyle="dark"
         )
 
         # Incoming changes
 
         ttk.Label(self, text="Nadchodzące zmiany", font=("TkFixedFont", 11)).grid(
-            row=8, column=0, pady=(25, 15), sticky=ttk.W
+            row=25, column=0, pady=(25, 15), sticky=ttk.W
         )
 
         cf_incoming_changes = CollapsingFrame(self)
-        cf_incoming_changes.grid(row=9, column=0, pady=(0, 20), sticky=ttk.EW)
+        cf_incoming_changes.grid(row=26, column=0, pady=(0, 20), sticky=ttk.EW)
 
-        self.text_inc = Text(cf_incoming_changes)
-        self.text_inc.add("Nowości\n", "h1")
-        self.text_inc.add("- dodano nową funkcję uniki\n")
-        self.text_inc.add("Poprawki\n", "h1")
-        self.text_inc.add(
+        text = Text(cf_incoming_changes)
+        text.add("Nowości\n", "h1")
+        text.add("- dodano nową funkcję uniki\n")
+        text.add("Poprawki\n", "h1")
+        text.add(
             "- poprawiono działanie szablonu C. Od teraz tylko jeden atak (Szablonu C) będzie wysłany na daną wioskę barbarzyńską. "
             "Zakładamy, że jeśli wysłany został atak z szablonu C to powinien on zebrać wszystkie dostępne surowce więc nie ma potrzeby wysyłania kolejnych ataków tego typu. "
             "W tym czasie szablon A i B będzie nadal wysyłany bez zmian"
         )
 
-        self.text_inc.tag_add("left_margin", "1.0", "end")
+        text.tag_add("left_margin", "1.0", "end")
 
         cf_incoming_changes.add(
-            child=self.text_inc.frame, title="Zmiany w patchu 1.0.7X", bootstyle="dark"
+            child=text.frame, title="Zmiany w patchu 1.0.7X", bootstyle="dark"
         )
 
         # # Change log
@@ -1653,9 +1689,6 @@ class Scheduler(ScrollableFrame):
         self.villages_to_use.bind(
             "<Enter>", lambda event: text_mouse_scroll(self.villages_to_use)
         )
-        # self.villages_to_use.bind(
-        #     "<Leave>", lambda event: self._bound_to_mousewheel(event)
-        # )
         self.villages_to_use.bind(
             "<Button>", lambda event: clear_hint(self.villages_to_use)
         )
@@ -1671,9 +1704,6 @@ class Scheduler(ScrollableFrame):
         self.villages_destiny.bind(
             "<Enter>", lambda event: text_mouse_scroll(self.villages_destiny)
         )
-        # self.villages_destiny.bind(
-        #     "<Leave>", lambda event: self._bound_to_mousewheel(event)
-        # )
         self.villages_destiny.bind(
             "<Button>", lambda event: clear_hint(self.villages_destiny)
         )
@@ -1748,13 +1778,18 @@ class Scheduler(ScrollableFrame):
             row=9, column=0, columnspan=2, padx=(30, 5), pady=5, sticky=tk.W
         )
 
+        def only_off_or_deff() -> None:
+            if self.template_type.get() == "send_all":
+                return
+            self.all_troops.invoke()
+
         self.army_type = tk.StringVar()  # Wysłać jednostki off czy deff
         self.only_off_radiobutton = ttk.Radiobutton(
             self,
             text="Wyślij tylko jednostki offensywne",
             value="only_off",
             variable=self.army_type,
-            command=lambda: self.all_troops.invoke(),
+            command=only_off_or_deff,
         )
         self.only_off_radiobutton.grid(
             row=14, column=0, columnspan=2, padx=(50, 5), pady=5, sticky=tk.W
@@ -1765,11 +1800,24 @@ class Scheduler(ScrollableFrame):
             text="Wyślij tylko jednostki deffensywne",
             value="only_deff",
             variable=self.army_type,
-            command=lambda: self.all_troops.invoke(),
+            command=only_off_or_deff,
         )
         self.only_deff_radiobutton.grid(
             row=15, column=0, columnspan=2, padx=(50, 5), pady=5, sticky=tk.W
         )
+
+        def send_snob_or_not(snob: bool) -> None:
+            if self.template_type.get() != "send_all":
+                self.all_troops.invoke()
+            change_state(
+                [self.snob_amount_entry, self.first_snob_army_size_entry], not snob
+            )
+            if snob:
+                self.slowest_troop.set("Szlachcic"),
+                self.choose_slowest_troop.configure(state="disabled")
+            else:
+                self.slowest_troop.set("Taran")
+                self.choose_slowest_troop.configure(state="readonly")
 
         self.send_snob = tk.StringVar()  # Czy wysłać szlachtę
         self.no_snob = ttk.Radiobutton(
@@ -1777,13 +1825,7 @@ class Scheduler(ScrollableFrame):
             text="Nie wysyłaj szlachty",
             value="no_snob",
             variable=self.send_snob,
-            command=lambda: [
-                self.all_troops.invoke(),
-                change_state(
-                    [self.snob_amount_entry, self.first_snob_army_size_entry], True
-                ),
-                self.slowest_troop.set("Taran"),
-            ],
+            command=lambda: send_snob_or_not(False),
         )
         self.no_snob.grid(
             row=10, column=0, columnspan=2, padx=(50, 5), pady=5, sticky=tk.W
@@ -1794,14 +1836,7 @@ class Scheduler(ScrollableFrame):
             text="Wyślij szlachtę",
             value="send_snob",
             variable=self.send_snob,
-            command=lambda: [
-                self.all_troops.invoke(),
-                change_state(
-                    [self.snob_amount_entry, self.first_snob_army_size_entry], False
-                ),
-                self.slowest_troop.set("Szlachcic"),
-                self.choose_slowest_troop.configure(state="disabled"),
-            ],
+            command=lambda: send_snob_or_not(True),
         )
         self.snob.grid(
             row=11, column=0, columnspan=2, padx=(50, 5), pady=5, sticky=tk.W
@@ -3665,7 +3700,7 @@ class NavigationBar:
 
 class MainWindow:
 
-    entries_content: dict[str, dict | tk.Variable] = {}
+    entries_content: dict[str, dict | tk.Variable] = {"globals": {}}
     settings_by_worlds: dict[str, dict] = {}
 
     def __init__(
@@ -3688,6 +3723,7 @@ class MainWindow:
 
         # All used images -> one time load
         class Images(NamedTuple):
+            # Interface labels/buttons etc.
             start: tk.PhotoImage = tk.PhotoImage(file="icons//start.png")
             start_hover: tk.PhotoImage = tk.PhotoImage(file="icons//start_hover.png")
             settings: tk.PhotoImage = tk.PhotoImage(file="icons//settings.png")
@@ -3971,10 +4007,22 @@ class MainWindow:
             settings["game_url"] = game_url
             settings["country_code"] = country_code
             settings["server_world"] = server_world
+            settings["globals"][server_world] = True
             settings["groups"] = ["wszystkie"]
             settings["scheduler"]["ready_schedule"].clear()
             for template in ("A", "B", "C"):
                 self.entries_content[template]["farm_rules"]["loot"].set("mix_loot")
+
+        def set_world_in_title() -> None:
+            self.entries_content["world_in_title"].set(
+                f"{country_code.upper()}{world_number.upper()}"
+            )
+
+        def update_settings_by_worlds_using_settings() -> None:
+            self.settings_by_worlds[server_world] = {}
+            self.settings_by_worlds[server_world].update(
+                (k, v) for k, v in settings.items() if k != "globals"
+            )
 
         country_code = game_url[game_url.rfind(".") + 1 :]
         server_world = f"{country_code}{world_number}"
@@ -4006,15 +4054,12 @@ class MainWindow:
         ]:
             if not get_world_config():
                 return False
-            self.entries_content["world_in_title"].set(
-                f"{country_code.upper()}{world_number.upper()}"
-            )
+            set_world_in_title()
             set_additional_settings(
                 game_url=game_url, country_code=country_code, server_world=server_world
             )
             save_entry_to_settings(entries=self.entries_content, settings=settings)
-            self.settings_by_worlds[server_world] = {}
-            self.settings_by_worlds[server_world].update(settings)
+            update_settings_by_worlds_using_settings()
             self.control_panel.game_url.config(bootstyle="default")
             self.control_panel.world_number_input.config(bootstyle="default")
             if settings["first_lunch"]:
@@ -4032,15 +4077,12 @@ class MainWindow:
             set_additional_settings(
                 game_url=game_url, country_code=country_code, server_world=server_world
             )
-            self.entries_content["world_in_title"].set(
-                f"{country_code.upper()}{world_number.upper()}"
-            )
+            set_world_in_title()
             save_entry_to_settings(
                 entries=self.entries_content,
                 settings=settings,
             )
-            self.settings_by_worlds[server_world] = {}
-            self.settings_by_worlds[server_world].update(settings)
+            update_settings_by_worlds_using_settings()
             return True
 
         # Dodanie nowych ustawień nieistniejącego jeszcze świata
@@ -4053,10 +4095,13 @@ class MainWindow:
 
                 for key in entries:
                     if isinstance(entries[key], dict):
+                        if "globals" in key:
+                            continue
                         set_zero_to_tk_variables_in_entries(entries=entries[key])
                     else:
                         entries[key].set(0)
 
+            # Save current entries to settings
             if settings["server_world"] in self.settings_by_worlds:
                 save_entry_to_settings(
                     entries=self.entries_content,
@@ -4064,6 +4109,7 @@ class MainWindow:
                     settings_by_worlds=self.settings_by_worlds,
                 )
                 self.settings_by_worlds[settings["server_world"]] = deepcopy(settings)
+                del self.settings_by_worlds[settings["server_world"]]["globals"]
             else:
                 save_entry_to_settings(entries=self.entries_content, settings=settings)
 
@@ -4078,9 +4124,7 @@ class MainWindow:
             self.entries_content["notifications"]["email_address"].set(
                 value=self.user_data["email"]
             )
-            self.entries_content["world_in_title"].set(
-                f"{country_code.upper()}{world_number.upper()}"
-            )
+            set_world_in_title()
             # Set combobox deafult values
             for combobox in (
                 self.farm.farm_group_A,
@@ -4100,6 +4144,7 @@ class MainWindow:
             self.schedule.template_type.set("")
             save_entry_to_settings(entries=self.entries_content, settings=settings)
             self.settings_by_worlds[server_world] = deepcopy(settings)
+            del self.settings_by_worlds[server_world]["globals"]
             settings.update(self.settings_by_worlds[server_world])
 
             return True
@@ -4249,10 +4294,10 @@ class MainWindow:
             self.gathering.gathering_group["values"] = settings["groups"]
             self.control_panel.villages_groups["values"] = settings["groups"]
 
-            # Odświeża okno planera
+            # Refresh schedule window
             self.schedule.redraw_availabe_templates(settings=settings)
 
-            # Odświeża okno monet z wybranymi wioskami
+            # Refresh coins window with choosed villages
             self.coins.redraw_choosed_villges()
 
             fill_entry_from_settings(entries=self.entries_content, settings=settings)
@@ -4528,6 +4573,11 @@ class MainWindow:
 
         # Add functions into to_do list
         for server_world in self.settings_by_worlds:  # server_world = de199, pl173 etc.
+            if (
+                server_world in settings["globals"]
+                and not settings["globals"][server_world]
+            ):
+                continue
             _settings = self.settings_by_worlds[server_world]
             _settings["temp"] = {
                 "main_window": self,
@@ -4718,6 +4768,11 @@ class MainWindow:
             try:
                 if not logged:
                     logged = app_functions.log_in(self.driver, _settings)
+
+                try:
+                    app_functions.captcha_check(self.driver, _settings)
+                except BaseException:
+                    logger.error("Error in captcha_check at app main loop")
 
                 match self.to_do[0]["func"]:
 
@@ -4935,6 +4990,8 @@ class MainWindow:
 
             if os.path.exists(f"settings/{server_world}.json"):
                 os.remove(f"settings/{server_world}.json")
+            del settings["globals"][server_world]
+            del self.entries_content["globals"][server_world]
             if server_world in self.settings_by_worlds:
                 del self.settings_by_worlds[server_world]
 
@@ -4972,6 +5029,25 @@ class MainWindow:
         for index, server_world in enumerate(self.settings_by_worlds):
             country_code = re.search(r"\D+", server_world).group()
             world_in_title = server_world.replace(country_code, country_code.upper())
+            self.entries_content["globals"][server_world] = ttk.BooleanVar(value=True)
+            if server_world in settings["globals"]:
+                self.entries_content["globals"][server_world].set(
+                    settings["globals"][server_world]
+                )
+
+            def update_settings(server_world) -> None:
+
+                settings["globals"][server_world] = self.entries_content["globals"][
+                    server_world
+                ].get()
+
+            ttk.Checkbutton(
+                self.world_chooser_window,
+                offvalue=False,
+                onvalue=True,
+                variable=self.entries_content["globals"][server_world],
+                command=partial(update_settings, server_world),
+            ).grid(row=index * 2, column=0, padx=(8, 2), sticky=ttk.NSEW)
             ttk.Button(
                 self.world_chooser_window,
                 bootstyle="primary.Link.TButton",
@@ -4979,17 +5055,17 @@ class MainWindow:
                 command=partial(
                     self.change_world, server_world, world_in_title, settings
                 ),
-            ).grid(row=index * 2, column=0, sticky=ttk.NSEW)
+            ).grid(row=index * 2, column=2, sticky=ttk.NSEW)
 
             ttk.Button(
                 self.world_chooser_window,
                 style="danger.primary.Link.TButton",
                 image=self.images.exit,
                 command=partial(delete_world, server_world),
-            ).grid(row=index * 2, column=2, sticky=ttk.NSEW)
+            ).grid(row=index * 2, column=4, sticky=ttk.NSEW)
 
             ttk.Separator(self.world_chooser_window, style="default.TSeparator").grid(
-                row=index * 2 + 1, column=0, columnspan=3, sticky=ttk.EW
+                row=index * 2 + 1, column=0, columnspan=5, sticky=ttk.EW
             )
 
         ttk.Separator(
@@ -4998,6 +5074,13 @@ class MainWindow:
             style="default.TSeparator",
         ).grid(
             row=0, rowspan=len(self.settings_by_worlds) * 2 - 1, column=1, sticky=ttk.NS
+        )
+        ttk.Separator(
+            self.world_chooser_window,
+            orient=ttk.VERTICAL,
+            style="default.TSeparator",
+        ).grid(
+            row=0, rowspan=len(self.settings_by_worlds) * 2 - 1, column=3, sticky=ttk.NS
         )
 
         add_world_button = ttk.Button(
@@ -5009,7 +5092,7 @@ class MainWindow:
         add_world_button.grid(
             row=len(self.settings_by_worlds) * 2,
             column=0,
-            columnspan=3,
+            columnspan=5,
             sticky=ttk.NSEW,
         )
 
@@ -5405,6 +5488,7 @@ def thread_monitor(thread: threading.Thread, main_window: MainWindow) -> None:
         main_window.master.after(500, lambda: thread_monitor(thread, main_window))
         return
     if main_window.update_available:
+
         ToastNotification(
             title="TribalWarsBot Update",
             message=f"Dostępna jest nowa wersja aplikacji. ",

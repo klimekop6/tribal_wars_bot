@@ -21,7 +21,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from ttkbootstrap.toast import ToastNotification
 
 import email_notifications
-from app_functions import captcha_check, log_in, unwanted_page_content
+from app_functions import captcha_check, unwanted_page_content
 from app_logging import get_logger
 from config import SMS_API_TOKEN
 
@@ -274,6 +274,8 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         EC.element_to_be_clickable((By.ID, "manager_icon_farm"))
     ).click()
 
+    captcha_check(driver=driver, settings=settings)
+
     # Sprawdza czy znajduję się w prawidłowej grupie jeśli nie to przechodzi do prawidłowej -> tylko dla posiadaczy konta premium
     if (
         driver.execute_script("return premium")
@@ -343,7 +345,7 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
     # Główna pętla funkcji
     while True:
 
-        WebDriverWait(driver, 2, 0.01).until(
+        WebDriverWait(driver, 3, 0.01).until(
             EC.presence_of_element_located(
                 (By.XPATH, '//*[@id="units_home"]/tbody/tr[2]')
             )
@@ -678,7 +680,7 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                         village,
                     )
                     try:
-                        village.click()
+                        driver.execute_script("arguments[0].click();", village)
                     except StaleElementReferenceException:
                         break
 
@@ -1094,6 +1096,7 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
     village_id = driver.execute_script("return game_data.village.id;")
     daily_bonus_url += str(village_id) + "&screen=info_player&mode=daily_bonus"
     driver.get(daily_bonus_url)
+    captcha_check(driver, settings)
     try:
         open_all_available_chests()
     except StaleElementReferenceException:
@@ -1129,18 +1132,22 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
         try:
             html_response = get_player_production_page()
         except BaseException:
-            unwanted_page_content(driver=driver, settings=settings)
+            if not unwanted_page_content(driver=driver, settings=settings, log=False):
+                driver.refresh()
             try:
                 html_response = get_player_production_page()
             except BaseException:
-                unwanted_page_content(driver=driver, settings=settings)
+                if not unwanted_page_content(
+                    driver=driver, settings=settings, log=False
+                ):
+                    driver.refresh()
                 html_response = get_player_production_page()
         doc = lxml.html.fromstring(html_response)
         try:
             production = doc.get_element_by_id("production_table")
         except:
             driver.get(player_production_url)
-            unwanted_page_content(driver=driver, settings=settings)
+            unwanted_page_content(driver=driver, settings=settings, log=False)
             html_response = get_player_production_page()
             doc = lxml.html.fromstring(html_response)
             production = doc.get_element_by_id("production_table")
@@ -1965,7 +1972,7 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
             driver=driver, settings=settings
         )
     except BaseException:
-        unwanted_page_content(driver=driver, settings=settings)
+        unwanted_page_content(driver=driver, settings=settings, log=False)
         try:
             (send_number_times, attacks_to_repeat) = send_troops(
                 driver=driver, settings=settings
@@ -2221,6 +2228,7 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
         driver.get(palace_url)
         if not settings["temp"]["main_window"].running:
             return
+        captcha_check(driver, settings)
         try:
             # Scroll into
             if driver.execute_script(
@@ -2240,9 +2248,9 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
         except:
             logger.error("Error during coin mining")
 
-        send_troops_in_the_middle(driver=driver, settings=settings)
         if not settings["temp"]["main_window"].running:
             return
+        send_troops_in_the_middle(driver=driver, settings=settings)
 
         driver.get(market_url)
         # Hide villages with no merchants

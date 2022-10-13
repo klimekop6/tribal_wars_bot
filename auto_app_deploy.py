@@ -7,7 +7,7 @@ import pysftp
 
 from config import PYTHON_ANYWHERE_PASSWORD, PYTHON_ANYWHERE_USERNAME
 
-APP_VERSION = "1.0.66"
+APP_VERSION = "1.0.68b1"
 
 pyupdater_path = pathlib.Path(r".venv_tribal_wars\Scripts\pyupdater")
 # Build app using pyupdater and win.spec file
