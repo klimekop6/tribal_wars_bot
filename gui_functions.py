@@ -340,13 +340,17 @@ def set_default_entries(entries: dict[tk.Variable]) -> None:
 
     for template in ("A", "B", "C"):
         entries[template]["attacks_number"].set(5)
-    # Share with A, B and C
+        entries[template]["farm_rules"]["loot"].set("mix_loot")
+
+    # Share between A, B and C
     entries["farm_sleep_time"].set(30)
+    # Other
     entries["gathering_max_resources"].set(500)
     entries["market"]["check_every"].set(30)
     entries["coins"]["max_send_time"].set(120)
     entries["coins"]["check_every"].set(30)
     entries["notifications"]["check_incoming_attacks_sleep_time"].set(30)
+    entries["stable_release"].set(True)
 
 
 def show_or_hide_password(parent, entry: ttk.Entry, button: ttk.Button) -> None:

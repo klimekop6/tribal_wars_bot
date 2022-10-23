@@ -24,6 +24,7 @@ import email_notifications
 from app_functions import captcha_check, unwanted_page_content
 from app_logging import get_logger
 from config import SMS_API_TOKEN
+from constants import TROOPS_SPEED
 
 logger = get_logger(__name__)
 
@@ -324,20 +325,6 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
     # Lista wykorzystanych wiosek - unikalne id wioski'
     used_villages = []
     used_villages.append(driver.execute_script("return window.game_data.village.id;"))
-    troops_speed = {
-        "spear": 18,
-        "sword": 22,
-        "axe": 18,
-        "archer": 18,
-        "spy": 9,
-        "light": 10,
-        "marcher": 10,
-        "heavy": 11,
-        "ram": 30,
-        "catapult": 30,
-        "knight": 10,
-        "snob": 35,
-    }
 
     settings["temp"].setdefault("farm_village_to_skip", {})
     settings["temp"].setdefault("block_until", {})
@@ -572,7 +559,7 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
             distance = tuple(
                 float(row.xpath("text()")[0]) for row in farm.xpath("tr/td[8]")
             )
-            army_speed = max(troops_speed[unit] for unit in template_troops[template])
+            army_speed = max(TROOPS_SPEED[unit] for unit in template_troops[template])
             max_distance = 0.0
             if settings[template]["farm_rules"]["max_travel_time"]:
                 max_distance: float = (
@@ -1557,7 +1544,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                     def choose_all_units_with_exceptions(troops_dict: dict) -> None:
                         """Choose all units and than unclick all unnecessary"""
 
-                        slowest_troop_speed = troops_dict[send_info["slowest_troop"]]
+                        slowest_troop_speed = TROOPS_SPEED[send_info["slowest_troop"]]
                         for troop_name, troop_speed in list(troops_dict.items()):
                             if troop_speed > slowest_troop_speed:
                                 del troops_dict[troop_name]

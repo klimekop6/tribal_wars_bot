@@ -2,20 +2,15 @@ import os
 import tkinter as tk
 
 import ttkbootstrap as ttk
+from ttkbootstrap import localization
 
-from app_functions import (
-    delegate_things_to_other_thread,
-    expiration_warning,
-    first_app_login,
-)
+translate = localization.MessageCatalog.translate
+
+from app_functions import (delegate_things_to_other_thread, expiration_warning,
+                           first_app_login)
 from app_logging import add_event_handler, get_logger
-from gui_functions import (
-    center,
-    custom_error,
-    get_pos,
-    invoke_checkbuttons,
-    show_or_hide_password,
-)
+from gui_functions import (center, custom_error, get_pos, invoke_checkbuttons,
+                           show_or_hide_password)
 from register_window import RegisterWindow
 from tribal_wars_bot_api import TribalWarsBotApi
 
@@ -36,7 +31,9 @@ class LogInWindow:
                 "user_password": settings["user_password"],
             }
             response = TribalWarsBotApi("/login", json=data).post()
-            if not response.ok:
+            if not response:
+                custom_error(message="Baza danych jest tymczasowo niedostępna")
+            elif not response.ok:
                 custom_error(message="Automatyczne logowanie nie powiodło się.")
             else:
                 user_data = response.json()
@@ -166,21 +163,20 @@ class LogInWindow:
         main_window.verified_email = user_data["verified_email"]
         if not user_data["verified_email"]:
             main_window.control_panel.verified_email_label.config(
-                text="Zweryfikowany adres e-mail: Nie"
+                text=translate("Verified address e-mail: No")
             )
         else:
             main_window.control_panel.verified_email_label.config(
-                text="Zweryfikowany adres e-mail: Tak"
+                text=translate("Verified address e-mail: Yes")
             )
 
         settings["account_expire_time"] = str(user_data["active_until"])
         main_window.control_panel.acc_expire_time.config(
-            text=f'Konto ważne do {user_data["active_until"]}'
+            text=f'{translate("Account expiration time")} {user_data["active_until"]}'
         )
 
         invoke_checkbuttons(parent=main_window.master)
         main_window.master.deiconify()
-        main_window.master.update()
         center(main_window.master, parent=parent)
         main_window.master.attributes("-topmost", 1)
         add_event_handler(settings=settings)
@@ -188,6 +184,7 @@ class LogInWindow:
         if settings["first_lunch"]:
             first_app_login(settings=settings, main_window=main_window)
         expiration_warning(settings=settings, main_window=main_window)
+        main_window.master.update()
         main_window.master.attributes("-alpha", 1.0)
 
     def log_in(self, main_window, settings: dict):
@@ -198,6 +195,11 @@ class LogInWindow:
             "user_password": self.user_password_input.get(),
         }
         response = TribalWarsBotApi("/login", json=data).post()
+        if not response:
+            custom_error(
+                message="Baza danych jest tymczasowo niedostępna", parent=self.master
+            )
+            return
         if not response.ok:
             custom_error(message="Wprowadzono nieprawidłowe dane", parent=self.master)
             return
