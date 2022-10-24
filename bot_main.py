@@ -1,4 +1,5 @@
 import json
+import locale
 import logging
 import os
 
@@ -120,6 +121,7 @@ class Home(ScrollableFrame):
 
         text = Text(cf_current_changes)
         text.add("Nowości\n", "h1")
+        text.add("- dodano obsługę światów specjalnych takich jak arkadia\n")
         text.add(
             "- dodano język angielski do interfejsu aplikacji. Zmiany języka można dokonać po przejściu do panelu z ustawieniami. W celu wprowadzenia zmian należy uruchomić ponownie aplikację\n"
         )
@@ -4270,7 +4272,9 @@ class MainWindow:
         world_number_input.grid(row=1, column=1, padx=(0, 5), pady=(5), sticky="E")
 
         def on_add_new_world() -> None:
-            if "pl" in game_url_var.get() and re.search(r"p{1}\d+", world_number.get()):
+            if "pl" in game_url_var.get() and re.search(
+                r"^p{1}\d+", world_number.get().strip()
+            ):
                 pass
             elif not world_number.get().isnumeric():
                 custom_error(
@@ -5604,7 +5608,15 @@ def main() -> None:
     try:
         localization.MessageCatalog.locale(settings["globals"]["lang"])
     except KeyError:
-        pass
+        lang = locale.getdefaultlocale()[0]
+        settings.setdefault("globals", {})
+        if "pl" in lang:
+            localization.MessageCatalog.locale(lang)
+            settings["globals"]["lang"] = "pl"
+        else:
+            lang = "en"
+            localization.MessageCatalog.locale(lang)
+            settings["globals"]["lang"] = "en"
 
     main_window = MainWindow(master=root, driver=driver, settings=settings)
     LogInWindow(main_window=main_window, settings=settings)

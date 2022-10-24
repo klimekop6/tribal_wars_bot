@@ -1078,7 +1078,7 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
 
     # Daily bonus page address
     daily_bonus_url = (
-        f"https://{settings['server_world']}.plemiona.pl/game.php?village="
+        f"https://{settings['server_world']}.{settings['game_url']}/game.php?village="
     )
     village_id = driver.execute_script("return game_data.village.id;")
     daily_bonus_url += str(village_id) + "&screen=info_player&mode=daily_bonus"
