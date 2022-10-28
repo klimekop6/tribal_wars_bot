@@ -20,9 +20,8 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium_stealth import stealth
-from webdriver_manager.chrome import ChromeDriverManager
 from ttkbootstrap.toast import ToastNotification
-
+from webdriver_manager.chrome import ChromeDriverManager
 
 from app_logging import get_logger
 from config import ANY_CAPTCHA_API_KEY
@@ -230,11 +229,14 @@ def chrome_profile_path(settings: dict) -> None:
 def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Thread:
     """Used to speedup app start doing stuff while connecting to database or API"""
 
-    def add_new_default_settings(_settings: dict) -> None:
+    def add_new_default_settings(_settings: dict[str, dict]) -> None:
         _settings.setdefault("coins", {"villages": {}})
         _settings["coins"].setdefault("villages", {})
         _settings["coins"].setdefault("mine_coin", False)
         _settings["coins"].setdefault("max_send_time", 120)
+
+        _settings.setdefault("world_config", {})
+        _settings["world_config"].setdefault("daily_bonus", None)
 
     def run_in_other_thread() -> None:
 

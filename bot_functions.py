@@ -34,13 +34,13 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
 
     COUNTRY_CODE: str = settings["country_code"]
 
-    if not int(
-        driver.execute_script("return window.game_data.player.incomings")
-    ) or not driver.execute_script("return premium"):
+    if not int(game_data(driver, "player.incomings")) or not driver.execute_script(
+        "return premium"
+    ):
         return False
 
     # Open incoming attacks tab with group id = 0 which points to all villages
-    current_village_id = driver.execute_script("return game_data.village.id")
+    current_village_id = game_data(driver, "village.id")
     url = f'https://{settings["server_world"]}.{settings["game_url"]}'
     driver.get(
         f"{url}/game.php?village={current_village_id}&screen=overview_villages&mode=incomings&type=unignored&subtype=attacks&group=0&page=-1"
@@ -324,7 +324,7 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
 
     # Lista wykorzystanych wiosek - unikalne id wioski'
     used_villages = []
-    used_villages.append(driver.execute_script("return window.game_data.village.id;"))
+    used_villages.append(game_data(driver, "village.id"))
 
     settings["temp"].setdefault("farm_village_to_skip", {})
     settings["temp"].setdefault("block_until", {})
@@ -382,14 +382,9 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                     break
         if skip["A"] and skip["B"]:
             ActionChains(driver).send_keys("d").perform()
-            if (
-                driver.execute_script("return window.game_data.village.id;")
-                in used_villages
-            ):
+            if game_data(driver, "village.id" in used_villages):
                 break
-            used_villages.append(
-                driver.execute_script("return window.game_data.village.id;")
-            )
+            used_villages.append(game_data(driver, "village.id"))
             continue
 
         # Lista przycisków do wysyłki szablonów A, B i C
@@ -690,14 +685,13 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
 
         # Przełącz wioskę i sprawdź czy nie jest to wioska startowa
         ActionChains(driver).send_keys("d").perform()
-        if (
-            driver.execute_script("return window.game_data.village.id;")
-            in used_villages
-        ):
+        if game_data(driver, "village.id") in used_villages:
             break
-        used_villages.append(
-            driver.execute_script("return window.game_data.village.id;")
-        )
+        used_villages.append(game_data(driver, "village.id"))
+
+
+def game_data(driver: webdriver.Chrome, key: str) -> str:
+    return driver.execute_script(f"return game_data.{key}")
 
 
 def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
@@ -755,7 +749,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 first_in_group[0].click()
 
         # Przejście do ekranu zbieractwa na placu
-        current_village_id = driver.execute_script("return window.game_data.village.id")
+        current_village_id = game_data(driver, "village.id")
         url = driver.current_url
         base_url = url[: url.rfind("/")]
         url = (
@@ -765,7 +759,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
         driver.get(url)
 
         # Początkowa wioska
-        starting_village = driver.execute_script("return window.game_data.village.id;")
+        starting_village = game_data(driver, "village.id")
     else:
         driver.get(kwargs["url_to_gathering"])
 
@@ -781,12 +775,10 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
         page_source = driver.page_source
 
         # Skip to next village if current one doesn't have place
-        place_str = re.search(r'"place":"\d"', page_source).group()
-        if re.search(r"\d", place_str).group() == "0":
+        place = game_data(driver, "village.buildings.place")
+        if place == "0":
             driver.find_element(By.ID, "ds_body").send_keys("d")
-            current_village_id = driver.execute_script(
-                "return window.game_data.village.id;"
-            )
+            current_village_id = game_data(driver, "village.id")
             if starting_village == current_village_id:
                 if "url_to_gathering" not in kwargs:
                     return list_of_dicts
@@ -1033,9 +1025,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
         except:
             # Pomija wioski z zablokowanym zbieractwem
             driver.find_element(By.ID, "ds_body").send_keys("d")
-            current_village_id = driver.execute_script(
-                "return window.game_data.village.id;"
-            )
+            current_village_id = game_data(driver, "village.id")
             if starting_village == current_village_id:
                 return list_of_dicts
             continue
@@ -1054,9 +1044,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
 
         # Przełącz wioskę i sprawdź czy nie jest to wioska startowa jeśli tak zwróć listę słowników z czasem i linkiem do poszczególnych wiosek
         driver.find_element(By.ID, "ds_body").send_keys("d")
-        current_village_id = driver.execute_script(
-            "return window.game_data.village.id;"
-        )
+        current_village_id = game_data(driver, "village.id")
         if starting_village == current_village_id:
             return list_of_dicts
 
@@ -1066,7 +1054,7 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
 
     if "bonus_opened" in settings:
         if settings["bonus_opened"] == time.strftime("%d.%m.%Y", time.localtime()):
-            return
+            return True
 
     def open_all_available_chests() -> None:
         bonuses = driver.find_elements(
@@ -1080,7 +1068,14 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
     daily_bonus_url = (
         f"https://{settings['server_world']}.{settings['game_url']}/game.php?village="
     )
-    village_id = driver.execute_script("return game_data.village.id;")
+    village_id = game_data(driver, "village.id")
+    if settings["world_config"]["daily_bonus"] is None:
+        if not driver.find_elements(By.CLASS_NAME, "badge-daily-bonus"):
+            settings["world_config"]["daily_bonus"] = False
+            return False
+        else:
+            settings["world_config"]["daily_bonus"] = True
+
     daily_bonus_url += str(village_id) + "&screen=info_player&mode=daily_bonus"
     driver.get(daily_bonus_url)
     captcha_check(driver, settings)
@@ -1090,14 +1085,13 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
         open_all_available_chests()
 
     settings["bonus_opened"] = time.strftime("%d.%m.%Y", time.localtime())
+    return True
 
 
 def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
     """Umożliwia automatyczną sprzedaż lub zakup surwców za punkty premium"""
 
-    current_village_id = int(
-        driver.execute_script("return window.game_data.village.id")
-    )
+    current_village_id = int(game_data(driver, "village.id"))
     url = driver.current_url
     url = url[: url.rfind("/")]
     # Check if has premium account
@@ -1670,7 +1664,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
 
                 case "send_fake":
                     # Choose troops to send
-                    java_script = f'return Math.floor(window.game_data.village.points*{settings["world_config"]["fake_limit"]}/100)'
+                    java_script = f'return Math.floor(game_data.village.points*{settings["world_config"]["fake_limit"]}/100)'
                     min_population = driver.execute_script(java_script)
                     current_population = 0
                     for troop_name, template_data in send_info["fake_template"].items():

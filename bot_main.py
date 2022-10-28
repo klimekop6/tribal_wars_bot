@@ -120,6 +120,35 @@ class Home(ScrollableFrame):
         cf_current_changes.grid(row=2, column=0, sticky=ttk.EW)
 
         text = Text(cf_current_changes)
+
+        text.add("Poprawki\n", "h1")
+        text.add("- uwzględniono zmiane czasu z letniego na zimowy\n")
+        text.add("- dodano dalszą część tłumaczenia interfejsu w języku angielskim\n")
+        text.add(
+            "- poprawiono błąd który powodował wyświetlenie komunikatu o tymczasowej niedostępności bazy danych kiedy tak na prawdę problem zwiazany był z nieprawidłowymi danymi w trakcie logowania\n"
+        )
+        text.add(
+            "- usunięto nie potrzebne próby otwarcia bonusu dziennego na światach z wyłączonymi funkcjami premium"
+        )
+
+        text.tag_add("left_margin", "1.0", "end")
+
+        cf_current_changes.add(
+            child=text.frame,
+            title=f"{translate('Changes in patch')} 1.0.71",
+            bootstyle="dark",
+        )
+
+        # Previous changes
+        ttk.Label(self, text=translate("Last changes"), font=("TkFixedFont", 11)).grid(
+            row=5, column=0, pady=(25, 15), sticky=ttk.W
+        )
+
+        # 1.0.70
+        cf_last_changes_1_0_70 = CollapsingFrame(self)
+        cf_last_changes_1_0_70.grid(row=19, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_70)
         text.add("Nowości\n", "h1")
         text.add("- dodano obsługę światów specjalnych takich jak arkadia\n")
         text.add(
@@ -134,15 +163,10 @@ class Home(ScrollableFrame):
 
         text.tag_add("left_margin", "1.0", "end")
 
-        cf_current_changes.add(
+        cf_last_changes_1_0_70.add(
             child=text.frame,
             title=f"{translate('Changes in patch')} 1.0.70",
             bootstyle="dark",
-        )
-
-        # Previous changes
-        ttk.Label(self, text=translate("Last changes"), font=("TkFixedFont", 11)).grid(
-            row=5, column=0, pady=(25, 15), sticky=ttk.W
         )
 
         # 1.0.69
@@ -2607,6 +2631,12 @@ class Scheduler(ScrollableFrame):
         template_type = self.template_type.get()
 
         # Timings
+        time_change = False
+        winter_time_change = datetime.strptime(
+            "30.10.2022 02:59:59:000", "%d.%m.%Y %H:%M:%S:%f"
+        ).timestamp()
+        # summer_time_change
+
         arrival_time = self.destiny_date.entry.get()
         arrival_time_in_sec = datetime.strptime(
             arrival_time, "%d.%m.%Y %H:%M:%S:%f"
@@ -2617,6 +2647,8 @@ class Scheduler(ScrollableFrame):
         ).timestamp()
         set_low_priority = False
         current_time = time.time()
+        if current_time < winter_time_change < final_arrival_time_in_sec:
+            time_change = True
         timings_ommiting_night_bonus: list[tuple[float, float]] = []
         if arrival_time != final_arrival_time:
 
@@ -2854,6 +2886,14 @@ class Scheduler(ScrollableFrame):
                 send_info["send_time"] = (
                     arrival_time_in_sec - travel_time_in_sec
                 )  # sec since epoch
+
+            if time_change:
+                if (
+                    send_info["send_time"]
+                    < winter_time_change
+                    < send_info["send_time"] + travel_time_in_sec
+                ):
+                    send_info["send_time"] + 3600
 
             if send_info["send_time"] - 3 < current_time:
                 sends_from.append(send_from)
@@ -4012,12 +4052,25 @@ class MainWindow:
 
         master.unbind_class("TCombobox", "<MouseWheel>")
 
+        master.bind_class("TEntry", "<ButtonRelease-1>", on_button_release)
+        master.bind_class("TSpinbox", "<ButtonRelease-1>", on_button_release)
+
+        def widgets_focusout(event: tk.Event):
+            x, y = master.winfo_pointerxy()  # Get the mouse position on screen
+            widget = str(
+                master.winfo_containing(x, y)
+            )  # Identify the widget at this location
+            if all(w_type not in widget for w_type in (".!text", ".!entry")):
+                master.focus()
+
         master.bind_class(
-            "TEntry",
-            "<ButtonRelease-1>",
-            lambda event: on_button_release(event, master),
+            "TEntry", "<FocusOut>", lambda event: event.widget.selection_clear()
+        )
+        master.bind_class(
+            "TSpinbox", "<FocusOut>", lambda event: event.widget.selection_clear()
         )
 
+        master.bind("<Button-1>", widgets_focusout)
         master.withdraw()
 
     @log_errors()
@@ -4053,8 +4106,10 @@ class MainWindow:
                 "knight": world_config["config"]["game"]["knight"],
                 "watchtower": world_config["config"]["game"]["watchtower"],
                 "fake_limit": world_config["config"]["game"]["fake_limit"],
+                "scavenging": world_config["config"]["game"]["scavenging"],
                 "start_hour": world_config["config"]["night"]["start_hour"],
                 "end_hour": world_config["config"]["night"]["end_hour"],
+                "daily_bonus": None,
             }
             return True
 
@@ -4065,7 +4120,13 @@ class MainWindow:
             settings["country_code"] = country_code
             settings["server_world"] = server_world
             settings["globals"][server_world] = True
-            settings["groups"] = ["wszystkie"]
+            match country_code:
+                case "de":
+                    settings["groups"] = ["alle"]
+                case "pl":
+                    settings["groups"] = ["wszystkie"]
+                case "en":
+                    settings["groups"] = ["all"]
             settings["scheduler"]["ready_schedule"].clear()
             settings["coins"]["villages"].clear()
 
@@ -4656,7 +4717,8 @@ class MainWindow:
             }
             to_do = []
             # Add daily bonus check
-            to_do.append({"func": "daily_bonus"})
+            if _settings["world_config"]["daily_bonus"] != False:
+                to_do.append({"func": "daily_bonus"})
             # Add farm
             if (
                 _settings["A"]["active"]
@@ -4871,17 +4933,17 @@ class MainWindow:
                         self.to_do.append(self.to_do[0])
 
                     case "daily_bonus":
-                        bot_functions.open_daily_bonus(self.driver, _settings)
-                        current_time = datetime.today()
-                        sec_to_midnight = (
-                            (23 - current_time.hour) * 3600
-                            + (59 - current_time.minute) * 60
-                            + (59 - current_time.second)
-                            + 2
-                        )
-                        self.to_do[0]["start_time"] = time.time() + sec_to_midnight
-                        self.to_do[0]["errors_number"] = 0
-                        self.to_do.append(self.to_do[0])
+                        if bot_functions.open_daily_bonus(self.driver, _settings):
+                            current_time = datetime.today()
+                            sec_to_midnight = (
+                                (23 - current_time.hour) * 3600
+                                + (59 - current_time.minute) * 60
+                                + (59 - current_time.second)
+                                + 2
+                            )
+                            self.to_do[0]["start_time"] = time.time() + sec_to_midnight
+                            self.to_do[0]["errors_number"] = 0
+                            self.to_do.append(self.to_do[0])
 
                     case "gathering":
                         incoming_attacks = False
@@ -5183,26 +5245,27 @@ class MainWindow:
 
 
 class JobsToDoWindow:
-
-    translate = {
-        "gathering": "zbieractwo",
-        "auto_farm": "farmienie",
-        "check_incoming_attacks": "etykiety ataków",
-        "premium_exchange": "giełda premium",
-        "send_troops": "planer",
-        "mine_coin": "wybijanie monet",
-        "daily_bonus": "bonus dzienny",
-    }
-
     def __init__(self, main_window: MainWindow) -> None:
-        self.master = TopLevel(title_text="Lista zadań", timer=main_window.time)
+        self.master = TopLevel(
+            title_text=translate("Task list"), timer=main_window.time
+        )
+
+        self.translate = {
+            "gathering": translate("scavenging"),
+            "auto_farm": translate("looting"),
+            "check_incoming_attacks": translate("attack labels"),
+            "premium_exchange": translate("premium exchange"),
+            "send_troops": translate("scheduler"),
+            "mine_coin": translate("coin minting"),
+            "daily_bonus": translate("daily bonus"),
+        }
 
         self.content_frame = self.master.content_frame
 
         self.coldata = [
-            {"text": "Świat", "stretch": False},
-            "Zadanie",
-            {"text": "Data wykonania", "stretch": False},
+            {"text": translate("World"), "stretch": False},
+            translate("Task"),
+            {"text": translate("Execution date"), "stretch": False},
         ]
 
         rowdata = [

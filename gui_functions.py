@@ -264,7 +264,7 @@ def invoke_checkbuttons(parent) -> None:
     call_widget(parent=parent)
 
 
-def on_button_release(event: tk.Event, master: tk.Tk) -> None:
+def on_button_release(event: tk.Event) -> None:
     """Adds function to some widgets like Entry, Text, Spinbox etc.
     It is selecting all text inside widget after button_release event.
     Also it loes focus and clear selection if user click outside of widget.
@@ -273,33 +273,20 @@ def on_button_release(event: tk.Event, master: tk.Tk) -> None:
     widget: ttk.Entry = event.widget
     widget.selection_range(0, "end")
     widget.focus()
-    widget_class = widget.winfo_class()
-    widget.unbind_class(widget_class, "<ButtonRelease-1>")
 
-    def on_leave(event: tk.Event = None) -> None:
-        def on_enter(event: tk.Event = None) -> None:
-            master.unbind_all("<Button-1>")
-            master.unbind_class(widget_class, "<ButtonRelease-1>")
+    def block_class_binding(event) -> str:
+        return "break"
 
-        def on_click_outside(event: tk.Event) -> None:
-            if not widget.winfo_exists():
-                master.unbind_all("<Button-1>")
-                return
-            widget.select_clear()
-            widget.nametowidget(widget.winfo_parent()).focus()
-            master.unbind_all("<Button-1>")
-            widget.unbind("<Enter>")
-            widget.unbind("<Leave>")
+    bind_id = widget.bind("<ButtonRelease-1>", block_class_binding)
 
-        widget.bind("<Enter>", on_enter)
-        master.bind_class(
-            widget_class,
-            "<ButtonRelease-1>",
-            lambda event: on_button_release(event, master),
-        )
-        master.bind_all("<Button-1>", on_click_outside, add="+")
+    def unblock_class_binding(event) -> None:
+        if widget.winfo_exists():
+            try:
+                widget.unbind("<ButtonRelease-1>", funcid=bind_id)
+            except Exception:
+                pass
 
-    widget.bind("<Leave>", on_leave)
+    widget.bind("<FocusOut>", unblock_class_binding)
 
 
 def save_entry_to_settings(

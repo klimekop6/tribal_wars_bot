@@ -8,6 +8,7 @@ from random import randint
 
 import geocoder
 import ttkbootstrap as ttk
+from ttkbootstrap import localization
 from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_validation, validator
 
@@ -16,10 +17,12 @@ from gui_functions import center, custom_error, forget_row, show_or_hide_passwor
 from my_widgets import TopLevel
 from tribal_wars_bot_api import TribalWarsBotApi
 
+translate = localization.MessageCatalog.translate
+
 
 class RegisterWindow:
     def __init__(self, parent) -> None:
-        self.master = TopLevel(title_text="Formularz rejestracyjny")
+        self.master = TopLevel(title_text=translate("Registration form"))
 
         # Change exit_button command
         def overwrite_button_command() -> None:
@@ -35,10 +38,10 @@ class RegisterWindow:
         self.content_frame = self.master.content_frame
 
         # Login
-        ttk.Label(self.content_frame, text="Pola obowiązkowe").grid(
+        ttk.Label(self.content_frame, text=translate("Required fields")).grid(
             row=0, column=0, columnspan=2, padx=5, pady=(5, 15), sticky="W"
         )
-        ttk.Label(self.content_frame, text="Login:").grid(
+        ttk.Label(self.content_frame, text=translate("Username:")).grid(
             row=1, column=0, padx=(5, 5), pady=5, sticky="W"
         )
         self.login = ttk.Entry(self.content_frame, width=25)
@@ -64,18 +67,18 @@ class RegisterWindow:
             # API GET /register DONE
             response = TribalWarsBotApi(f"/register?user_name={self.login.get()}").get()
             if not response.ok:
-                return on_error("Wystąpił błąd bazy danych")
+                return on_error(translate("Database error occurred"))
             if response.json()["no_exist"]:
                 forget_row(parent=self.content_frame, row_number=2)
                 self.login_status.set(True)
                 return True
             else:
-                return on_error("Podany login już istnieje")
+                return on_error(translate("Given login is already in use"))
 
         add_validation(self.login, login_validation)
 
         # Password
-        ttk.Label(self.content_frame, text="Hasło:").grid(
+        ttk.Label(self.content_frame, text=translate("Password:")).grid(
             row=3, column=0, padx=(5, 5), pady=5, sticky="W"
         )
         self.password = ttk.Entry(self.content_frame, show="*", width=25)
@@ -93,7 +96,7 @@ class RegisterWindow:
         )
         self.password_button.grid(row=3, column=1, padx=(0, 12), sticky=ttk.E)
         # Password repeat
-        ttk.Label(self.content_frame, text="Powtórz hasło:").grid(
+        ttk.Label(self.content_frame, text=translate("Repeat password:")).grid(
             row=5, column=0, padx=(5, 5), pady=5, sticky="W"
         )
         self.password_repeat = ttk.Entry(self.content_frame, show="*", width=25)
@@ -125,7 +128,9 @@ class RegisterWindow:
                 return True
             else:
                 ttk.Label(
-                    self.content_frame, text="Podano różne hasła", bootstyle="danger"
+                    self.content_frame,
+                    text=translate("Passwords must be the same"),
+                    bootstyle="danger",
                 ).grid(row=6, column=1, pady=(0, 5))
                 self.password.config(bootstyle="danger")
                 self.password.bind(
@@ -140,7 +145,7 @@ class RegisterWindow:
         add_validation(self.password_repeat, password_validation)
 
         # Email
-        ttk.Label(self.content_frame, text="Adres e-mail:").grid(
+        ttk.Label(self.content_frame, text=translate("Email address:")).grid(
             row=7, column=0, padx=(5, 5), pady=5, sticky="W"
         )
         self.email = ttk.Entry(self.content_frame, width=25)
@@ -153,7 +158,7 @@ class RegisterWindow:
             if not re.search(pattern="@", string=self.email.get()):
                 ttk.Label(
                     self.content_frame,
-                    text="Podano nieprawidłowy adres",
+                    text=translate("Invalid email address"),
                     bootstyle="danger",
                 ).grid(row=8, column=1, pady=(0, 5))
                 self.email_status.set(False)
@@ -175,18 +180,18 @@ class RegisterWindow:
             # API GET /register DONE
             response = TribalWarsBotApi(f"/register?email={self.email.get()}").get()
             if not response.ok:
-                return on_error("Wystąpił błąd bazy danych")
+                return on_error(translate("Database error occurred"))
             if response.json()["no_exist"]:
                 forget_row(self.content_frame, row_number=8)
                 self.email_status.set(True)
                 return True
             else:
-                return on_error("Podany adres już istnieje")
+                return on_error(translate("That address is already in use"))
 
         add_validation(self.email, email_validation)
 
         # Email_repeat
-        ttk.Label(self.content_frame, text="Powtórz e-mail:").grid(
+        ttk.Label(self.content_frame, text=translate("Repeat email:")).grid(
             row=9, column=0, padx=(5, 5), pady=5, sticky="W"
         )
         self.email_repeat = ttk.Entry(self.content_frame, width=25)
@@ -205,7 +210,7 @@ class RegisterWindow:
             else:
                 ttk.Label(
                     self.content_frame,
-                    text="Podano różne adresy e-mail",
+                    text=translate("Emails must be the same"),
                     bootstyle="danger",
                 ).grid(row=10, column=1)
                 self.email.config(bootstyle="danger")
@@ -217,11 +222,11 @@ class RegisterWindow:
 
         add_validation(self.email_repeat, email_repeat_validation)
 
-        ttk.Label(self.content_frame, text="Opcjonalne").grid(
+        ttk.Label(self.content_frame, text=translate("Not required")).grid(
             row=11, column=0, columnspan=2, padx=5, pady=15, sticky="W"
         )
         # Recommended_by
-        ttk.Label(self.content_frame, text="Login polecającego:").grid(
+        ttk.Label(self.content_frame, text=translate("Referrer Login:")).grid(
             row=12, column=0, padx=(5, 5), pady=5, sticky="W"
         )
         self.recommended_by = ttk.Entry(self.content_frame, width=25)
@@ -247,25 +252,25 @@ class RegisterWindow:
                 f"/register?user_name={self.recommended_by.get()}"
             ).get()
             if not response.ok:
-                return on_error("Wystąpił błąd bazy danych")
+                return on_error(translate("Database error occurred"))
             if self.recommended_by.get() == self.login.get():
-                return on_error("Czynność zabroniona")
+                return on_error(translate("Prohibited activity"))
             if not response.json()["no_exist"] or not self.recommended_by.get():
                 forget_row(parent=self.content_frame, row_number=13)
                 self.recomended_by_status.set(True)
                 return True
             else:
-                return on_error("Podany login nie istnieje")
+                return on_error(translate("Given login does not exist"))
 
         add_validation(self.recommended_by, recomended_by_validation)
-        tip_text = (
-            "Pole opcjonalne:\n\n"
-            "Login konta używany do logowania się w bocie przez osobę polecającą."
+        tip_text = translate(
+            "Not required:\n\n"
+            "The account login used to log in to the bot by the referrer."
         )
 
         create_account = ttk.Button(
             self.content_frame,
-            text="Utwórz konto",
+            text=translate("Create account"),
             command=lambda: self.create_account(log_in_window=parent, exists=exists),
         )
         create_account.grid(
@@ -287,14 +292,14 @@ class RegisterWindow:
             if self.user_data["invited_by"]:
                 self.recommended_by.insert(0, self.user_data["invited_by"])
                 self.recommended_by.config(state="disabled")
-                tip_text = "Pole zostało zablokowane."
+                tip_text = translate("The field has been blocked.")
 
             self.login_status.set(True)
             self.password_status.set(True)
             self.email_status.set(True)
             self.email_repeat_status.set(True)
 
-            create_account.config(text="Aktualizuj konto")
+            create_account.config(text=translate("Update account"))
 
         ToolTip(self.recommended_by, text=tip_text, topmost=True)
 
@@ -321,16 +326,20 @@ class RegisterWindow:
         ).get()
         if not response.ok:
             custom_error(
-                message="Wystąpił błąd bazy danych, spróbuj później.",
+                message=translate(
+                    "Database is currently unavailable, pls try again later"
+                ),
                 parent=log_in_window,
             )
             return False
         if not response.json()["no_exist"]:
             log_in_window.update()
             custom_error(
-                message="Utworzono już konto z tego komputera\n"
-                "Utworzenie nowego spowoduję jego nadpisanie nowymi danymi\n"
-                "Z wyjątkiem daty ważności konta i loginu osoby polecającej",
+                message=translate(
+                    "An account has already been created from this computer\n"
+                    "Creating a new one will cause it to be overwritten with new data\n"
+                    "Except for the expiration date of the account and the login of the referrer"
+                ),
                 parent=log_in_window,
             )
             response = TribalWarsBotApi(
@@ -338,7 +347,9 @@ class RegisterWindow:
             ).get()
             if not response.ok:
                 custom_error(
-                    message="Wystąpił błąd bazy danych, spróbuj później.",
+                    message=translate(
+                        "Database is currently unavailable, pls try again later"
+                    ),
                     parent=log_in_window,
                 )
                 return False
@@ -407,8 +418,8 @@ class RegisterWindow:
                     target=send_email,
                     kwargs={
                         "email_recepients": self.email.get(),
-                        "email_subject": "Kod weryfikacyjny",
-                        "email_body": f"Twój kod weryfikacyjny: {verification_code}",
+                        "email_subject": translate("Verification code"),
+                        "email_body": f"{translate('Your verification code:')} {verification_code}",
                     },
                 ).start()
 
@@ -420,13 +431,14 @@ class RegisterWindow:
 
             center(window=log_in_window, parent=self.master)
             self.master.destroy()
-            message = "Konto zostało pomyślnie utworzone!"
+            message = translate("Account has been successfully created!")
             if exists:
-                message = "Konto zostało pomyślnie zaktualizowane!"
+                message = translate("Account has been successfully updated!")
             custom_error(message=message, parent=log_in_window)
             log_in_window.deiconify()
         else:
             custom_error(
-                message="Uzupełnij prawidłowo obowiązkowe pola!", parent=self.master
+                message=translate("Fill in the required fields correctly!"),
+                parent=self.master,
             )
             return
