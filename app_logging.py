@@ -11,8 +11,11 @@ class CustomLogFormatter(logging.Formatter):
     def formatStack(self, stack_info: str = "") -> str:
         """Trim everything after word 'Stacktrace'."""
 
+        if "NoneType: None\n" == stack_info:
+            return ""
+
         stack_info_without_stacktrace = stack_info[: stack_info.find("Stacktrace")]
-        return "".join(stack_info_without_stacktrace)
+        return f'"\n"{"".join(stack_info_without_stacktrace)}'
 
     def format(self, record: logging.LogRecord):
         record.message = record.getMessage()
@@ -21,8 +24,6 @@ class CustomLogFormatter(logging.Formatter):
         message = self.formatMessage(record)
         if record.levelno >= logging.ERROR:
             record.stack_info = traceback.format_exc()
-            if message[-1:] != "\n":
-                message = message + "\n"
             message = message + self.formatStack(record.stack_info)
 
         return message

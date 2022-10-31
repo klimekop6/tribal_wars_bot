@@ -2,8 +2,15 @@ import os
 import tkinter as tk
 
 import ttkbootstrap as ttk
+from ttkbootstrap import localization
 
-from app_functions import delegate_things_to_other_thread, first_app_login
+translate = localization.MessageCatalog.translate
+
+from app_functions import (
+    delegate_things_to_other_thread,
+    expiration_warning,
+    first_app_login,
+)
 from app_logging import add_event_handler, get_logger
 from gui_functions import (
     center,
@@ -32,12 +39,18 @@ class LogInWindow:
                 "user_password": settings["user_password"],
             }
             response = TribalWarsBotApi("/login", json=data).post()
-            if not response.ok:
-                custom_error(message="Automatyczne logowanie nie powiodło się.")
+            if response is False:
+                custom_error(
+                    message=translate(
+                        "Database is currently unavailable, pls try again later"
+                    )
+                )
+            elif not response.ok:
+                custom_error(message=translate("Auto login failed"))
             else:
                 user_data = response.json()
                 if user_data["currently_running"]:
-                    custom_error(message="Konto jest już obecnie w użyciu.")
+                    custom_error(message=translate("The account is already in use"))
                 else:
                     main_window.user_data = user_data
                     self.after_correct_log_in(
@@ -56,7 +69,7 @@ class LogInWindow:
         self.custom_bar.grid(row=0, column=0, sticky=("N", "S", "E", "W"))
         self.custom_bar.columnconfigure(3, weight=1)
 
-        self.title_label = ttk.Label(self.custom_bar, text="Logowanie")
+        self.title_label = ttk.Label(self.custom_bar, text=translate("Log-in window"))
         self.title_label.grid(row=0, column=2, padx=5, sticky="W")
 
         self.exit_button = ttk.Button(
@@ -71,14 +84,14 @@ class LogInWindow:
         self.content = ttk.Frame(self.master)
         self.content.grid(row=2, column=0, sticky=("N", "S", "E", "W"))
 
-        self.user_name = ttk.Label(self.content, text="Nazwa:")
+        self.user_name = ttk.Label(self.content, text=translate("Username:"))
         self.user_name.grid(row=2, column=0, pady=4, padx=5, sticky="W")
 
-        self.user_password = ttk.Label(self.content, text="Hasło:")
+        self.user_password = ttk.Label(self.content, text=translate("Password:"))
         self.user_password.grid(row=3, column=0, pady=4, padx=5, sticky="W")
 
         self.register_label = ttk.Label(
-            self.content, text="Nie posiadasz jeszcze konta?"
+            self.content, text=translate("Don't have an account yet?")
         )
         self.register_label.grid(row=6, column=0, columnspan=2, pady=(4, 0), padx=5)
 
@@ -106,7 +119,7 @@ class LogInWindow:
         self.remember_me = tk.StringVar()
         self.remember_me_button = ttk.Checkbutton(
             self.content,
-            text="Zapamiętaj mnie",
+            text=translate("Remember me"),
             variable=self.remember_me,
             onvalue=True,
             offvalue=False,
@@ -115,12 +128,12 @@ class LogInWindow:
 
         self.log_in_button = ttk.Button(
             self.content,
-            text="Zaloguj",
+            text=translate("Log in"),
             command=lambda: self.log_in(main_window, settings),
         )
         self.register_button = ttk.Button(
             self.content,
-            text="Utwórz konto",
+            text=translate("Create account"),
             command=lambda: self.register(),
         )
 
@@ -162,27 +175,28 @@ class LogInWindow:
         main_window.verified_email = user_data["verified_email"]
         if not user_data["verified_email"]:
             main_window.control_panel.verified_email_label.config(
-                text="Zweryfikowany adres e-mail: Nie"
+                text=translate("Verified address e-mail: No")
             )
         else:
             main_window.control_panel.verified_email_label.config(
-                text="Zweryfikowany adres e-mail: Tak"
+                text=translate("Verified address e-mail: Yes")
             )
 
         settings["account_expire_time"] = str(user_data["active_until"])
         main_window.control_panel.acc_expire_time.config(
-            text=f'Konto ważne do {user_data["active_until"]}'
+            text=f'{translate("Account expiration time")} {user_data["active_until"]}'
         )
 
         invoke_checkbuttons(parent=main_window.master)
         main_window.master.deiconify()
-        main_window.master.update()
         center(main_window.master, parent=parent)
         main_window.master.attributes("-topmost", 1)
         add_event_handler(settings=settings)
         self.update_db_running_status(main_window=main_window)
         if settings["first_lunch"]:
             first_app_login(settings=settings, main_window=main_window)
+        expiration_warning(settings=settings, main_window=main_window)
+        main_window.master.update()
         main_window.master.attributes("-alpha", 1.0)
 
     def log_in(self, main_window, settings: dict):
@@ -193,12 +207,24 @@ class LogInWindow:
             "user_password": self.user_password_input.get(),
         }
         response = TribalWarsBotApi("/login", json=data).post()
+        if response is False:
+            custom_error(
+                message=translate(
+                    "Database is currently unavailable, pls try again later"
+                ),
+                parent=self.master,
+            )
+            return
         if not response.ok:
-            custom_error(message="Wprowadzono nieprawidłowe dane", parent=self.master)
+            custom_error(
+                message=translate("Incorrect data entered"), parent=self.master
+            )
             return
         user_data = response.json()
         if user_data["currently_running"]:
-            custom_error(message="Konto jest już obecnie w użyciu", parent=self.master)
+            custom_error(
+                message=translate("The account is already in use"), parent=self.master
+            )
             return
         settings["user_name"] = self.user_name_input.get()
         if self.remember_me.get():

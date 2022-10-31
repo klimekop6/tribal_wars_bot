@@ -20,10 +20,10 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium_stealth import stealth
+from ttkbootstrap.toast import ToastNotification
 from webdriver_manager.chrome import ChromeDriverManager
 
 from app_logging import get_logger
-from bot_browser_extensions import COORDS_COPY
 from config import ANY_CAPTCHA_API_KEY
 from decorators import log_errors
 from gui_functions import custom_error, set_default_entries
@@ -44,21 +44,21 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
         if f"{settings['server_world']}" not in driver.current_url:
             return False
 
-        find_captcha_time = time.time()
-        if (
-            "last_captcha_solved" in settings["temp"]
-            and find_captcha_time - settings["temp"]["last_captcha_solved"] < 60
-        ):
-            logger.info("captcha solved less than 60sec ago -> refreshing page")
-            driver.refresh()
-            # Return if no captcha were find after page refresh
-            if not driver.execute_script(search_for_captcha):
-                logger.info("No captcha after refreshing page")
-                return True
+        get_captcha_selector = """if (document.querySelector('.h-captcha')) {return '.h-captcha'}
+            else if (document.querySelector('.captcha')) {return '.captcha'}
+            else {return}
+            """
+        captcha_selector = driver.execute_script(get_captcha_selector)
+        if not driver.find_elements(By.CSS_SELECTOR, f"{captcha_selector} iframe"):
+            return False
 
         logger.info("start solving captcha")
 
         def simple_solve_captcha(captcha_selector: str) -> bool:
+            # Scroll to the element with class name equal to captche_selector
+            driver.execute_script(
+                f"document.querySelector('{captcha_selector}').scrollIntoView(false);"
+            )
             # Switch to frame when it is available
             WebDriverWait(driver, 3, 0.05).until(
                 EC.frame_to_be_available_and_switch_to_it(
@@ -70,7 +70,7 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             ).click()
             driver.switch_to.default_content()
             try:
-                WebDriverWait(driver, 3, 0.1).until(
+                WebDriverWait(driver, 5, 0.1).until(
                     lambda _: False
                     if driver.execute_script(search_for_captcha)
                     else True
@@ -131,28 +131,17 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
                 return True
             return False
 
-        get_captcha_selector = """if (document.querySelector('.h-captcha')) {return '.h-captcha'}
-            else if (document.querySelector('.captcha')) {return '.captcha'}
-            else {return}
-            """
-        captcha_selector = driver.execute_script(get_captcha_selector)
-
         try:
             if simple_solve_captcha(captcha_selector):
                 logger.info("captcha solved the easy way")
                 return True
+
         except TimeoutException:
             driver.switch_to.default_content()
             driver.save_screenshot(
                 f'logs/{time.strftime("%d.%m.%Y %H_%M_%S", time.localtime())}.png'
             )
-            try:
-                captcha_content = driver.find_element(
-                    By.CSS_SELECTOR, captcha_selector
-                ).get_attribute("innerHTML")
-            except:
-                captcha_content = "empty captcha or no captcha"
-            logger.error(f"error when solving the easy way\n {captcha_content}")
+            logger.error(f"error when solving the easy way\n {driver.current_url}")
 
         if not driver.execute_script(search_for_captcha):
             logger.info("captcha solved the easy way after error")
@@ -167,7 +156,6 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             settings["temp"]["captcha_counter"].set(
                 settings["temp"]["captcha_counter"].get() + 1
             )
-            settings["temp"]["last_captcha_solved"] = find_captcha_time
             return True
 
         logger.info("error when dealing with captcha")
@@ -241,11 +229,14 @@ def chrome_profile_path(settings: dict) -> None:
 def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Thread:
     """Used to speedup app start doing stuff while connecting to database or API"""
 
-    def add_new_default_settings(_settings: dict) -> None:
+    def add_new_default_settings(_settings: dict[str, dict]) -> None:
         _settings.setdefault("coins", {"villages": {}})
         _settings["coins"].setdefault("villages", {})
         _settings["coins"].setdefault("mine_coin", False)
         _settings["coins"].setdefault("max_send_time", 120)
+
+        _settings.setdefault("world_config", {})
+        _settings["world_config"].setdefault("daily_bonus", None)
 
     def run_in_other_thread() -> None:
 
@@ -269,6 +260,31 @@ def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Th
 
     if not main_window.settings_by_worlds:
         threading.Thread(target=run_in_other_thread).start()
+
+
+def expiration_warning(settings: dict, main_window) -> None:
+
+    time_to_expire = (
+        time.mktime(
+            time.strptime(
+                main_window.user_data["active_until"] + " 23:59:59", "%Y-%m-%d %H:%M:%S"
+            )
+        )
+        - time.time()
+    )
+
+    if 0 < time_to_expire < 86_400:
+        ToastNotification(
+            title="TribalWarsBot Warning",
+            message="Ważność twojego konta niedługo się skończy. ",
+            topmost=True,
+            bootstyle="warning",
+        ).show_toast()
+    elif time_to_expire > 86_400:
+        main_window.master.after(
+            ms=int(time_to_expire - 86_400),
+            func=lambda: expiration_warning(settings=settings, main_window=main_window),
+        )
 
 
 def first_app_lunch(settings: dict) -> None:
@@ -407,7 +423,7 @@ def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
             return True
 
         # Ręczne logowanie na stronie plemion
-        elif f"https://www.{settings['game_url']}/" == driver.current_url:
+        elif f"https://www.{settings['game_url']}/" in driver.current_url:
 
             if not "game_user_name" in settings:
                 if not driver.find_elements(By.ID, "login_form"):
@@ -500,7 +516,7 @@ def run_driver(settings: dict) -> webdriver.Chrome:
             try:
                 driver = webdriver.Chrome(
                     service=Service(
-                        ChromeDriverManager(cache_valid_range=31).install()
+                        ChromeDriverManager(cache_valid_range=14).install()
                     ),
                     options=chrome_options,
                 )
@@ -515,7 +531,7 @@ def run_driver(settings: dict) -> webdriver.Chrome:
                     "taskkill /IM chromedriver.exe /F /T",
                     creationflags=subprocess.CREATE_NO_WINDOW,
                 )
-                time.sleep(8)
+                time.sleep(3)
         return driver
     except BaseException as exc:
         logger.error(exc)
@@ -534,7 +550,9 @@ def run_driver(settings: dict) -> webdriver.Chrome:
 def save_settings_to_files(settings: dict, settings_by_worlds: dict) -> None:
     # Make sure that settings is saved in correct self.settings_by_worlds
     if "server_world" in settings and settings["server_world"] in settings_by_worlds:
-        settings_by_worlds[settings["server_world"]].update(settings)
+        settings_by_worlds[settings["server_world"]].update(
+            (k, v) for k, v in settings.items() if k != "globals"
+        )
 
     # Settings per server_world save in file
     for server_world in settings_by_worlds:
@@ -553,7 +571,7 @@ def save_settings_to_files(settings: dict, settings_by_worlds: dict) -> None:
 
 
 def unwanted_page_content(
-    driver: webdriver.Chrome, settings: dict[str], html: str = ""
+    driver: webdriver.Chrome, settings: dict[str], html: str = "", log: bool = True
 ) -> bool:
     """Deal with: chat disconnected, session expired,
     popup boxes like: daily bonus, tribe quests,
@@ -568,6 +586,7 @@ def unwanted_page_content(
         if (
             html.find("chat-disconnected") != -1
             or "session_expired" in driver.current_url
+            or settings["server_world"] not in driver.current_url
         ):
             return log_in(driver, settings)
 
@@ -691,7 +710,8 @@ def unwanted_page_content(
 
         # Nieznane -> log_error
         else:
-            log_error(driver=driver, msg="unwanted_page_content -> uknown error")
+            if log:
+                log_error(driver=driver, msg="unwanted_page_content -> uknown error")
             return False
 
     except BaseException:

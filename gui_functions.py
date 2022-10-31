@@ -264,7 +264,7 @@ def invoke_checkbuttons(parent) -> None:
     call_widget(parent=parent)
 
 
-def on_button_release(event: tk.Event, master: tk.Tk) -> None:
+def on_button_release(event: tk.Event) -> None:
     """Adds function to some widgets like Entry, Text, Spinbox etc.
     It is selecting all text inside widget after button_release event.
     Also it loes focus and clear selection if user click outside of widget.
@@ -273,40 +273,33 @@ def on_button_release(event: tk.Event, master: tk.Tk) -> None:
     widget: ttk.Entry = event.widget
     widget.selection_range(0, "end")
     widget.focus()
-    widget_class = widget.winfo_class()
-    widget.unbind_class(widget_class, "<ButtonRelease-1>")
 
-    def on_leave(event: tk.Event = None) -> None:
-        def on_enter(event: tk.Event = None) -> None:
-            master.unbind_all("<Button-1>")
-            master.unbind_class(widget_class, "<ButtonRelease-1>")
+    def block_class_binding(event) -> str:
+        return "break"
 
-        def on_click_outside(event: tk.Event) -> None:
-            if not widget.winfo_exists():
-                master.unbind_all("<Button-1>")
-                return
-            widget.select_clear()
-            widget.nametowidget(widget.winfo_parent()).focus()
-            master.unbind_all("<Button-1>")
-            widget.unbind("<Enter>")
-            widget.unbind("<Leave>")
+    bind_id = widget.bind("<ButtonRelease-1>", block_class_binding)
 
-        widget.bind("<Enter>", on_enter)
-        master.bind_class(
-            widget_class,
-            "<ButtonRelease-1>",
-            lambda event: on_button_release(event, master),
-        )
-        master.bind_all("<Button-1>", on_click_outside, add="+")
+    def unblock_class_binding(event) -> None:
+        if widget.winfo_exists():
+            try:
+                widget.unbind("<ButtonRelease-1>", funcid=bind_id)
+            except Exception:
+                pass
 
-    widget.bind("<Leave>", on_leave)
+    widget.bind("<FocusOut>", unblock_class_binding)
 
 
 def save_entry_to_settings(
-    entries: dict, settings: dict, settings_by_worlds: dict = None
+    entries: dict,
+    settings: dict,
+    settings_by_worlds: dict = None,
 ) -> None:
-    def loop_over_entries(entries: dict | tk.StringVar, settings: dict | str):
+    def loop_over_entries(
+        entries: dict | tk.StringVar, settings: dict | str, exclude_key: str = ""
+    ):
         for key, value in entries.items():
+            if key in exclude_key:
+                continue
             if isinstance(value, dict):
                 if key not in settings:
                     settings[key] = {}
@@ -323,7 +316,9 @@ def save_entry_to_settings(
     loop_over_entries(entries=entries, settings=settings)
     if settings_by_worlds:
         loop_over_entries(
-            entries=entries, settings=settings_by_worlds[settings["server_world"]]
+            entries=entries,
+            settings=settings_by_worlds[settings["server_world"]],
+            exclude_key="globals",
         )
 
 
@@ -332,13 +327,17 @@ def set_default_entries(entries: dict[tk.Variable]) -> None:
 
     for template in ("A", "B", "C"):
         entries[template]["attacks_number"].set(5)
-    # Share with A, B and C
+        entries[template]["farm_rules"]["loot"].set("mix_loot")
+
+    # Share between A, B and C
     entries["farm_sleep_time"].set(30)
+    # Other
     entries["gathering_max_resources"].set(500)
     entries["market"]["check_every"].set(30)
     entries["coins"]["max_send_time"].set(120)
     entries["coins"]["check_every"].set(30)
     entries["notifications"]["check_incoming_attacks_sleep_time"].set(30)
+    entries["stable_release"].set(True)
 
 
 def show_or_hide_password(parent, entry: ttk.Entry, button: ttk.Button) -> None:

@@ -23,10 +23,14 @@ def threaded(func):
 
         def log_response_on_error(
             self: "TribalWarsBotApi", *args, **kwargs
-        ) -> requests.Response:
+        ) -> requests.Response | bool:
             """Run wrapped function and after that log response errors"""
 
-            self.response: requests.Response = func(self, *args, **kwargs)
+            try:
+                self.response: requests.Response = func(self, *args, **kwargs)
+            except BaseException:
+                logger.error("Connection error")
+                return False
             if self.response.status_code >= 400:
                 logger.error(f"{self.response.status_code} {self.response.text}")
             return self.response
