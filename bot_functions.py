@@ -858,11 +858,33 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             if row[0].get("class") != "inactive-view" or row[1]:
                 del troops_to_send[number + 1]
 
+        # if not troops_to_send:
+
         # Ukrywa chat
         driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
 
         # Obliczenie i wysyłanie wojsk na zbieractwo
         sum_capacity = sum(troops_to_send[key]["capacity"] for key in troops_to_send)
+        for key in troops_to_send:
+            for troop_name, troop_number in available_troops.items():
+                troops_to_send[key][troop_name] = round(
+                    troops_to_send[key]["capacity"] / sum_capacity * troop_number
+                )
+        for troop_name, available_troop_number in available_troops.items():
+            total_troops_number_te_send = sum(
+                troops_to_send[key][troop_name] for key in troops_to_send
+            )
+            if not total_troops_number_te_send:
+                continue
+            if total_troops_number_te_send > available_troop_number:
+                troops_to_send[min(troops_to_send)][troop_name] -= (
+                    total_troops_number_te_send - available_troop_number
+                )
+            elif total_troops_number_te_send < available_troop_number:
+                troops_to_send[min(troops_to_send)][troop_name] += (
+                    available_troop_number - total_troops_number_te_send
+                )
+
         units_capacity = {
             "spear": 25,
             "sword": 15,
@@ -873,23 +895,11 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             "heavy": 50,
             "knight": 100,
         }
-        reduce_ratio = None
         max_resources = settings["gathering_max_resources"]
-        round_ups_per_troop = {troop_name: 0 for troop_name in available_troops}
+        reduce_ratio = None
         for key in troops_to_send:
             if not settings["temp"]["main_window"].running:
                 return []
-            for troop_name, troop_number in available_troops.items():
-                counted_troops_number = (
-                    troops_to_send[key]["capacity"] / sum_capacity * troop_number
-                )
-                if (counted_troops_number % 1) > 0.5 and round_ups_per_troop[
-                    troop_name
-                ] < 1:
-                    troops_to_send[key][troop_name] = round(counted_troops_number)
-                    round_ups_per_troop[troop_name] += 1
-                else:
-                    troops_to_send[key][troop_name] = int(counted_troops_number)
             if not reduce_ratio:
                 sum_troops_capacity = (
                     sum(
@@ -1514,7 +1524,6 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
 
             if index:
                 previous_tabs = set(driver.window_handles)
-                # Open new tab
                 driver.switch_to.new_window("tab")
                 driver.get(send_info["url"])
                 # Search and get new tab

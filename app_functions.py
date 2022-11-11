@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 import winreg
+from typing import TYPE_CHECKING
 
 import requests
 from anycaptcha import AnycaptchaClient, HCaptchaTaskProxyless
@@ -27,6 +28,9 @@ from app_logging import get_logger
 from config import ANY_CAPTCHA_API_KEY
 from decorators import log_errors
 from gui_functions import custom_error, set_default_entries
+
+if TYPE_CHECKING:
+    from bot_main import MainWindow
 
 logger = get_logger(__name__)
 
@@ -226,7 +230,9 @@ def chrome_profile_path(settings: dict) -> None:
         json.dump(settings, settings_json_file)
 
 
-def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Thread:
+def delegate_things_to_other_thread(
+    settings: dict, main_window: "MainWindow"
+) -> threading.Thread:
     """Used to speedup app start doing stuff while connecting to database or API"""
 
     def add_new_default_settings(_settings: dict[str, dict]) -> None:
@@ -262,7 +268,7 @@ def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Th
         threading.Thread(target=run_in_other_thread).start()
 
 
-def expiration_warning(settings: dict, main_window) -> None:
+def expiration_warning(settings: dict, main_window: "MainWindow") -> None:
 
     time_to_expire = (
         time.mktime(
@@ -311,7 +317,7 @@ def first_app_lunch(settings: dict) -> None:
         sys.exit()
 
 
-def first_app_login(settings: dict, main_window) -> None:
+def first_app_login(settings: dict, main_window: "MainWindow") -> None:
     set_default_entries(entries=main_window.entries_content)
     main_window.add_new_world_window(settings=settings, obligatory=True)
     settings["first_lunch"] = False
@@ -505,6 +511,8 @@ def run_driver(settings: dict) -> webdriver.Chrome:
         chrome_options.add_argument("start-maximized")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        if settings["globals"]["disable_chrome_background_throttling"]:
+            chrome_options.add_argument("--disable-background-timer-throttling")
         chrome_options.add_extension(
             extension="browser_extensions//captcha_callback_hooker.crx"
         )
@@ -515,9 +523,7 @@ def run_driver(settings: dict) -> webdriver.Chrome:
         while True:
             try:
                 driver = webdriver.Chrome(
-                    service=Service(
-                        ChromeDriverManager(cache_valid_range=14).install()
-                    ),
+                    service=Service(ChromeDriverManager(cache_valid_range=7).install()),
                     options=chrome_options,
                 )
                 # driver.execute_cdp_cmd(

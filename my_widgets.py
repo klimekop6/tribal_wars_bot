@@ -71,6 +71,8 @@ class TopLevel(tk.Toplevel):
                 "<Button-1>", lambda event: self._get_pos(event, "title_timer")
             )
 
+        self.lift()
+
     def _hide(self):
         self.attributes("-alpha", 0.0)
         self.overrideredirect(False)
@@ -243,7 +245,7 @@ class Text:
         self.text.grid(row=0, column=0, sticky=ttk.EW)
 
         # Tags
-        self.text.tag_configure("h1", font=("TkFixedFont", 11), spacing1=20)
+        self.text.tag_configure("h1", font=("TkFixedFont", 11), spacing1=20, spacing3=5)
         self.text.tag_configure("left_margin", lmargin2=8)
 
         # Bindings
@@ -261,6 +263,7 @@ class Text:
     def add(self, line_of_text: str, *tags) -> None:
         self.text.insert(f"{self.text_line}.0", line_of_text, *tags)
         self.text_line += 1
+        self.text.tag_add("left_margin", "1.0", "end")
 
     def _on_map(self, *_):
         """Callback for when the configure method is used"""

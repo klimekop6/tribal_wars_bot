@@ -35,14 +35,12 @@ from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.utility import enable_high_dpi_awareness
 from ttkbootstrap.validation import add_validation
 
-translate = localization.MessageCatalog.translate
-
-
 import app_functions
 import bot_functions
 from app_logging import CustomLogFormatter, get_logger
+from app_windows import JobsToDoWindow, LogInWindow, PaymentWindow
 from client_config import ClientConfig
-from config import APP_NAME, APP_VERSION
+from config import APP_NAME, APP_VERSION, PYTHON_ANYWHERE_WORLD_SETTINGS
 from constants import TROOPS_SPEED
 from decorators import log_errors
 from gui_functions import (
@@ -58,10 +56,10 @@ from gui_functions import (
     save_entry_to_settings,
     set_default_entries,
 )
-from log_in_window import LogInWindow
 from my_widgets import CollapsingFrame, ScrollableFrame, Text, TopLevel
 from tribal_wars_bot_api import TribalWarsBotApi
 
+translate = localization.MessageCatalog.translate
 os.environ["WDM_LOG"] = "false"
 
 # Change root logger path file
@@ -121,21 +119,21 @@ class Home(ScrollableFrame):
 
         text = Text(cf_current_changes)
 
+        text.add("Nowości\n", "h1")
+        text.add(
+            "- Ikona aplikacji jest teraz zawsze widoczna w pasku zadań a nie tylko po zminimalizowaniu okna. Dodatkowo aplikację można od teraz minimalizować, tak jak inne okna systemowe, domyślnie klikając w ikonę na pasku zadań.\n"
+        )
         text.add("Poprawki\n", "h1")
-        text.add("- uwzględniono zmiane czasu z letniego na zimowy\n")
-        text.add("- dodano dalszą część tłumaczenia interfejsu w języku angielskim\n")
         text.add(
-            "- poprawiono błąd który powodował wyświetlenie komunikatu o tymczasowej niedostępności bazy danych kiedy tak na prawdę problem zwiazany był z nieprawidłowymi danymi w trakcie logowania\n"
+            "- Naprawiono błąd który powodował zawieszenie bota po zamknięciu przeglądarki przez użytkownika. Ta poprawka będzie wymagała dalszych zmian ponieważ do momentu wykrycia zamkniętej przeglądarki i jej ponownego uruchomienia upływa stosunkowo dużo czasu. Około 15s to za dużo o co najmniej 14s..\n"
         )
         text.add(
-            "- usunięto nie potrzebne próby otwarcia bonusu dziennego na światach z wyłączonymi funkcjami premium"
+            "- Poprawiono zaokrąglanie liczby jednostek w trakcie wysyłki na zbieractwo. Poprzednio z powodu zaokrągleń do pełnych jednostek zdażało się, że w wiosce zostawały 2-3 pojedyncze jednostki które powinny zostać wysłane."
         )
-
-        text.tag_add("left_margin", "1.0", "end")
 
         cf_current_changes.add(
             child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.71",
+            title=f"{translate('Changes in patch')} 1.0.73",
             bootstyle="dark",
         )
 
@@ -144,24 +142,64 @@ class Home(ScrollableFrame):
             row=5, column=0, pady=(25, 15), sticky=ttk.W
         )
 
+        # 1.0.72
+
+        cf_last_changes_1_0_72 = CollapsingFrame(self)
+        cf_last_changes_1_0_72.grid(row=17, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_72)
+
+        text.add("Nowości\n", "h1")
+        text.add("- Uaktualnio biblioteki wykorzystywane przez aplikację\n")
+        text.add("Poprawki\n", "h1")
+        text.add("- Usprawniono mechanizm dodawanie światów\n\n")
+
+        cf_last_changes_1_0_72.add(
+            child=text.frame,
+            title=f"{translate('Changes in patch')} 1.0.72",
+            bootstyle="dark",
+        )
+
+        # 1.0.71
+        cf_last_changes_1_0_71 = CollapsingFrame(self)
+        cf_last_changes_1_0_71.grid(row=18, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_71)
+
+        text.add("Poprawki\n", "h1")
+        text.add("- Uwzględniono zmiane czasu z letniego na zimowy.\n")
+        text.add("- Dodano dalszą część tłumaczenia interfejsu w języku angielskim.\n")
+        text.add(
+            "- Poprawiono błąd który powodował wyświetlenie komunikatu o tymczasowej niedostępności bazy danych kiedy tak na prawdę problem zwiazany był z nieprawidłowymi danymi w trakcie logowania.\n"
+        )
+        text.add(
+            "- Usunięto niepotrzebne próby otwarcia bonusu dziennego na światach z wyłączonymi funkcjami premium.\n"
+        )
+
+        cf_last_changes_1_0_71.add(
+            child=text.frame,
+            title=f"{translate('Changes in patch')} 1.0.71",
+            bootstyle="dark",
+        )
+
         # 1.0.70
         cf_last_changes_1_0_70 = CollapsingFrame(self)
         cf_last_changes_1_0_70.grid(row=19, column=0, pady=(0, 5), sticky=ttk.EW)
 
         text = Text(cf_last_changes_1_0_70)
         text.add("Nowości\n", "h1")
-        text.add("- dodano obsługę światów specjalnych takich jak arkadia\n")
+        text.add("- Dodano obsługę światów specjalnych takich jak arkadia\n")
         text.add(
-            "- dodano język angielski do interfejsu aplikacji. Zmiany języka można dokonać po przejściu do panelu z ustawieniami. W celu wprowadzenia zmian należy uruchomić ponownie aplikację\n"
+            "- Dodano język angielski do interfejsu aplikacji. Zmiany języka można dokonać po przejściu do panelu z ustawieniami. W celu wprowadzenia zmian należy uruchomić ponownie aplikację.\n"
         )
         text.add("Poprawki\n", "h1")
-        text.add("- poprawiono wykrywanie i rozwiązywanie captchy\n")
+        text.add("- Poprawiono wykrywanie i rozwiązywanie captchy.\n")
         text.add(
-            "- poprawiono odświeżanie interfejsu graficznego aplikacji po zmianie świata\n"
+            "- Poprawiono odświeżanie interfejsu graficznego aplikacji po zmianie świata.\n"
         )
-        text.add("- poprawiono wartości domyślne ustawiane po dodaniu nowego świata\n")
-
-        text.tag_add("left_margin", "1.0", "end")
+        text.add(
+            "- Poprawiono wartości domyślne ustawiane po dodaniu nowego świata.\n\n"
+        )
 
         cf_last_changes_1_0_70.add(
             child=text.frame,
@@ -176,10 +214,8 @@ class Home(ScrollableFrame):
         text = Text(cf_last_changes_1_0_69)
         text.add("Poprawki\n", "h1")
         text.add(
-            "- naprawiono błąd związany z wyświetlanymi wioskami w zakładce monety występujący w trakcie zmiany światów \n"
+            "- Naprawiono błąd związany z wyświetlanymi wioskami w zakładce monety występujący w trakcie zmiany światów.\n"
         )
-
-        text.tag_add("left_margin", "1.0", "end")
 
         cf_last_changes_1_0_69.add(
             child=text.frame,
@@ -194,95 +230,15 @@ class Home(ScrollableFrame):
         text = Text(cf_last_changes_1_0_68)
         text.add("Poprawki\n", "h1")
         text.add(
-            "- naprawiono błąd występujący w trakcie farmienia związany z próbą kliknięcia w captche która znajdywała się poza ekranem \n"
+            "- Naprawiono błąd występujący w trakcie farmienia związany z próbą kliknięcia w captche która znajdywała się poza ekranem.\n"
         )
         text.add(
-            "- wydłużono maksymalny czas oczekiwania na załadowania niektórych stron dla osób posiadający wolniejsze łącze internetowe  \n"
+            "- Wydłużono maksymalny czas oczekiwania na załadowania niektórych stron dla osób posiadający wolniejsze łącze internetowe.\n"
         )
-
-        text.tag_add("left_margin", "1.0", "end")
 
         cf_last_changes_1_0_68.add(
             child=text.frame,
             title=f"{translate('Changes in patch')} 1.0.68",
-            bootstyle="dark",
-        )
-
-        # 1.0.67
-        cf_last_changes_1_0_67 = CollapsingFrame(self)
-        cf_last_changes_1_0_67.grid(row=22, column=0, pady=(0, 5), sticky=ttk.EW)
-
-        text = Text(cf_last_changes_1_0_67)
-        text.add("Nowości\n", "h1")
-        text.add(
-            "- dodano powiadomienie o zbliżającym się terminie wygaśnięcia konta \n"
-        )
-        text.add(
-            "- dodano możliwość wyłączenia konkretnych światów. W tym celu neleży otworzyć okno wyboru świata klikając w numer świata znajdujący się w górnym pasku aplikacji (na lewo od ikony do minimalizacji) \n"
-        )
-
-        text.tag_add("left_margin", "1.0", "end")
-
-        cf_last_changes_1_0_67.add(
-            child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.67",
-            bootstyle="dark",
-        )
-
-        # 1.0.66
-        cf_last_changes_1_0_66 = CollapsingFrame(self)
-        cf_last_changes_1_0_66.grid(row=23, column=0, pady=(0, 5), sticky=ttk.EW)
-
-        text = Text(cf_last_changes_1_0_66)
-        text.add("Poprawki\n", "h1")
-        text.add(
-            (
-                "- zwiększony limit prób przed ponownym uruchomieniem przeglądarki w przypadku wystąpienia błędu \n"
-            )
-        )
-        text.add(
-            (
-                "- od teraz zaraz po pierwszym logowaniu przez nowego użytkownika wymagane będzie wstępne ustawienie serwera gry i numeru świata "
-                "jeszcze przed ukazaniem się głównego okna aplikacji \n"
-            )
-        )
-
-        text.tag_add("left_margin", "1.0", "end")
-
-        cf_last_changes_1_0_66.add(
-            child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.66",
-            bootstyle="dark",
-        )
-
-        # 1.0.65
-        cf_last_changes_1_0_65 = CollapsingFrame(self)
-        cf_last_changes_1_0_65.grid(row=24, column=0, sticky=ttk.EW)
-
-        text = Text(cf_last_changes_1_0_65)
-
-        # Message
-        text.add("Nowości\n", "h1")
-        text.add(
-            "- dodano nową ikonę w menu po kliknięciu w którą wyświetlona zostanie strona z informacjami o aktualnych i przyszłych zmianach w aplikacji\n"
-        )
-        text.add("- dodano weryfikację pól w trakcie tworzenia szablonu fejków\n")
-
-        text.add("Poprawki\n", "h1")
-        text.add("- poprawiono rejestrowanie błędów w logach\n")
-        text.add(
-            "- poprawiono przełączanie zakładek w interfejsie graficznym aplikacji\n"
-        )
-        text.add("- udoskonalono wstępne wykrywanie błędnie wypełnionego planera\n")
-        text.add(
-            "- zmniejszono częstotliwość zamykania przeglądarki w trakcie wymiany surowców na punkty premium\n"
-        )
-
-        text.tag_add("left_margin", "1.0", "end")
-
-        cf_last_changes_1_0_65.add(
-            child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.65",
             bootstyle="dark",
         )
 
@@ -297,29 +253,19 @@ class Home(ScrollableFrame):
 
         text = Text(cf_incoming_changes)
         text.add("Nowości\n", "h1")
-        text.add("- dodano nową funkcję uniki\n")
+        text.add("- Dodano nową funkcję uniki.\n")
         text.add("Poprawki\n", "h1")
         text.add(
-            "- poprawiono działanie szablonu C. Od teraz tylko jeden atak (Szablonu C) będzie wysłany na daną wioskę barbarzyńską. "
+            "- Poprawiono działanie szablonu C. Od teraz tylko jeden atak (Szablonu C) będzie wysłany na daną wioskę barbarzyńską. "
             "Zakładamy, że jeśli wysłany został atak z szablonu C to powinien on zebrać wszystkie dostępne surowce więc nie ma potrzeby wysyłania kolejnych ataków tego typu. "
-            "W tym czasie szablon A i B będzie nadal wysyłany bez zmian"
+            "W tym czasie szablon A i B będzie nadal wysyłany bez zmian.\n"
         )
-
-        text.tag_add("left_margin", "1.0", "end")
 
         cf_incoming_changes.add(
             child=text.frame,
             title=f"{translate('Changes in patch')} 1.0.7X",
             bootstyle="dark",
         )
-
-        # # Change log
-        # ttk.Label(self, text="Historia zmian", font=("TkFixedFont", 11)).grid(
-        #     row=5, column=0, pady=(25, 15), sticky=ttk.W
-        # )
-
-        # cf = CollapsingFrame(self)
-        # cf.grid(row=6, column=0, sticky=ttk.EW)
 
 
 class Farm(ScrollableFrame):
@@ -1655,7 +1601,6 @@ class Scheduler(ScrollableFrame):
         def clear_hint(text_widget: ttk.Text) -> None:
             if text_widget.get("1.0", "1.11") == translate("Coordinates"):
                 text_widget.delete("1.0", "end")
-                text_widget.unbind("<Button>")
 
         def text_hint(text_widget: ttk.Text) -> None:
             text_widget.insert(
@@ -2132,7 +2077,7 @@ class Scheduler(ScrollableFrame):
 
         button_info_frame = ttk.Frame(self)
         button_info_frame.grid(
-            row=41, column=0, columnspan=2, padx=(30, 5), pady=10, sticky=tk.W
+            row=41, column=0, columnspan=2, padx=(30, 5), pady=(15, 10), sticky=tk.W
         )
 
         self.own_template = ttk.Radiobutton(
@@ -2144,7 +2089,7 @@ class Scheduler(ScrollableFrame):
         )
         self.own_template.grid(row=0, column=0, sticky=tk.W)
 
-        info = ttk.Label(button_info_frame, image=main_window.images.info)
+        info = ttk.Label(button_info_frame, image=main_window.images.question)
         info.grid(row=0, column=1, padx=(5, 0), sticky=ttk.W)
 
         ToolTip(
@@ -2398,7 +2343,7 @@ class Scheduler(ScrollableFrame):
                 self.total_attacks_number_entry, self.repeat_attack.get(), reverse=True
             )
             if self.repeat_attack.get():
-                if not parent.winfo_viewable():
+                if main_window.loading:
                     return
                 self.own_template.invoke()
 
@@ -2468,15 +2413,27 @@ class Scheduler(ScrollableFrame):
 
     def available_templates(self, settings: dict) -> None:
         def delete_template(row_number, fake_templates, template_name):
-            del fake_templates[template_name]
+            if (
+                template_name
+                in self.main_window.settings_by_worlds[settings["server_world"]][
+                    "scheduler"
+                ]["fake_templates"]
+            ):
+                del self.main_window.settings_by_worlds[settings["server_world"]][
+                    "scheduler"
+                ]["fake_templates"][template_name]
+            if template_name in fake_templates:
+                del fake_templates[template_name]
             forget_row(self, row_number)
+            if not fake_templates:
+                self.available_templates(settings=settings)
             self.update_idletasks()
 
         fake_templates = settings["scheduler"]["fake_templates"]
 
         if not fake_templates:
-            ttk.Label(self, text="Brak dostępnych szablonów").grid(
-                row=20, column=0, columnspan=2, padx=(70, 5), pady=(0, 5), sticky=tk.W
+            ttk.Label(self, text=translate("No templates available")).grid(
+                row=20, column=0, columnspan=2, padx=(70, 5), pady=5, sticky=tk.W
             )
 
         for index, template_name in enumerate(fake_templates):
@@ -2488,7 +2445,11 @@ class Scheduler(ScrollableFrame):
                 command=lambda: self.fake_troops.invoke(),
             )
             template_button.grid(
-                row=20 + index, column=0, columnspan=2, padx=(70, 5), sticky=tk.W
+                row=20 + index,
+                column=0,
+                columnspan=2,
+                padx=(70, 5),
+                sticky=tk.W,
             )
             text = "\n".join(
                 f'{troop["priority_number"]} {troop_name.upper()}  Min={troop["min_value"]}  Max={troop["max_value"]}'
@@ -2504,7 +2465,13 @@ class Scheduler(ScrollableFrame):
                 command=partial(
                     delete_template, index + 20, fake_templates, template_name
                 ),
-            ).grid(row=20 + index, column=0, columnspan=2, padx=(5, 25), sticky=tk.E)
+            ).grid(
+                row=20 + index,
+                column=0,
+                columnspan=2,
+                padx=(5, 25),
+                sticky=tk.E,
+            )
 
     @log_errors()
     def create_schedule(self, settings: dict, main_window: "MainWindow") -> None:
@@ -2952,13 +2919,15 @@ class Scheduler(ScrollableFrame):
             if not template_name_entry.get().strip():
                 self.on_invalid(template_name_entry)
                 custom_error(
-                    message="Podaj nazwę dla tworzonego szablonu", parent=frame
+                    message=translate("Enter a name for the template"), parent=frame
                 )
                 return
 
-            if "Wybierz" in choose_troop_type.get():
+            if translate("Choose") in choose_troop_type.get():
                 choose_troop_type.configure(bootstyle="danger")
-                custom_error(message="Wybierz jednostkę z listy", parent=frame)
+                custom_error(
+                    message=translate("Choose unit from the list"), parent=frame
+                )
                 choose_troop_type.bind(
                     "<Button-1>",
                     lambda _: choose_troop_type.configure(bootstyle="default"),
@@ -2968,7 +2937,8 @@ class Scheduler(ScrollableFrame):
             if int(max_value_entry.get()) <= 0:
                 self.on_invalid(max_value_entry)
                 custom_error(
-                    message="Wartość maksymalna musi być większa od zera", parent=frame
+                    message=translate("The maximum value must be greater than zero"),
+                    parent=frame,
                 )
                 return
 
@@ -3035,7 +3005,7 @@ class Scheduler(ScrollableFrame):
 
         template_name = tk.StringVar()
         priority_number = tk.IntVar(value=1)
-        troop_type = tk.StringVar(value="Wybierz jednostkę")
+        troop_type = tk.StringVar(value=translate("Choose unit"))
         min_value = tk.IntVar()
         max_value = tk.IntVar()
 
@@ -3045,7 +3015,7 @@ class Scheduler(ScrollableFrame):
 
         ttk.Label(
             top_frame,
-            text="Szablon dobierania jednostek",
+            text=translate("Unit matching template"),
         ).grid(row=0, column=0, padx=5)
 
         info = ttk.Label(top_frame, image=self.main_window.images.info)
@@ -3074,7 +3044,7 @@ class Scheduler(ScrollableFrame):
             topmost=True,
         )
 
-        ttk.Label(frame, text="Nazwa szablonu:").grid(
+        ttk.Label(frame, text=translate("Template name:")).grid(
             row=1, column=0, columnspan=5, padx=10, pady=10, sticky=tk.W
         )
 
@@ -3083,8 +3053,8 @@ class Scheduler(ScrollableFrame):
             row=1, column=0, columnspan=5, padx=10, pady=10, sticky=tk.E
         )
 
-        ttk.Label(frame, text="Priorytet").grid(row=2, column=0, padx=(10, 5))
-        ttk.Label(frame, text="Jednostka").grid(row=2, column=1, padx=5)
+        ttk.Label(frame, text=translate("Priority")).grid(row=2, column=0, padx=(10, 5))
+        ttk.Label(frame, text=translate("Unit")).grid(row=2, column=1, padx=5)
         ttk.Label(frame, text="Min").grid(row=2, column=2, padx=5)
         ttk.Label(frame, text="Max").grid(row=2, column=3, padx=(5, 10))
 
@@ -3120,7 +3090,9 @@ class Scheduler(ScrollableFrame):
         def create_template_button_command() -> None:
             if not any(template[troop]["min_value"] for troop in template):
                 custom_error(
-                    "Przynajmniej jedna jednostka musi mieć wartość minimalną większą od 0",
+                    translate(
+                        "At least one unit must have a minimum value greater than 0"
+                    ),
                     parent=frame,
                 )
                 return
@@ -3129,7 +3101,9 @@ class Scheduler(ScrollableFrame):
             self.redraw_availabe_templates(settings=settings)
 
         ttk.Button(
-            frame, text="Utwórz szablon", command=create_template_button_command
+            frame,
+            text=translate("Create template"),
+            command=create_template_button_command,
         ).grid(row=50, column=0, columnspan=5, pady=(10, 10))
 
         center(template_window, self.master)
@@ -3158,21 +3132,33 @@ class Scheduler(ScrollableFrame):
         content_frame = self.existing_schedule_window.content_frame
 
         self.coldata = [
-            {"text": "Data wysyłki", "stretch": False, "anchor": "center"},
-            {"text": "Świat", "stretch": False, "anchor": "center"},
-            {"text": "Komenda", "stretch": False, "anchor": "center"},
-            {"text": "Rodzaj", "stretch": False, "anchor": "center"},
-            {"text": "Wioska startowa", "stretch": False, "anchor": "center"},
-            {"text": "Wioska docelowa", "stretch": False, "anchor": "center"},
-            {"text": "Data wejścia wojsk", "stretch": False, "anchor": "center"},
+            {"text": translate("Send date"), "stretch": False, "anchor": "center"},
+            {"text": translate("World"), "stretch": False, "anchor": "center"},
+            {"text": translate("Command"), "stretch": False, "anchor": "center"},
+            {"text": translate("Type"), "stretch": False, "anchor": "center"},
+            {
+                "text": translate("Starting village"),
+                "stretch": False,
+                "anchor": "center",
+            },
+            {
+                "text": translate("Destination village"),
+                "stretch": False,
+                "anchor": "center",
+            },
+            {
+                "text": translate("Entry date of troops"),
+                "stretch": False,
+                "anchor": "center",
+            },
         ]
 
-        translate = {
-            "target_support": "wsparcie",
-            "target_attack": "atak",
-            "send_all": "wyślij wszystkie",
-            "send_fake": "wyślij fejk",
-            "send_my_template": "własny szablon",
+        schedule_translate = {
+            "target_support": translate("support"),
+            "target_attack": translate("attack"),
+            "send_all": translate("send all"),
+            "send_fake": translate("send fake"),
+            "send_my_template": translate("own template"),
         }
 
         server_world = settings["server_world"]
@@ -3184,8 +3170,8 @@ class Scheduler(ScrollableFrame):
                         datetime.fromtimestamp(row["send_time"]), "%d.%m.%Y %H:%M:%S:%f"
                     )[:-3],
                     server_world,
-                    translate[row["command"]],
-                    translate[row["template_type"]],
+                    schedule_translate[row["command"]],
+                    schedule_translate[row["template_type"]],
                     row["send_from"],
                     row["send_to"],
                     row["arrival_time"],
@@ -3277,7 +3263,7 @@ class Settings(ScrollableFrame):
             width=5,
             justify="center",
         )
-        self.world_number_input.grid(row=0, column=2, padx=(0, 15), pady=10, sticky="E")
+        self.world_number_input.grid(row=0, column=2, padx=15, pady=10, sticky="E")
 
         self.game_url.bind(
             "<FocusOut>",
@@ -3314,7 +3300,7 @@ class Settings(ScrollableFrame):
                 name="checking_groups",
                 daemon=True,
             ).start(),
-        ).grid(row=2, column=2, padx=(10, 15), pady=(10), sticky=ttk.E)
+        ).grid(row=2, column=2, padx=15, pady=(10), sticky=ttk.E)
 
         # Set language
         self.lang = {translate("English"): "en", translate("Polish"): "pl"}
@@ -3344,15 +3330,49 @@ class Settings(ScrollableFrame):
         )
         self.set_lang.grid(row=3, column=1, pady=10)
         self.set_lang.bind("<<ComboboxSelected>>", set_lang)
+
+        ttk.Separator(self, orient=ttk.HORIZONTAL).grid(
+            row=4, column=0, columnspan=3, pady=10, sticky=ttk.EW
+        )
+
+        entries_content["globals"][
+            "disable_chrome_background_throttling"
+        ] = ttk.BooleanVar()
+        ttk.Checkbutton(
+            self,
+            text=translate("Disable chrome energy saving settings"),
+            variable=entries_content["globals"]["disable_chrome_background_throttling"],
+        ).grid(row=5, column=0, columnspan=3, padx=15, pady=10, sticky=ttk.W)
+
+        disable_throttling_info = ttk.Label(self, image=main_window.images.question_x24)
+        disable_throttling_info.grid(row=5, column=2, padx=15, pady=10)
+        ToolTip(
+            disable_throttling_info,
+            text=translate(
+                "Energy saving settings function is turned on by default in chrome. "
+                "It decrease performance for all background tasks in each tab apart from "
+                "the one which is currently active or has focuse. In some rare cases it "
+                "may delay some of the bot functions (from about 50-100ms up to few seconds) "
+                "for example troops sending at exactly accurate time may be delayed if in "
+                "the same time user browse other pages in diffrent tabs. Turnig this checkbox "
+                "on will disable energy saving settings in chrome which may slitly increase "
+                "browser cpu utilization but in the same time let you play tribalwars in "
+                "diffrent tabs and still achieve perfect timings for bot background tasks."
+                "At the same time, consider browsing other sites in a separate manually opened "
+                "chrome window or another browser."
+            ),
+            topmost=True,
+        )
+
         # Disable stable release
-        entries_content["stable_release"] = ttk.BooleanVar(value=True)
+        entries_content["globals"]["stable_release"] = ttk.BooleanVar(value=True)
         ttk.Checkbutton(
             self,
             text=translate("Allow beta versions of the application"),
             onvalue=False,
             offvalue=True,
-            variable=entries_content["stable_release"],
-        ).grid(row=998, columnspan=3, pady=10, sticky=ttk.S)
+            variable=entries_content["globals"]["stable_release"],
+        ).grid(row=6, columnspan=3, padx=15, pady=10, sticky=ttk.W)
 
         # Account information
 
@@ -3414,6 +3434,91 @@ class Settings(ScrollableFrame):
             on_focus_out()
 
 
+class Manager(ScrollableFrame):
+    def __init__(
+        self,
+        parent: ttk.Frame,
+        main_window: "MainWindow",
+        entries_content: dict,
+        settings: dict,
+    ):
+        super().__init__(parent, max_height=True)
+
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+
+        manager = entries_content["manager"] = {}
+
+        notebook = ttk.Notebook(self)
+        notebook.grid(row=0, column=0, padx=5, sticky=ttk.NSEW)
+
+        army = ttk.Frame(notebook)
+        buildings = ttk.Frame(notebook)
+        tech = ttk.Frame(notebook)
+
+        notebook.add(army, text=translate("Army"))
+        notebook.add(buildings, text=translate("Buildings"))
+        notebook.add(tech, text=translate("Technology"))
+
+        # Army
+        army.columnconfigure((0, 1), weight=1)
+
+        manager["army"] = {}
+        manager["army"]["active"] = ttk.BooleanVar()
+        ttk.Checkbutton(
+            army,
+            text=translate("Activate templates refresher"),
+            variable=manager["army"]["active"],
+            onvalue=True,
+            offvalue=False,
+        ).grid(row=0, column=0, columnspan=2, padx=5, pady=20)
+        ttk.Separator(army, orient=ttk.HORIZONTAL).grid(
+            row=1, column=0, columnspan=2, sticky=ttk.EW
+        )
+        ttk.Label(
+            army, text=translate("Match groups of villages with army templates")
+        ).grid(row=2, column=0, columnspan=2, padx=10, pady=20)
+
+        # Buildings
+        buildings.columnconfigure((0, 1), weight=1)
+
+        manager["buildings"] = {}
+        manager["buildings"]["active"] = ttk.BooleanVar()
+        ttk.Checkbutton(
+            buildings,
+            text=translate("Activate templates refresher"),
+            variable=manager["buildings"]["active"],
+            onvalue=True,
+            offvalue=False,
+        ).grid(row=0, column=0, columnspan=2, padx=5, pady=20)
+        ttk.Separator(buildings, orient=ttk.HORIZONTAL).grid(
+            row=1, column=0, columnspan=2, sticky=ttk.EW
+        )
+        ttk.Label(
+            buildings,
+            text=translate("Match groups of villages with buildings templates"),
+        ).grid(row=2, column=0, columnspan=2, padx=10, pady=20)
+
+        # Technology
+        tech.columnconfigure((0, 1), weight=1)
+
+        manager["tech"] = {}
+        manager["tech"]["active"] = ttk.BooleanVar()
+        ttk.Checkbutton(
+            tech,
+            text=translate("Activate templates refresher"),
+            variable=manager["tech"]["active"],
+            onvalue=True,
+            offvalue=False,
+        ).grid(row=0, column=0, columnspan=2, padx=5, pady=20)
+        ttk.Separator(tech, orient=ttk.HORIZONTAL).grid(
+            row=1, column=0, columnspan=2, sticky=ttk.EW
+        )
+        ttk.Label(
+            tech, text=translate("Match groups of villages with technology templates")
+        ).grid(row=2, column=0, columnspan=2, padx=10, pady=20)
+
+
 class Notifications(ScrollableFrame):
     def __init__(
         self,
@@ -3449,16 +3554,28 @@ class Notifications(ScrollableFrame):
             else:
                 widget.config(state="disabled")
 
+        def check_incoming_attacks():
+            change_entry(
+                value=notifications["check_incoming_attacks"],
+                widget=self.check_incoming_attacks_sleep_time,
+            )
+            if main_window.loading:
+                return
+            if not notifications["check_incoming_attacks"].get():
+                if notifications["email_notifications"].get():
+                    self.email_notifications.invoke()
+                if notifications["sms_notifications"].get():
+                    self.sms_notifications.invoke()
+                if notifications["sound_notifications"].get():
+                    self.sound_notifications.invoke()
+
         self.check_incoming_attacks = ttk.Checkbutton(
             self,
             text=translate("Check incoming attacks"),
             variable=notifications["check_incoming_attacks"],
             onvalue=True,
             offvalue=False,
-            command=lambda: change_entry(
-                value=notifications["check_incoming_attacks"],
-                widget=self.check_incoming_attacks_sleep_time,
-            ),
+            command=check_incoming_attacks,
         )
         self.check_incoming_attacks.grid(
             row=7, column=0, columnspan=2, padx=(30, 5), pady=(0, 10), sticky="W"
@@ -3488,16 +3605,27 @@ class Notifications(ScrollableFrame):
         )
 
         notifications["email_notifications"] = tk.BooleanVar()
+
+        def email_notifications():
+            change_entry(
+                value=notifications["email_notifications"],
+                widget=self.email_notifications_entry,
+            )
+            if main_window.loading:
+                return
+            if (
+                notifications["email_notifications"].get()
+                and not notifications["check_incoming_attacks"].get()
+            ):
+                self.check_incoming_attacks.invoke()
+
         self.email_notifications = ttk.Checkbutton(
             self,
             text=translate("Email notifications about incoming noblemans"),
             variable=notifications["email_notifications"],
             onvalue=True,
             offvalue=False,
-            command=lambda: change_entry(
-                value=notifications["email_notifications"],
-                widget=self.email_notifications_entry,
-            ),
+            command=email_notifications,
         )
         self.email_notifications.grid(
             row=10, column=0, columnspan=2, padx=(30, 5), pady=10, sticky="W"
@@ -3517,16 +3645,27 @@ class Notifications(ScrollableFrame):
         )
 
         notifications["sms_notifications"] = tk.BooleanVar()
+
+        def sms_notifications():
+            change_entry(
+                value=notifications["sms_notifications"],
+                widget=self.sms_notifications_entry,
+            )
+            if main_window.loading:
+                return
+            if (
+                notifications["sms_notifications"].get()
+                and not notifications["check_incoming_attacks"].get()
+            ):
+                self.check_incoming_attacks.invoke()
+
         self.sms_notifications = ttk.Checkbutton(
             self,
             text=translate("Sms notifications about incoming noblemans"),
             variable=notifications["sms_notifications"],
             onvalue=True,
             offvalue=False,
-            command=lambda: change_entry(
-                value=notifications["sms_notifications"],
-                widget=self.sms_notifications_entry,
-            ),
+            command=sms_notifications,
         )
         self.sms_notifications.grid(
             row=12, column=0, columnspan=2, padx=(30, 5), pady=10, sticky="W"
@@ -3536,6 +3675,7 @@ class Notifications(ScrollableFrame):
             row=13, column=0, padx=(30, 5), pady=10, sticky="W"
         )
         notifications["phone_number"] = tk.StringVar()
+
         self.sms_notifications_entry = ttk.Entry(
             self,
             textvariable=notifications["phone_number"],
@@ -3555,12 +3695,23 @@ class Notifications(ScrollableFrame):
         )
 
         notifications["sound_notifications"] = tk.BooleanVar()
+
+        def sound_notifications():
+            if main_window.loading:
+                return
+            if (
+                notifications["sound_notifications"].get()
+                and not notifications["check_incoming_attacks"].get()
+            ):
+                self.check_incoming_attacks.invoke()
+
         self.sound_notifications = ttk.Checkbutton(
             self,
             text=translate("Sound notifications about incoming noblemans"),
             variable=notifications["sound_notifications"],
             onvalue=True,
             offvalue=False,
+            command=sound_notifications,
         )
         self.sound_notifications.grid(
             row=14, column=0, columnspan=2, padx=(30, 5), pady=10, sticky="W"
@@ -3640,7 +3791,7 @@ class NavigationBar:
             self.header,
             text=translate("Account manager"),
             state="disabled",
-            command=lambda: main_window.notifications.show(),
+            command=lambda: main_window.manager.show(),
         )
         self.manager.grid(row=8, column=0, sticky=tk.EW)
 
@@ -3777,19 +3928,27 @@ class MainWindow:
     settings_by_worlds: dict[str, dict] = {}
 
     def __init__(
-        self, master: tk.Tk, driver: webdriver.Chrome, settings: dict[str]
+        self,
+        master: ttk.Toplevel,
+        hidden_root: tk.Tk,
+        settings: dict[str],
+        driver: webdriver.Chrome = None,
     ) -> None:
         self.captcha_counter = ttk.IntVar()
         self.driver = driver
         self.master = master
+        self.hidden_root = hidden_root
         self.running = False
+        self.loading = True
 
-        master.geometry("620x660")
         master.attributes("-alpha", 0.0)
+        master.transient(hidden_root)
+        master.overrideredirect(True)
+        master.grid_propagate(0)
+        master.geometry("620x660")
+        master.configure(width=620, height=660)
         master.iconbitmap(default="icons//ikona.ico")
         master.title("Tribal Wars 24/7")
-        master.overrideredirect(True)
-        master.attributes("-topmost", 1)
 
         master.columnconfigure(0, weight=1)
         master.rowconfigure(0, weight=1)
@@ -3811,6 +3970,8 @@ class MainWindow:
             plus: tk.PhotoImage = tk.PhotoImage(file="icons//plus.png")
             refresh: tk.PhotoImage = tk.PhotoImage(file="icons//refresh.png")
             info: tk.PhotoImage = tk.PhotoImage(file="icons//info.png")
+            question: tk.PhotoImage = tk.PhotoImage(file="icons//question.png")
+            question_x24: tk.PhotoImage = tk.PhotoImage(file="icons//question_x24.png")
             home: tk.PhotoImage = tk.PhotoImage(file="icons//home.png")
             home_hover: tk.PhotoImage = tk.PhotoImage(file="icons//home_hover.png")
 
@@ -3957,7 +4118,7 @@ class MainWindow:
             app_functions.save_settings_to_files(
                 settings=settings, settings_by_worlds=self.settings_by_worlds
             )
-            master.destroy()
+            hidden_root.destroy()
 
         self.exit_button = ttk.Button(
             self.custom_bar,
@@ -4039,6 +4200,13 @@ class MainWindow:
             settings=settings,
         )
 
+        self.manager = Manager(
+            parent=self.content_frame,
+            main_window=self,
+            entries_content=self.entries_content,
+            settings=settings,
+        )
+
         self.notifications = Notifications(
             parent=self.content_frame,
             main_window=self,
@@ -4056,12 +4224,17 @@ class MainWindow:
         master.bind_class("TSpinbox", "<ButtonRelease-1>", on_button_release)
 
         def widgets_focusout(event: tk.Event):
+            if master.focus_get() is None:
+                hidden_root.focus_force()
+                master.update_idletasks()
             x, y = master.winfo_pointerxy()  # Get the mouse position on screen
-            widget = str(
-                master.winfo_containing(x, y)
-            )  # Identify the widget at this location
-            if all(w_type not in widget for w_type in (".!text", ".!entry")):
+            widget = master.winfo_containing(x, y)
+            # Identify the widget at this location
+            if all(w_type not in str(widget) for w_type in (".!text", ".!entry")):
                 master.focus()
+            else:
+                if master.focus_get() != widget:
+                    widget.focus_set()
 
         master.bind_class(
             "TEntry", "<FocusOut>", lambda event: event.widget.selection_clear()
@@ -4070,8 +4243,13 @@ class MainWindow:
             "TSpinbox", "<FocusOut>", lambda event: event.widget.selection_clear()
         )
 
-        master.bind("<Button-1>", widgets_focusout)
+        master.bind("<Button-1>", widgets_focusout, add="+")
         master.withdraw()
+
+        def on_focus(event):
+            master.lift()
+
+        hidden_root.bind("<FocusIn>", on_focus)
 
     @log_errors()
     def add_new_world(
@@ -4082,23 +4260,40 @@ class MainWindow:
         entry_change: bool = False,
     ) -> bool:
         def get_world_config() -> bool:
-            response = requests.get(
-                f"https://{server_world}.{game_url}/interface.php?func=get_config"
-            )
-            try:
-                world_config = xmltodict.parse(response.content)
-            except:
+            def on_error() -> None:
                 if entry_change:
                     self.control_panel.show()
                     if "world_number" in settings:
                         self.entries_content["world_number"].set(
                             settings["world_number"]
                         )
+                    if "game_url" in settings:
+                        self.entries_content["game_url"].set(settings["game_url"])
                 custom_error(
                     message="Błąd, upewnij się że taki świat nadal istnieje.",
                     parent=self.master,
                 )
+
+            update_settings_on_python_anywhere = False
+            response = requests.get(
+                f"{PYTHON_ANYWHERE_WORLD_SETTINGS}/{server_world}.xml"
+            )
+            if not response.ok:
+                response = requests.get(
+                    f"https://{server_world}.{game_url}/interface.php?func=get_config"
+                )
+                update_settings_on_python_anywhere = True
+
+            try:
+                world_config = xmltodict.parse(response.content)
+            except:
+                on_error()
                 return False
+            else:
+                if update_settings_on_python_anywhere:
+                    TribalWarsBotApi(f"/world/{server_world}").post(
+                        data=response.text, sync=False
+                    )
 
             settings["world_config"] = {
                 "archer": world_config["config"]["game"]["archer"],
@@ -4138,6 +4333,16 @@ class MainWindow:
         def gui_update() -> None:
             self.coins.redraw_choosed_villges()
             set_world_in_title()
+            # Set combobox deafult values
+            for combobox in (
+                self.farm.farm_group_A,
+                self.farm.farm_group_B,
+                self.farm.farm_group_C,
+                self.gathering.gathering_group,
+                self.control_panel.villages_groups,
+            ):
+                combobox["values"] = settings["groups"]
+                combobox.set(settings["groups"][0])
 
         def update_settings_by_worlds_using_settings() -> None:
             self.settings_by_worlds[server_world] = {}
@@ -4147,6 +4352,8 @@ class MainWindow:
 
         if game_url == "tribalwars.net":
             country_code = "en"
+        elif game_url == "divokekmeny.cz":
+            country_code = "cs"
         else:
             country_code = game_url[game_url.rfind(".") + 1 :]
         server_world = f"{country_code}{world_number}"
@@ -4249,24 +4456,13 @@ class MainWindow:
                 value=self.user_data["email"]
             )
 
-            # Set combobox deafult values
-            for combobox in (
-                self.farm.farm_group_A,
-                self.farm.farm_group_B,
-                self.farm.farm_group_C,
-                self.gathering.gathering_group,
-                self.control_panel.villages_groups,
-            ):
-                combobox["values"] = ["wszystkie"]
-                combobox.set("wszystkie")
-
             # Set settings for new world
             set_additional_settings(
                 game_url=game_url, country_code=country_code, server_world=server_world
             )
-            gui_update()
 
-            invoke_checkbuttons(parent=self.master)
+            gui_update()
+            invoke_checkbuttons(parent=self.master, main_window=self)
             self.schedule.template_type.set("")
 
             save_entry_to_settings(entries=self.entries_content, settings=settings)
@@ -4367,6 +4563,7 @@ class MainWindow:
         )
         center(window=master, parent=self.master)
         master.attributes("-alpha", 1.0)
+        master.bind("<Map>", lambda _: master.after_idle(master.lift))
         if obligatory:
             master.wait_window()
 
@@ -4443,23 +4640,21 @@ class MainWindow:
                     value for value in schedule if value["send_time"] > current_time
                 ]
 
-            invoke_checkbuttons(parent=self.master)
+            invoke_checkbuttons(parent=self.master, main_window=self)
             self.schedule.fake_troops.invoke()
             self.schedule.template_type.set("")
 
             self.entries_content["world_in_title"].set(f"{world_in_title}")
             self.world_chooser_window.destroy()
 
-    def hide(self):
+    def hide(self, hide: bool = False):
         self.master.attributes("-alpha", 0.0)
-        self.master.overrideredirect(False)
-        self.master.iconify()
+        self.hidden_root.iconify()
 
         def show(event=None):
-            self.master.overrideredirect(True)
             self.master.attributes("-alpha", 1.0)
 
-        self.minimize_button.bind("<Map>", show)
+        self.master.bind("<Map>", show)
 
     @log_errors(send_email=True)
     def run(self, settings: dict):
@@ -5014,9 +5209,16 @@ class MainWindow:
                     if hasattr(self.jobs_info, "master"):
                         if self.jobs_info.master.winfo_exists():
                             self.jobs_info.update_table(main_window=self)
-            except NoSuchWindowException:
+            except NoSuchWindowException as e:
                 logger.info("NoSuchWindowException")
-                self.driver.switch_to.window(self.driver.window_handles[0])
+                try:
+                    self.driver.switch_to.window(self.driver.window_handles[0])
+                except Exception as e:
+                    subprocess.run(
+                        "taskkill /IM chromedriver.exe /F /T",
+                        creationflags=subprocess.CREATE_NO_WINDOW,
+                    )
+                    self.driver = app_functions.run_driver(settings=_settings)
                 # self.driver.execute_cdp_cmd(
                 #     "Page.addScriptToEvaluateOnNewDocument",
                 #     {"source": COORDS_COPY},
@@ -5244,180 +5446,51 @@ class MainWindow:
         self.world_chooser_window.attributes("-alpha", 1.0)
 
 
-class JobsToDoWindow:
-    def __init__(self, main_window: MainWindow) -> None:
-        self.master = TopLevel(
-            title_text=translate("Task list"), timer=main_window.time
+class Updates:
+    def __init__(self, root: tk.Toplevel, settings: dict) -> None:
+        self.client = Client(ClientConfig())
+        self.update = False
+        self.root = root
+        self.settings = settings
+
+    def check(self) -> None:
+        self.client.refresh()
+        # Check for updates on stable channel
+        if self.settings["stable_release"]:
+            app_update = self.client.update_check(APP_NAME, APP_VERSION)
+        # Check for updates on any channel
+        else:
+            app_update = self.client.update_check(APP_NAME, APP_VERSION, strict=False)
+
+        if app_update is not None:
+            self.update = True
+
+    def periodically_check_for_updates(self) -> None:
+        if self.update:
+            return
+        thread = threading.Thread(target=lambda: self.check(), daemon=True)
+        thread.start()
+        self.thread_monitor(thread)
+        self.root.after(
+            ms=7_200_000,
+            func=self.periodically_check_for_updates,
         )
 
-        self.translate = {
-            "gathering": translate("scavenging"),
-            "auto_farm": translate("looting"),
-            "check_incoming_attacks": translate("attack labels"),
-            "premium_exchange": translate("premium exchange"),
-            "send_troops": translate("scheduler"),
-            "mine_coin": translate("coin minting"),
-            "daily_bonus": translate("daily bonus"),
-        }
-
-        self.content_frame = self.master.content_frame
-
-        self.coldata = [
-            {"text": translate("World"), "stretch": False},
-            translate("Task"),
-            {"text": translate("Execution date"), "stretch": False},
-        ]
-
-        rowdata = [
-            tuple(
-                (
-                    row["server_world"],
-                    self.translate[row["func"]],
-                    time.strftime(
-                        "%H:%M:%S %d.%m.%Y", time.localtime(row["start_time"])
-                    ),
-                )
-            )
-            for row in main_window.to_do
-        ]
-
-        self.table = Tableview(
-            master=self.content_frame,
-            coldata=self.coldata,
-            rowdata=rowdata,
-            datasource=main_window.to_do,
-            paginated=True,
-            searchable=True,
-            stripecolor=("gray14", None),
-        )
-        self.table.grid(row=0, column=0)
-
-        center(self.master, main_window.master)
-        self.master.attributes("-alpha", 1.0)
-
-    def update_table(self, main_window: MainWindow) -> None:
-        rowdata = [
-            tuple(
-                (
-                    row["server_world"],
-                    self.translate[row["func"]],
-                    time.strftime(
-                        "%H:%M:%S %d.%m.%Y", time.localtime(row["start_time"])
-                    ),
-                )
-            )
-            for row in main_window.to_do
-        ]
-        self.table.build_table_data(coldata=self.coldata, rowdata=rowdata)
-
-
-class PaymentWindow:
-    def __init__(self, parent: MainWindow) -> None:
-        self.master = TopLevel(title_text="Tribal Wars Bot")
-        self.master.geometry("555x505")
-
-        self.text = ttk.Text(
-            master=self.master.content_frame,
-            wrap="word",
-        )
-        self.text.grid(row=0, column=0, sticky=ttk.NSEW)
-        self.text.insert("1.0", "Dostępne pakiety:\n", "bold_text")
-        self.text.insert("2.0", "- 30zł za jeden miesiąc\n")
-        self.text.insert("3.0", "- 55zł za dwa miesiące 60zł oszczędzasz 5zł\n")
-        self.text.insert("4.0", "- 75zł za trzy miesiące 90zł oszczędzasz 15zł\n")
-        self.text.insert("5.0", "Dostępne metody płatności:\n", "bold_text")
-        self.text.insert(
-            "6.0", "- blik na numer: 511 163 955 (nazwa odbiorcy: Klemens)\n"
-        )
-        self.text.insert(
-            "7.0", "- przelew na numer: 95 1050 1025 1000 0097 5211 9777\n"
-        )
-        self.text.insert(
-            "8.0",
-            f'W tytule blika/przelewu należy wpisać swój login "{parent.user_data["user_name"]}"\n',
-            "bold_text",
-        )
-        self.text.insert("9.0", "Czas oczekiwania:\n", "bold_text")
-        self.text.insert("10.0", "Blik\n", "bold_text")
-        self.text.insert("11.0", "- przeważnie w ciągu kilku godzin\n")
-        self.text.insert("12.0", "- maksymalnie jeden dzień\n")
-        self.text.insert("13.0", "Przelew\n", "bold_text")
-        self.text.insert("14.0", "- przeważnie w ciągu jednego dnia *\n")
-        self.text.insert(
-            "15.0",
-            "* Wyjątek stanowią weekendy i dni ustawowo wolne od pracy jako, że w te dni "
-            "banki nie realizują przelewów. W takim przypadku w celu przyspieszenia aktywacji "
-            "wystarczy wysłać potwierdzenie przelewu na adres e-mail k.spec@tuta.io. "
-            "Na tej podstawie mogę dokonać aktywacji konta niezwłocznie po odczytaniu wiadomości.",
-        )
-
-        self.copy_icon = tk.PhotoImage(file="icons//copy.png")
-
-        def copy_acc_number() -> None:
-            self.text.clipboard_clear()
-            self.text.clipboard_append("95 1050 1025 1000 0097 5211 9777")
-            self.text.config(state="normal")
-            self.text.insert("7.end", "skopiowano do schowka")
-            self.text.config(state="disabled")
-
-            def delete_extra_text() -> None:
-                self.text.config(state="normal")
-                self.text.delete("7.53", "7.end")
-                self.text.config(state="disabled")
-
-            self.text.after(ms=3000, func=delete_extra_text)
-
-        copy_button = ttk.Button(
-            master=self.text,
-            image=self.copy_icon,
-            style="copy.primary.Link.TButton",
-            command=copy_acc_number,
-        )
-        copy_button.bind("<Enter>", lambda _: self.text.config(cursor=""))
-        copy_button.bind("<Leave>", lambda _: self.text.config(cursor="xterm"))
-        self.text.window_create("7.end", window=copy_button, padx=4)
-
-        self.text.tag_add("account_number", "7.20", "8.0-1c")
-        self.text.tag_add("italic_text", "15.0", "end")
-        self.text.tag_add("indent_text", "1.0", "end")
-        self.text.tag_add("first_line", "1.0", "1.end -1c")
-        self.text.tag_add("last_line", "end -1 lines", "end")
-        self.text.tag_add("strike", "3.23", "3.27", "4.24", "4.28")
-
-        self.text.tag_config(
-            "bold_text",
-            font=("TkTextFont", 11, "bold"),
-            lmargin1=16,
-            spacing1=16,
-            spacing3=3,
-        )
-        self.text.tag_config(
-            "italic_text",
-            font=("TkTextFont", 10, "italic"),
-            lmargin1=16,
-            lmargin2=25,
-            spacing1=16,
-        )
-        self.text.tag_config("indent_text", lmargin1=25, rmargin=16)
-        self.text.tag_config("first_line", spacing1=10)
-        self.text.tag_config("last_line", spacing3=10)
-        self.text.tag_config("strike", overstrike=True)
-
-        self.text.tag_raise("bold_text", "indent_text")
-        self.text.tag_raise("italic_text", "indent_text")
-
-        self.text.config(state="disabled")
-
-        center(window=self.master, parent=parent.master)
-        self.master.attributes("-alpha", 1.0)
+    def thread_monitor(self, thread: threading.Thread) -> None:
+        if thread.is_alive():
+            self.root.after(500, lambda: self.thread_monitor(thread))
+            return
+        if self.update:
+            ToastNotification(
+                title="TribalWarsBot Update",
+                message=f"Dostępna jest nowa wersja aplikacji. ",
+                topmost=True,
+                bootstyle="primary",
+            ).show_toast()
 
 
 @log_errors()
-def check_for_updates(
-    force_update: bool = False,
-    main_window: MainWindow = None,
-    stable_release: bool = True,
-) -> None:
+def check_for_updates(stable_release: bool = True) -> None:
 
     client = Client(ClientConfig())
     client.refresh()
@@ -5428,12 +5501,6 @@ def check_for_updates(
     # Check for updates on any channel
     else:
         app_update = client.update_check(APP_NAME, APP_VERSION, strict=False)
-
-    # Just check for available update do not process or update
-    if not force_update:
-        if app_update is not None:
-            main_window.update_available = True
-        return
 
     if app_update is not None:
 
@@ -5610,58 +5677,27 @@ def configure_style(style: ttk.Style) -> None:
     style.configure("padded.TFrame", padding=[5, 15, 5, 15])
 
 
-def periodically_check_for_updates(main_window: MainWindow) -> None:
-    if hasattr(main_window, "update_available"):
-        if main_window.update_available:
-            return
-    else:
-        main_window.update_available = False
-    check_update_thread = threading.Thread(
-        target=lambda: check_for_updates(main_window=main_window), daemon=True
-    )
-    check_update_thread.start()
-    thread_monitor(check_update_thread, main_window)
-    main_window.master.after(
-        ms=7_200_000,
-        func=lambda: periodically_check_for_updates(main_window=main_window),
-    )
-
-
-def thread_monitor(thread: threading.Thread, main_window: MainWindow) -> None:
-    if thread.is_alive():
-        main_window.master.after(500, lambda: thread_monitor(thread, main_window))
-        return
-    if main_window.update_available:
-
-        ToastNotification(
-            title="TribalWarsBot Update",
-            message=f"Dostępna jest nowa wersja aplikacji. ",
-            topmost=True,
-            bootstyle="primary",
-        ).show_toast()
-
-
 def main() -> None:
-    driver = None
     settings = app_functions.load_settings()
     settings["temp"] = {}
 
     # Check for updates
     if hasattr(sys, "frozen"):
-        if "stable_release" not in settings:
-            settings["stable_release"] = True
-        if settings["stable_release"]:
-            check_for_updates(force_update=True)
+        settings.setdefault("globals", {})
+        if "stable_release" not in settings["globals"]:
+            settings["globals"]["stable_release"] = True
+        if settings["globals"]["stable_release"]:
+            check_for_updates(stable_release=True)
         else:
-            check_for_updates(force_update=True, stable_release=False)
+            check_for_updates(stable_release=False)
 
     if settings["first_lunch"]:
         app_functions.first_app_lunch(settings=settings)
 
     enable_high_dpi_awareness()
-    root = tk.Tk()
-    root.config(bg="white")
-    root.withdraw()
+    hidden_root = tk.Tk()
+    hidden_root.attributes("-alpha", 0)
+    hidden_root.title("TribalWarsBot")
 
     style = ttk.Style(theme="darkly")
 
@@ -5672,7 +5708,6 @@ def main() -> None:
         localization.MessageCatalog.locale(settings["globals"]["lang"])
     except KeyError:
         lang = locale.getdefaultlocale()[0]
-        settings.setdefault("globals", {})
         if "pl" in lang:
             localization.MessageCatalog.locale(lang)
             settings["globals"]["lang"] = "pl"
@@ -5681,15 +5716,14 @@ def main() -> None:
             localization.MessageCatalog.locale(lang)
             settings["globals"]["lang"] = "en"
 
-    main_window = MainWindow(master=root, driver=driver, settings=settings)
+    root = tk.Toplevel(hidden_root)
+    main_window = MainWindow(master=root, hidden_root=hidden_root, settings=settings)
     LogInWindow(main_window=main_window, settings=settings)
+    # ttk.Label(hidden_root, image=main_window.images.).grid()
 
-    root.after(
-        ms=7_200_000,
-        func=lambda: periodically_check_for_updates(main_window=main_window),
-    )
+    Updates(root=root, settings=settings).periodically_check_for_updates()
 
-    main_window.master.mainloop()
+    hidden_root.mainloop()
 
 
 if __name__ == "__main__":
