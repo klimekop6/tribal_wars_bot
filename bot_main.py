@@ -28,6 +28,7 @@ from selenium.common.exceptions import (
     NoSuchWindowException,
     UnexpectedAlertPresentException,
 )
+from selenium.webdriver.common.by import By
 from ttkbootstrap import localization
 from ttkbootstrap.tableview import Tableview
 from ttkbootstrap.toast import ToastNotification
@@ -3444,79 +3445,255 @@ class Manager(ScrollableFrame):
     ):
         super().__init__(parent, max_height=True)
 
+        self.main_window = main_window
+        self.settings = settings
+
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
 
         manager = entries_content["manager"] = {}
 
         notebook = ttk.Notebook(self)
-        notebook.grid(row=0, column=0, padx=5, sticky=ttk.NSEW)
+        notebook.grid(row=0, column=0, padx=5, pady=(0, 5), sticky=ttk.NSEW)
 
-        army = ttk.Frame(notebook)
-        buildings = ttk.Frame(notebook)
-        tech = ttk.Frame(notebook)
+        self.army = ttk.Frame(notebook)
+        self.buildings = ttk.Frame(notebook)
+        self.tech = ttk.Frame(notebook)
 
-        notebook.add(army, text=translate("Army"))
-        notebook.add(buildings, text=translate("Buildings"))
-        notebook.add(tech, text=translate("Technology"))
+        notebook.add(self.army, text=translate("Army"))
+        notebook.add(self.buildings, text=translate("Buildings"))
+        notebook.add(self.tech, text=translate("Technology"))
 
         # Army
-        army.columnconfigure((0, 1), weight=1)
+        self.army.columnconfigure((0, 1), weight=1)
 
         manager["army"] = {}
         manager["army"]["active"] = ttk.BooleanVar()
         ttk.Checkbutton(
-            army,
+            self.army,
             text=translate("Activate templates refresher"),
             variable=manager["army"]["active"],
             onvalue=True,
             offvalue=False,
-        ).grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        ttk.Separator(army, orient=ttk.HORIZONTAL).grid(
-            row=1, column=0, columnspan=2, sticky=ttk.EW
+        ).grid(row=0, column=0, columnspan=3, padx=5, pady=20)
+        ttk.Separator(self.army, orient=ttk.HORIZONTAL).grid(
+            row=1, column=0, columnspan=3, sticky=ttk.EW
         )
+
+        ttk.Label(self.army, text=translate("Currently available templates")).grid(
+            row=2, column=0, padx=(10, 0), pady=20, sticky=ttk.W
+        )
+        self.army_templates_groups = ttk.Combobox(
+            self.army,
+            state="readonly",
+            justify="center",
+        )
+        self.army_templates_groups.grid(row=2, column=1, pady=20)
+        self.army_templates_groups.set(translate("Available templates"))
+        # self.army_templates_groups["values"] = settings["manager"]["army"]["groups"]
+
+        # Update available groups
+        ttk.Button(
+            self.army,
+            image=main_window.images.refresh,
+            bootstyle="primary.Link.TButton",
+            command=lambda: threading.Thread(
+                target=lambda: self.get_templates(settings, "army"),
+                name="checking_groups",
+                daemon=True,
+            ).start(),
+        ).grid(row=2, column=2, padx=15, pady=20, sticky=ttk.E)
+
         ttk.Label(
-            army, text=translate("Match groups of villages with army templates")
-        ).grid(row=2, column=0, columnspan=2, padx=10, pady=20)
+            self.army, text=translate("Match groups of villages with army templates")
+        ).grid(row=3, column=0, columnspan=3, padx=10, pady=10)
 
         # Buildings
-        buildings.columnconfigure((0, 1), weight=1)
+        self.buildings.columnconfigure((0, 1), weight=1)
 
         manager["buildings"] = {}
         manager["buildings"]["active"] = ttk.BooleanVar()
         ttk.Checkbutton(
-            buildings,
+            self.buildings,
             text=translate("Activate templates refresher"),
             variable=manager["buildings"]["active"],
             onvalue=True,
             offvalue=False,
-        ).grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        ttk.Separator(buildings, orient=ttk.HORIZONTAL).grid(
-            row=1, column=0, columnspan=2, sticky=ttk.EW
+        ).grid(row=0, column=0, columnspan=3, padx=5, pady=20)
+        ttk.Separator(self.buildings, orient=ttk.HORIZONTAL).grid(
+            row=1, column=0, columnspan=3, sticky=ttk.EW
         )
+
+        ttk.Label(self.buildings, text=translate("Currently available templates")).grid(
+            row=2, column=0, padx=(10, 0), pady=20, sticky=ttk.W
+        )
+        self.buildings_templates_groups = ttk.Combobox(
+            self.buildings,
+            state="readonly",
+            justify="center",
+        )
+        self.buildings_templates_groups.grid(row=2, column=1, pady=20)
+        self.buildings_templates_groups.set(translate("Available templates"))
+        # self.buildings_templates_groups["values"] = settings["manager"]["buildings"][
+        #     "groups"
+        # ]
+
+        # Update available groups
+        ttk.Button(
+            self.buildings,
+            image=main_window.images.refresh,
+            bootstyle="primary.Link.TButton",
+            command=lambda: threading.Thread(
+                target=lambda: self.get_templates(settings, "buildings"),
+                name="checking_groups",
+                daemon=True,
+            ).start(),
+        ).grid(row=2, column=2, padx=15, pady=20, sticky=ttk.E)
+
         ttk.Label(
-            buildings,
+            self.buildings,
             text=translate("Match groups of villages with buildings templates"),
-        ).grid(row=2, column=0, columnspan=2, padx=10, pady=20)
+        ).grid(row=3, column=0, columnspan=3, padx=10, pady=10)
 
         # Technology
-        tech.columnconfigure((0, 1), weight=1)
+        self.tech.columnconfigure((0, 1), weight=1)
 
         manager["tech"] = {}
         manager["tech"]["active"] = ttk.BooleanVar()
         ttk.Checkbutton(
-            tech,
+            self.tech,
             text=translate("Activate templates refresher"),
             variable=manager["tech"]["active"],
             onvalue=True,
             offvalue=False,
-        ).grid(row=0, column=0, columnspan=2, padx=5, pady=20)
-        ttk.Separator(tech, orient=ttk.HORIZONTAL).grid(
-            row=1, column=0, columnspan=2, sticky=ttk.EW
+        ).grid(row=0, column=0, columnspan=3, padx=5, pady=20)
+        ttk.Separator(self.tech, orient=ttk.HORIZONTAL).grid(
+            row=1, column=0, columnspan=3, sticky=ttk.EW
         )
+
+        ttk.Label(self.tech, text=translate("Currently available templates")).grid(
+            row=2, column=0, padx=(10, 0), pady=20, sticky=ttk.W
+        )
+        self.tech_templates_groups = ttk.Combobox(
+            self.tech,
+            state="readonly",
+            justify="center",
+        )
+        self.tech_templates_groups.grid(row=2, column=1, pady=20)
+        self.tech_templates_groups.set(translate("Available templates"))
+        # self.tech_templates_groups["values"] = settings["manager"]["tech"]["groups"]
+
+        # Update available groups
+        ttk.Button(
+            self.tech,
+            image=main_window.images.refresh,
+            bootstyle="primary.Link.TButton",
+            command=lambda: threading.Thread(
+                target=lambda: self.get_templates(settings, "tech"),
+                name="checking_groups",
+                daemon=True,
+            ).start(),
+        ).grid(row=2, column=2, padx=15, pady=20, sticky=ttk.E)
+
         ttk.Label(
-            tech, text=translate("Match groups of villages with technology templates")
-        ).grid(row=2, column=0, columnspan=2, padx=10, pady=20)
+            self.tech,
+            text=translate("Match groups of villages with technology templates"),
+        ).grid(row=3, column=0, columnspan=3, padx=10, pady=10)
+
+    def get_templates(self, settings: dict, template_type: str) -> None:
+        if "server_world" not in settings:
+            self.main_window.control_panel.show()
+            custom_error(
+                message="Najpierw wybierz serwer i numer świata",
+                parent=self.main_window.control_panel.master,
+            )
+            return
+
+        match template_type:
+            case "army":
+                self.get_army_templates(
+                    driver=self.main_window.driver,
+                    settings=self.settings,
+                    widget=self.army_templates_groups,
+                )
+
+            case "buildings":
+                self.get_buildings_templates(
+                    driver=self.main_window.driver,
+                    settings=self.settings,
+                    widget=self.buildings_templates_groups,
+                )
+
+            case "tech":
+                self.get_tech_templates(
+                    driver=self.main_window.driver,
+                    settings=self.settings,
+                    widget=self.tech_templates_groups,
+                )
+
+        return
+
+    def height_fix(self) -> None:
+        if (self.master.winfo_height() - self.winfo_reqheight()) > 0:
+            self.army.rowconfigure(
+                666,
+                minsize=(self.master.winfo_height() - self.winfo_reqheight()),
+            )
+
+    def get_template_url(
+        self, driver: webdriver.Chrome, settings: dict, am_value: str
+    ) -> str:
+        base_url = app_functions.base_url(settings)
+        village_id = bot_functions.game_data(driver, "village.id")
+        return base_url + f"village={village_id}&screen=am_{am_value}&mode=template"
+
+    @app_functions.account_access
+    def get_army_templates(
+        self, driver: webdriver.Chrome, settings: dict, widget: ttk.Combobox = None
+    ) -> bool:
+        driver.get(self.get_template_url(driver, settings, "troops"))
+        templates = [
+            template.text
+            for template in driver.find_elements(
+                By.XPATH,
+                "//*[@id='content_value']/form/div[2]/table/tbody/tr/td[1]/span",
+            )
+        ]
+        widget["values"] = templates
+
+        return True
+
+    @app_functions.account_access
+    def get_buildings_templates(
+        self, driver: webdriver.Chrome, settings: dict, widget: ttk.Combobox
+    ) -> bool:
+        driver.get(self.get_template_url(driver, settings, "village"))
+        templates = [
+            template.text
+            for template in driver.find_elements(
+                By.XPATH,
+                "//*[@id='content_value']/div[3]/table/tbody/tr[position()>1]/td[1]/a[1]",
+            )
+        ]
+        widget["values"] = templates
+
+        return True
+
+    @app_functions.account_access
+    def get_tech_templates(
+        self, driver: webdriver.Chrome, settings: dict, widget: ttk.Combobox
+    ) -> bool:
+        driver.get(self.get_template_url(driver, settings, "research"))
+        templates = [
+            template.text
+            for template in driver.find_elements(
+                By.XPATH,
+                "//*[@id='content_value']/div[3]/table/tbody/tr[position()>1]/td[1]/a[1]",
+            )
+        ]
+        widget["values"] = templates
+
+        return True
 
 
 class Notifications(ScrollableFrame):
@@ -4579,9 +4756,9 @@ class MainWindow:
         self.control_panel.villages_groups.set("Updating..")
         save_entry_to_settings(entries=self.entries_content, settings=settings)
         app_functions.check_groups(
-            self.driver,
-            settings,
-            *[
+            driver=self.driver,
+            settings=settings,
+            widgets=[
                 self.farm.farm_group_A,
                 self.farm.farm_group_B,
                 self.farm.farm_group_C,
@@ -4589,7 +4766,7 @@ class MainWindow:
                 self.control_panel.villages_groups,
             ],
         )
-        self.control_panel.villages_groups.set("Dostępne grupy")
+        self.control_panel.villages_groups.set("Available groups")
 
     @log_errors()
     def change_world(
@@ -5001,7 +5178,7 @@ class MainWindow:
 
             logger.info(f"restarting browser coused by {self.to_do[0]['func']}")
             self.driver.quit()
-            self.driver = app_functions.run_driver(settings=_settings)
+            self.driver = app_functions.run_driver(settings=settings)
             logged = app_functions.log_in(self.driver, _settings)
 
         # Open browser if not already opend
@@ -5212,13 +5389,14 @@ class MainWindow:
             except NoSuchWindowException as e:
                 logger.info("NoSuchWindowException")
                 try:
+                    # print(self.driver.get_log("driver"))
                     self.driver.switch_to.window(self.driver.window_handles[0])
                 except Exception as e:
                     subprocess.run(
                         "taskkill /IM chromedriver.exe /F /T",
                         creationflags=subprocess.CREATE_NO_WINDOW,
                     )
-                    self.driver = app_functions.run_driver(settings=_settings)
+                    self.driver = app_functions.run_driver(settings=settings)
                 # self.driver.execute_cdp_cmd(
                 #     "Page.addScriptToEvaluateOnNewDocument",
                 #     {"source": COORDS_COPY},
@@ -5456,7 +5634,7 @@ class Updates:
     def check(self) -> None:
         self.client.refresh()
         # Check for updates on stable channel
-        if self.settings["stable_release"]:
+        if self.settings["globals"]["stable_release"]:
             app_update = self.client.update_check(APP_NAME, APP_VERSION)
         # Check for updates on any channel
         else:

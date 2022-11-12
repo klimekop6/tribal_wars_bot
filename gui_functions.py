@@ -344,7 +344,6 @@ def set_default_entries(entries: dict[tk.Variable]) -> None:
     entries["coins"]["max_send_time"].set(120)
     entries["coins"]["check_every"].set(30)
     entries["notifications"]["check_incoming_attacks_sleep_time"].set(30)
-    entries["stable_release"].set(True)
 
 
 def show_or_hide_password(parent, entry: ttk.Entry, button: ttk.Button) -> None:
