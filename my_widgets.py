@@ -53,7 +53,8 @@ class TopLevel(tk.Toplevel):
         self.exit = tk.PhotoImage(file="icons//exit.png")
         self.exit_button = ttk.Button(
             self.custom_bar,
-            bootstyle="primary.Link.TButton",
+            style="danger.primary.Link.TButton",
+            padding=(10, 5),
             image=self.exit,
             command=self.destroy,
         )
@@ -70,6 +71,8 @@ class TopLevel(tk.Toplevel):
             self.title_timer.bind(
                 "<Button-1>", lambda event: self._get_pos(event, "title_timer")
             )
+
+        self.lift()
 
     def _hide(self):
         self.attributes("-alpha", 0.0)
@@ -243,7 +246,7 @@ class Text:
         self.text.grid(row=0, column=0, sticky=ttk.EW)
 
         # Tags
-        self.text.tag_configure("h1", font=("TkFixedFont", 11), spacing1=20)
+        self.text.tag_configure("h1", font=("TkFixedFont", 11), spacing1=20, spacing3=5)
         self.text.tag_configure("left_margin", lmargin2=8)
 
         # Bindings
@@ -261,9 +264,37 @@ class Text:
     def add(self, line_of_text: str, *tags) -> None:
         self.text.insert(f"{self.text_line}.0", line_of_text, *tags)
         self.text_line += 1
+        self.text.tag_add("left_margin", "1.0", "end")
 
     def _on_map(self, *_):
         """Callback for when the configure method is used"""
 
         self.text.update_idletasks()
         self.text.configure(height=self.text.count("1.0", "end", "displaylines"))
+
+
+class Label(ttk.Label):
+    def __init__(
+        self,
+        master,
+        command=None,
+        image_on_hover=None,
+        justify=[ttk.LEFT],
+        text: str = "",
+        **kwargs,
+    ) -> None:
+        super().__init__(master, justify=justify, text=text, **kwargs)
+
+        if command:
+            self.bind("<Button-1>", lambda _: command())
+        if image_on_hover and kwargs["image"]:
+            self.configure(cursor="hand2")
+
+            def on_enter() -> None:
+                self.configure(image=image_on_hover)
+
+            def on_leave() -> None:
+                self.configure(image=kwargs["image"])
+
+            self.bind("<Enter>", lambda _: on_enter())
+            self.bind("<Leave>", lambda _: on_leave())

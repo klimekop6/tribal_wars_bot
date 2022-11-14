@@ -21,7 +21,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from ttkbootstrap.toast import ToastNotification
 
 import email_notifications
-from app_functions import captcha_check, unwanted_page_content
+from app_functions import base_url, captcha_check, unwanted_page_content
 from app_logging import get_logger
 from config import SMS_API_TOKEN
 from constants import TROOPS_SPEED
@@ -41,9 +41,9 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
 
     # Open incoming attacks tab with group id = 0 which points to all villages
     current_village_id = game_data(driver, "village.id")
-    url = f'https://{settings["server_world"]}.{settings["game_url"]}'
     driver.get(
-        f"{url}/game.php?village={current_village_id}&screen=overview_villages&mode=incomings&type=unignored&subtype=attacks&group=0&page=-1"
+        f"{base_url(settings)}village={current_village_id}&screen=overview_villages&"
+        f"mode=incomings&type=unignored&subtype=attacks&group=0&page=-1"
     )
     captcha_check(driver=driver, settings=settings)
     # Check current label command and ommit changing it if it is already correct
@@ -750,11 +750,9 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
 
         # Przejście do ekranu zbieractwa na placu
         current_village_id = game_data(driver, "village.id")
-        url = driver.current_url
-        base_url = url[: url.rfind("/")]
         url = (
-            base_url
-            + f"/game.php?village={current_village_id}&screen=place&mode=scavenge"
+            base_url(settings)
+            + f"village={current_village_id}&screen=place&mode=scavenge"
         )
         driver.get(url)
 
@@ -858,11 +856,33 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             if row[0].get("class") != "inactive-view" or row[1]:
                 del troops_to_send[number + 1]
 
+        # if not troops_to_send:
+
         # Ukrywa chat
         driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
 
         # Obliczenie i wysyłanie wojsk na zbieractwo
         sum_capacity = sum(troops_to_send[key]["capacity"] for key in troops_to_send)
+        for key in troops_to_send:
+            for troop_name, troop_number in available_troops.items():
+                troops_to_send[key][troop_name] = round(
+                    troops_to_send[key]["capacity"] / sum_capacity * troop_number
+                )
+        for troop_name, available_troop_number in available_troops.items():
+            total_troops_number_te_send = sum(
+                troops_to_send[key][troop_name] for key in troops_to_send
+            )
+            if not total_troops_number_te_send:
+                continue
+            if total_troops_number_te_send > available_troop_number:
+                troops_to_send[min(troops_to_send)][troop_name] -= (
+                    total_troops_number_te_send - available_troop_number
+                )
+            elif total_troops_number_te_send < available_troop_number:
+                troops_to_send[min(troops_to_send)][troop_name] += (
+                    available_troop_number - total_troops_number_te_send
+                )
+
         units_capacity = {
             "spear": 25,
             "sword": 15,
@@ -873,23 +893,11 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             "heavy": 50,
             "knight": 100,
         }
-        reduce_ratio = None
         max_resources = settings["gathering_max_resources"]
-        round_ups_per_troop = {troop_name: 0 for troop_name in available_troops}
+        reduce_ratio = None
         for key in troops_to_send:
             if not settings["temp"]["main_window"].running:
                 return []
-            for troop_name, troop_number in available_troops.items():
-                counted_troops_number = (
-                    troops_to_send[key]["capacity"] / sum_capacity * troop_number
-                )
-                if (counted_troops_number % 1) > 0.5 and round_ups_per_troop[
-                    troop_name
-                ] < 1:
-                    troops_to_send[key][troop_name] = round(counted_troops_number)
-                    round_ups_per_troop[troop_name] += 1
-                else:
-                    troops_to_send[key][troop_name] = int(counted_troops_number)
             if not reduce_ratio:
                 sum_troops_capacity = (
                     sum(
@@ -1033,8 +1041,8 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
         list_of_dicts.append(
             {
                 "func": "gathering",
-                "url_to_gathering": base_url
-                + f"/game.php?village={current_village_id}&screen=place&mode=scavenge",
+                "url_to_gathering": base_url(settings)
+                + f"village={current_village_id}&screen=place&mode=scavenge",
                 "start_time": time.time() + journey_time + 3,
                 "server_world": settings["server_world"],
                 "settings": settings,
@@ -1066,9 +1074,9 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
 
     # Daily bonus page address
     daily_bonus_url = (
-        f"https://{settings['server_world']}.{settings['game_url']}/game.php?village="
+        base_url(settings) + f"village={game_data(driver, 'village.id')}"
+        f"&screen=info_player&mode=daily_bonus"
     )
-    village_id = game_data(driver, "village.id")
     if settings["world_config"]["daily_bonus"] is None:
         if not driver.find_elements(By.CLASS_NAME, "badge-daily-bonus"):
             settings["world_config"]["daily_bonus"] = False
@@ -1076,7 +1084,6 @@ def open_daily_bonus(driver: webdriver.Chrome, settings: dict):
         else:
             settings["world_config"]["daily_bonus"] = True
 
-    daily_bonus_url += str(village_id) + "&screen=info_player&mode=daily_bonus"
     driver.get(daily_bonus_url)
     captcha_check(driver, settings)
     try:
@@ -1092,13 +1099,11 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
     """Umożliwia automatyczną sprzedaż lub zakup surwców za punkty premium"""
 
     current_village_id = int(game_data(driver, "village.id"))
-    url = driver.current_url
-    url = url[: url.rfind("/")]
     # Check if has premium account
     if driver.execute_script("return premium"):
         player_production_url = (
-            url
-            + f"/game.php?village={current_village_id}&screen=overview_villages&mode=prod&group=0&page=-1&"
+            base_url(settings)
+            + f"village={current_village_id}&screen=overview_villages&mode=prod&group=0&page=-1&"
         )
 
         def get_player_production_page() -> str:
@@ -1137,7 +1142,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
         for village_data in production[1:]:
             village_id = village_data.xpath("td[2]/span")[0].get("data-id")
             village_market_url = (
-                f"{url}/game.php?village={village_id}&screen=market&mode=exchange"
+                f"{base_url(settings)}village={village_id}&screen=market&mode=exchange"
             )
             village_coords = village_data.xpath("td[2]/span/span/a/span")[0].text
             village_coords = re.findall(r"\d{3}\|\d{3}", village_coords)[-1]
@@ -1365,6 +1370,8 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                         By.XPATH,
                         f'//*[@id="premium_exchange_sell_{resource_name}"]/div[1]/input',
                     )
+                    if not input.is_enabled():
+                        continue
                     input.send_keys(f"{resource_to_sell}")
                     input.send_keys(Keys.ENTER)
 
@@ -1514,7 +1521,6 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
 
             if index:
                 previous_tabs = set(driver.window_handles)
-                # Open new tab
                 driver.switch_to.new_window("tab")
                 driver.get(send_info["url"])
                 # Search and get new tab
@@ -1992,13 +1998,13 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
 
 def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
     coins: dict = settings["coins"]
-    base_url = f"https://{settings['server_world']}.{settings['game_url']}/game.php?"
     villages_palace_url = (
-        f"{base_url}village={village_id}&screen=snob"
+        f"{base_url(settings)}village={village_id}&screen=snob"
         for village_id in coins["villages"].values()
     )
     villages_market_url = (
-        f"{base_url}village={village_id}&screen=market&order=distance&dir=ASC&target_id=0&mode=call&group=0"
+        f"{base_url(settings)}village={village_id}&screen=market"
+        f"&order=distance&dir=ASC&target_id=0&mode=call&group=0"
         for village_id in coins["villages"].values()
     )
     # JS script

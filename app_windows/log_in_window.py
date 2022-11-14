@@ -6,6 +6,8 @@ from ttkbootstrap import localization
 
 translate = localization.MessageCatalog.translate
 
+from typing import TYPE_CHECKING
+
 from app_functions import (
     delegate_things_to_other_thread,
     expiration_warning,
@@ -19,8 +21,12 @@ from gui_functions import (
     invoke_checkbuttons,
     show_or_hide_password,
 )
-from register_window import RegisterWindow
 from tribal_wars_bot_api import TribalWarsBotApi
+
+from .register_window import RegisterWindow
+
+if TYPE_CHECKING:
+    from bot_main import MainWindow
 
 # Logging module settings
 if not os.path.exists("logs"):
@@ -29,7 +35,7 @@ logger = get_logger(__name__)
 
 
 class LogInWindow:
-    def __init__(self, main_window, settings: dict) -> None:
+    def __init__(self, main_window: "MainWindow", settings: dict) -> None:
         settings["logged"] = False
         if "user_password" in settings:
             delegate_things_to_other_thread(settings=settings, main_window=main_window)
@@ -73,7 +79,7 @@ class LogInWindow:
         self.title_label.grid(row=0, column=2, padx=5, sticky="W")
 
         self.exit_button = ttk.Button(
-            self.custom_bar, text="X", command=main_window.master.destroy
+            self.custom_bar, text="X", command=main_window.hidden_root.destroy
         )
         self.exit_button.grid(row=0, column=4, padx=(0, 5), pady=3, sticky="E")
 
@@ -158,7 +164,7 @@ class LogInWindow:
 
     def after_correct_log_in(
         self,
-        main_window,
+        main_window: "MainWindow",
         settings: dict,
         user_data: dict,
         parent=None,
@@ -187,19 +193,21 @@ class LogInWindow:
             text=f'{translate("Account expiration time")} {user_data["active_until"]}'
         )
 
-        invoke_checkbuttons(parent=main_window.master)
+        invoke_checkbuttons(parent=main_window.master, main_window=main_window)
         main_window.master.deiconify()
-        center(main_window.master, parent=parent)
         main_window.master.attributes("-topmost", 1)
+        main_window.hidden_root.focus()
         add_event_handler(settings=settings)
         self.update_db_running_status(main_window=main_window)
         if settings["first_lunch"]:
             first_app_login(settings=settings, main_window=main_window)
         expiration_warning(settings=settings, main_window=main_window)
         main_window.master.update()
+        center(main_window.master, parent=parent)
+        main_window.master.update_idletasks()
         main_window.master.attributes("-alpha", 1.0)
 
-    def log_in(self, main_window, settings: dict):
+    def log_in(self, main_window: "MainWindow", settings: dict):
         delegate_things_to_other_thread(settings=settings, main_window=main_window)
         # API POST /login DONE
         data = {
@@ -256,7 +264,7 @@ class LogInWindow:
             )
             self.master.deiconify()
 
-    def update_db_running_status(self, main_window):
+    def update_db_running_status(self, main_window: "MainWindow"):
         """Inform database about account activity every 10min"""
 
         # API PATCH /status DONE

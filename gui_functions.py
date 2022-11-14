@@ -1,11 +1,15 @@
 import textwrap
 import tkinter as tk
+from typing import TYPE_CHECKING
 
 import ttkbootstrap as ttk
-from ttkbootstrap.validation import ValidationEvent, validator
 from ttkbootstrap.scrolled import ScrolledFrame
+from ttkbootstrap.validation import ValidationEvent, validator
 
 from app_logging import get_logger
+
+if TYPE_CHECKING:
+    from bot_main import MainWindow
 
 logger = get_logger(__name__)
 
@@ -251,8 +255,8 @@ def get_pos(self, event, *args) -> None:
         getattr(self, arg).bind("<B1-Motion>", move_window)
 
 
-def invoke_checkbuttons(parent) -> None:
-    def call_widget(parent) -> None:
+def invoke_checkbuttons(parent, main_window: "MainWindow") -> None:
+    def call_widget(parent: tk.Widget) -> None:
         for child in parent.winfo_children():
             wtype = child.winfo_class()
             if wtype == "TCheckbutton":
@@ -261,7 +265,9 @@ def invoke_checkbuttons(parent) -> None:
             else:
                 call_widget(parent=child)
 
+    main_window.loading = True
     call_widget(parent=parent)
+    main_window.loading = False
 
 
 def on_button_release(event: tk.Event) -> None:
@@ -277,16 +283,17 @@ def on_button_release(event: tk.Event) -> None:
     def block_class_binding(event) -> str:
         return "break"
 
-    bind_id = widget.bind("<ButtonRelease-1>", block_class_binding)
+    id_block_class = widget.bind("<ButtonRelease-1>", block_class_binding)
 
-    def unblock_class_binding(event) -> None:
+    def unblock_class_binding(binds: list) -> None:
         if widget.winfo_exists():
             try:
-                widget.unbind("<ButtonRelease-1>", funcid=bind_id)
+                widget.unbind("<ButtonRelease-1>", funcid=id_block_class)
+                widget.unbind("<FocusOut>", id_unblock_class)
             except Exception:
                 pass
 
-    widget.bind("<FocusOut>", unblock_class_binding)
+    id_unblock_class = widget.bind("<FocusOut>", unblock_class_binding, add="+")
 
 
 def save_entry_to_settings(
@@ -337,7 +344,6 @@ def set_default_entries(entries: dict[tk.Variable]) -> None:
     entries["coins"]["max_send_time"].set(120)
     entries["coins"]["check_every"].set(30)
     entries["notifications"]["check_incoming_attacks_sleep_time"].set(30)
-    entries["stable_release"].set(True)
 
 
 def show_or_hide_password(parent, entry: ttk.Entry, button: ttk.Button) -> None:

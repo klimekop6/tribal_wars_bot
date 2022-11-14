@@ -7,6 +7,7 @@ import sys
 import threading
 import time
 import winreg
+from typing import TYPE_CHECKING
 
 import requests
 from anycaptcha import AnycaptchaClient, HCaptchaTaskProxyless
@@ -28,7 +29,14 @@ from config import ANY_CAPTCHA_API_KEY
 from decorators import log_errors
 from gui_functions import custom_error, set_default_entries
 
+if TYPE_CHECKING:
+    from bot_main import MainWindow
+
 logger = get_logger(__name__)
+
+
+def base_url(settings: dict) -> str:
+    return f"https://{settings['server_world']}.{settings['game_url']}/game.php?"
 
 
 @log_errors(re_raise=True)
@@ -165,34 +173,61 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     return False
 
 
-def check_groups(driver: webdriver.Chrome, settings: dict[str], *args) -> None:
-    """Sprawdza dostępne grupy i zapisuje je w settings.json"""
+def account_access(func) -> None:
+    def wrapper(*args, **kwargs):
+        settings = kwargs["settings"]
+        tmp_driver = False
+        if not kwargs["driver"]:
+            driver = kwargs["driver"] = run_driver(settings=settings)
+            logged_in = log_in(driver, settings)
+            tmp_driver = True
+        else:
+            driver = kwargs["driver"]
 
-    tmp_driver = False
-    if not driver:
-        driver = run_driver(settings=settings)
-        log_in(driver, settings)
-        tmp_driver = True
+        if (
+            f"{settings['server_world']}.{settings['game_url']}"
+            not in driver.current_url
+        ):
+            logged_in = False
+            driver.get(log_in_game_url(settings))
 
-    logged_in = True
-    if f"{settings['server_world']}.{settings['game_url']}" not in driver.current_url:
-        logged_in = False
-        driver.get(
-            f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
-        )
+        try:
+            requirements_satisfied = func(*args, **kwargs)
+        except BaseException as exception:
+            logger.error("error catched by decorator log_errors")
 
-    if not driver.execute_script("return premium"):
+        if not requirements_satisfied:
+            if tmp_driver:
+                driver.quit()
+
+            if not logged_in:
+                driver.get("chrome://newtab")
+
+            for combobox in kwargs["widget"]:
+                combobox["values"] = ["Grupy niedostępne"]
+                combobox.set("Grupy niedostępne")
+            return
+
         if tmp_driver:
             driver.quit()
+            return
 
         if not logged_in:
             driver.get("chrome://newtab")
 
-        for combobox in args:
-            combobox["values"] = ["Grupy niedostępne"]
-            combobox.set("Grupy niedostępne")
-
         return
+
+    return wrapper
+
+
+@account_access
+def check_groups(
+    driver: webdriver.Chrome, settings: dict[str], widgets: list | tuple, **kwargs
+) -> bool:
+    """Sprawdza dostępne grupy i zapisuje je w settings.json"""
+
+    if not driver.execute_script("return premium"):
+        return False
 
     # Open village selector
     driver.execute_script("if (!villageDock.docked) {villageDock.open(event);}")
@@ -206,14 +241,10 @@ def check_groups(driver: webdriver.Chrome, settings: dict[str], *args) -> None:
     groups = [group[1:-1] for group in re.findall(r">[^<].+?<", groups)]
     settings["groups"].clear()
     settings["groups"].extend(groups)
-    for combobox in args:
+    for combobox in widgets:
         combobox["values"] = settings["groups"]
 
-    if tmp_driver:
-        driver.quit()
-
-    if not logged_in:
-        driver.get("chrome://newtab")
+    return True
 
 
 def chrome_profile_path(settings: dict) -> None:
@@ -226,7 +257,9 @@ def chrome_profile_path(settings: dict) -> None:
         json.dump(settings, settings_json_file)
 
 
-def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Thread:
+def delegate_things_to_other_thread(
+    settings: dict, main_window: "MainWindow"
+) -> threading.Thread:
     """Used to speedup app start doing stuff while connecting to database or API"""
 
     def add_new_default_settings(_settings: dict[str, dict]) -> None:
@@ -262,7 +295,7 @@ def delegate_things_to_other_thread(settings: dict, main_window) -> threading.Th
         threading.Thread(target=run_in_other_thread).start()
 
 
-def expiration_warning(settings: dict, main_window) -> None:
+def expiration_warning(settings: dict, main_window: "MainWindow") -> None:
 
     time_to_expire = (
         time.mktime(
@@ -311,7 +344,7 @@ def first_app_lunch(settings: dict) -> None:
         sys.exit()
 
 
-def first_app_login(settings: dict, main_window) -> None:
+def first_app_login(settings: dict, main_window: "MainWindow") -> None:
     set_default_entries(entries=main_window.entries_content)
     main_window.add_new_world_window(settings=settings, obligatory=True)
     settings["first_lunch"] = False
@@ -410,9 +443,7 @@ def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
 
     try:
         try:
-            driver.get(
-                f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
-            )
+            driver.get(log_in_game_url(settings))
         except WebDriverException as e:
             if "cannot determine loading status" in e.msg:
                 pass
@@ -466,9 +497,7 @@ def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
         else:
             for sleep_time in (5, 15, 60, 120, 300):
                 time.sleep(sleep_time)
-                driver.get(
-                    f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
-                )
+                driver.get(log_in_game_url(settings))
                 if (
                     f"{settings['server_world']}.{settings['game_url']}"
                     in driver.current_url
@@ -496,6 +525,10 @@ def paid(date: str) -> bool:
     return True
 
 
+def log_in_game_url(settings: dict) -> str:
+    return f"https://www.{settings['game_url']}/page/play/{settings['server_world']}"
+
+
 def run_driver(settings: dict) -> webdriver.Chrome:
     """Uruchamia sterownik i przeglądarkę google chrome"""
 
@@ -505,19 +538,18 @@ def run_driver(settings: dict) -> webdriver.Chrome:
         chrome_options.add_argument("start-maximized")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        if settings["globals"]["disable_chrome_background_throttling"]:
+            chrome_options.add_argument("--disable-background-timer-throttling")
         chrome_options.add_extension(
             extension="browser_extensions//captcha_callback_hooker.crx"
         )
-        chrome_options.add_experimental_option("useAutomationExtension", False)
         chrome_options.add_experimental_option(
             "excludeSwitches", ["enable-automation", "disable-popup-blocking"]
         )
         while True:
             try:
                 driver = webdriver.Chrome(
-                    service=Service(
-                        ChromeDriverManager(cache_valid_range=14).install()
-                    ),
+                    service=Service(ChromeDriverManager(cache_valid_range=7).install()),
                     options=chrome_options,
                 )
                 # driver.execute_cdp_cmd(
