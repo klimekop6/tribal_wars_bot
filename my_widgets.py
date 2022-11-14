@@ -53,7 +53,8 @@ class TopLevel(tk.Toplevel):
         self.exit = tk.PhotoImage(file="icons//exit.png")
         self.exit_button = ttk.Button(
             self.custom_bar,
-            bootstyle="primary.Link.TButton",
+            style="danger.primary.Link.TButton",
+            padding=(10, 5),
             image=self.exit,
             command=self.destroy,
         )
@@ -270,3 +271,30 @@ class Text:
 
         self.text.update_idletasks()
         self.text.configure(height=self.text.count("1.0", "end", "displaylines"))
+
+
+class Label(ttk.Label):
+    def __init__(
+        self,
+        master,
+        command=None,
+        image_on_hover=None,
+        justify=[ttk.LEFT],
+        text: str = "",
+        **kwargs,
+    ) -> None:
+        super().__init__(master, justify=justify, text=text, **kwargs)
+
+        if command:
+            self.bind("<Button-1>", lambda _: command())
+        if image_on_hover and kwargs["image"]:
+            self.configure(cursor="hand2")
+
+            def on_enter() -> None:
+                self.configure(image=image_on_hover)
+
+            def on_leave() -> None:
+                self.configure(image=kwargs["image"])
+
+            self.bind("<Enter>", lambda _: on_enter())
+            self.bind("<Leave>", lambda _: on_leave())

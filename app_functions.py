@@ -210,6 +210,7 @@ def account_access(func) -> None:
 
         if tmp_driver:
             driver.quit()
+            return
 
         if not logged_in:
             driver.get("chrome://newtab")

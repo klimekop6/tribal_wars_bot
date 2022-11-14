@@ -57,7 +57,7 @@ from gui_functions import (
     save_entry_to_settings,
     set_default_entries,
 )
-from my_widgets import CollapsingFrame, ScrollableFrame, Text, TopLevel
+from my_widgets import CollapsingFrame, Label, ScrollableFrame, Text, TopLevel
 from tribal_wars_bot_api import TribalWarsBotApi
 
 translate = localization.MessageCatalog.translate
@@ -533,7 +533,7 @@ class Farm(ScrollableFrame):
                 tooltip_frame,
                 text=translate("Maximum travel time \[min]"),
             ).grid(row=0, column=0, sticky=ttk.W)
-            info = ttk.Label(tooltip_frame, image=main_window.images.info)
+            info = ttk.Label(tooltip_frame, image=main_window.images.question)
             info.grid(row=0, column=1, padx=(5, 0))
             farm_rules["max_travel_time"] = ttk.IntVar()
             ToolTip(
@@ -2462,7 +2462,8 @@ class Scheduler(ScrollableFrame):
             ttk.Button(
                 self,
                 image=self.main_window.images.exit,
-                bootstyle="primary.Link.TButton",
+                style="danger.primary.Link.TButton",
+                padding=(10, 5),
                 command=partial(
                     delete_template, index + 20, fake_templates, template_name
                 ),
@@ -3019,7 +3020,7 @@ class Scheduler(ScrollableFrame):
             text=translate("Unit matching template"),
         ).grid(row=0, column=0, padx=5)
 
-        info = ttk.Label(top_frame, image=self.main_window.images.info)
+        info = ttk.Label(top_frame, image=self.main_window.images.question)
         info.grid(row=0, column=1)
 
         ToolTip(
@@ -3195,6 +3196,7 @@ class Scheduler(ScrollableFrame):
         table.grid(row=0, column=0)
 
         center(window=self.existing_schedule_window, parent=main_window.master)
+        self.existing_schedule_window.update_idletasks()
         self.existing_schedule_window.attributes("-alpha", 1.0)
 
 
@@ -3456,149 +3458,27 @@ class Manager(ScrollableFrame):
         notebook = ttk.Notebook(self)
         notebook.grid(row=0, column=0, padx=5, pady=(0, 5), sticky=ttk.NSEW)
 
-        self.army = ttk.Frame(notebook)
-        self.buildings = ttk.Frame(notebook)
-        self.tech = ttk.Frame(notebook)
+        self.nb_army = ScrollableFrame(notebook)
+        self.nb_buildings = ScrollableFrame(notebook)
+        self.nb_tech = ScrollableFrame(notebook)
 
-        notebook.add(self.army, text=translate("Army"))
-        notebook.add(self.buildings, text=translate("Buildings"))
-        notebook.add(self.tech, text=translate("Technology"))
+        notebook.add(self.nb_army.container, text=translate("Army"))
+        notebook.add(self.nb_buildings.container, text=translate("Buildings"))
+        notebook.add(self.nb_tech.container, text=translate("Technology"))
 
-        # Army
-        self.army.columnconfigure((0, 1), weight=1)
+        settings.setdefault("manager", {})
+        for type in ("army", "buildings", "tech"):
+            settings["manager"].setdefault(type, {"templates": []})
 
-        manager["army"] = {}
-        manager["army"]["active"] = ttk.BooleanVar()
-        ttk.Checkbutton(
-            self.army,
-            text=translate("Activate templates refresher"),
-            variable=manager["army"]["active"],
-            onvalue=True,
-            offvalue=False,
-        ).grid(row=0, column=0, columnspan=3, padx=5, pady=20)
-        ttk.Separator(self.army, orient=ttk.HORIZONTAL).grid(
-            row=1, column=0, columnspan=3, sticky=ttk.EW
+        self.army = self.Template(
+            parent=self, master=self.nb_army, type="army", manager=manager
         )
-
-        ttk.Label(self.army, text=translate("Currently available templates")).grid(
-            row=2, column=0, padx=(10, 0), pady=20, sticky=ttk.W
+        self.buildings = self.Template(
+            parent=self, master=self.nb_buildings, type="buildings", manager=manager
         )
-        self.army_templates_groups = ttk.Combobox(
-            self.army,
-            state="readonly",
-            justify="center",
+        self.tech = self.Template(
+            parent=self, master=self.nb_tech, type="tech", manager=manager
         )
-        self.army_templates_groups.grid(row=2, column=1, pady=20)
-        self.army_templates_groups.set(translate("Available templates"))
-        # self.army_templates_groups["values"] = settings["manager"]["army"]["groups"]
-
-        # Update available groups
-        ttk.Button(
-            self.army,
-            image=main_window.images.refresh,
-            bootstyle="primary.Link.TButton",
-            command=lambda: threading.Thread(
-                target=lambda: self.get_templates(settings, "army"),
-                name="checking_groups",
-                daemon=True,
-            ).start(),
-        ).grid(row=2, column=2, padx=15, pady=20, sticky=ttk.E)
-
-        ttk.Label(
-            self.army, text=translate("Match groups of villages with army templates")
-        ).grid(row=3, column=0, columnspan=3, padx=10, pady=10)
-
-        # Buildings
-        self.buildings.columnconfigure((0, 1), weight=1)
-
-        manager["buildings"] = {}
-        manager["buildings"]["active"] = ttk.BooleanVar()
-        ttk.Checkbutton(
-            self.buildings,
-            text=translate("Activate templates refresher"),
-            variable=manager["buildings"]["active"],
-            onvalue=True,
-            offvalue=False,
-        ).grid(row=0, column=0, columnspan=3, padx=5, pady=20)
-        ttk.Separator(self.buildings, orient=ttk.HORIZONTAL).grid(
-            row=1, column=0, columnspan=3, sticky=ttk.EW
-        )
-
-        ttk.Label(self.buildings, text=translate("Currently available templates")).grid(
-            row=2, column=0, padx=(10, 0), pady=20, sticky=ttk.W
-        )
-        self.buildings_templates_groups = ttk.Combobox(
-            self.buildings,
-            state="readonly",
-            justify="center",
-        )
-        self.buildings_templates_groups.grid(row=2, column=1, pady=20)
-        self.buildings_templates_groups.set(translate("Available templates"))
-        # self.buildings_templates_groups["values"] = settings["manager"]["buildings"][
-        #     "groups"
-        # ]
-
-        # Update available groups
-        ttk.Button(
-            self.buildings,
-            image=main_window.images.refresh,
-            bootstyle="primary.Link.TButton",
-            command=lambda: threading.Thread(
-                target=lambda: self.get_templates(settings, "buildings"),
-                name="checking_groups",
-                daemon=True,
-            ).start(),
-        ).grid(row=2, column=2, padx=15, pady=20, sticky=ttk.E)
-
-        ttk.Label(
-            self.buildings,
-            text=translate("Match groups of villages with buildings templates"),
-        ).grid(row=3, column=0, columnspan=3, padx=10, pady=10)
-
-        # Technology
-        self.tech.columnconfigure((0, 1), weight=1)
-
-        manager["tech"] = {}
-        manager["tech"]["active"] = ttk.BooleanVar()
-        ttk.Checkbutton(
-            self.tech,
-            text=translate("Activate templates refresher"),
-            variable=manager["tech"]["active"],
-            onvalue=True,
-            offvalue=False,
-        ).grid(row=0, column=0, columnspan=3, padx=5, pady=20)
-        ttk.Separator(self.tech, orient=ttk.HORIZONTAL).grid(
-            row=1, column=0, columnspan=3, sticky=ttk.EW
-        )
-
-        ttk.Label(self.tech, text=translate("Currently available templates")).grid(
-            row=2, column=0, padx=(10, 0), pady=20, sticky=ttk.W
-        )
-        self.tech_templates_groups = ttk.Combobox(
-            self.tech,
-            state="readonly",
-            justify="center",
-        )
-        self.tech_templates_groups.grid(row=2, column=1, pady=20)
-        self.tech_templates_groups.set(translate("Available templates"))
-        # self.tech_templates_groups["values"] = settings["manager"]["tech"]["groups"]
-
-        # Update available groups
-        ttk.Button(
-            self.tech,
-            image=main_window.images.refresh,
-            bootstyle="primary.Link.TButton",
-            command=lambda: threading.Thread(
-                target=lambda: self.get_templates(settings, "tech"),
-                name="checking_groups",
-                daemon=True,
-            ).start(),
-        ).grid(row=2, column=2, padx=15, pady=20, sticky=ttk.E)
-
-        ttk.Label(
-            self.tech,
-            text=translate("Match groups of villages with technology templates"),
-        ).grid(row=3, column=0, columnspan=3, padx=10, pady=10)
 
     def get_templates(self, settings: dict, template_type: str) -> None:
         if "server_world" not in settings:
@@ -3614,31 +3494,28 @@ class Manager(ScrollableFrame):
                 self.get_army_templates(
                     driver=self.main_window.driver,
                     settings=self.settings,
-                    widget=self.army_templates_groups,
+                    widget=self.army.templates_groups,
                 )
 
             case "buildings":
                 self.get_buildings_templates(
                     driver=self.main_window.driver,
                     settings=self.settings,
-                    widget=self.buildings_templates_groups,
+                    widget=self.buildings.templates_groups,
                 )
 
             case "tech":
                 self.get_tech_templates(
                     driver=self.main_window.driver,
                     settings=self.settings,
-                    widget=self.tech_templates_groups,
+                    widget=self.tech.templates_groups,
                 )
 
         return
 
     def height_fix(self) -> None:
         if (self.master.winfo_height() - self.winfo_reqheight()) > 0:
-            self.army.rowconfigure(
-                666,
-                minsize=(self.master.winfo_height() - self.winfo_reqheight()),
-            )
+            self.content_place(rely=0.0, relheight=1.0, relwidth=1.0)
 
     def get_template_url(
         self, driver: webdriver.Chrome, settings: dict, am_value: str
@@ -3659,7 +3536,10 @@ class Manager(ScrollableFrame):
                 "//*[@id='content_value']/form/div[2]/table/tbody/tr/td[1]/span",
             )
         ]
+
         widget["values"] = templates
+        self.army.templates.clear()
+        self.army.templates.extend(templates)
 
         return True
 
@@ -3694,6 +3574,109 @@ class Manager(ScrollableFrame):
         widget["values"] = templates
 
         return True
+
+    class Template:
+        def __init__(
+            self, parent: "Manager", master: ttk.Frame, type: str, manager: dict
+        ) -> None:
+
+            master.columnconfigure((0, 1), weight=1)
+
+            self.main_window = parent.main_window
+            settings = parent.settings
+
+            self.templates: list = settings["manager"][type]["templates"]
+            self.groups: list = settings["groups"]
+
+            manager[type] = {}
+            manager[type]["active"] = ttk.BooleanVar()
+
+            ttk.Checkbutton(
+                master,
+                text=translate("Activate templates refresher"),
+                variable=manager[type]["active"],
+                onvalue=True,
+                offvalue=False,
+            ).grid(row=0, column=0, columnspan=3, padx=5, pady=20)
+            ttk.Separator(master, orient=ttk.HORIZONTAL).grid(
+                row=1, column=0, columnspan=3, sticky=ttk.EW
+            )
+
+            ttk.Label(master, text=translate("Currently available templates")).grid(
+                row=2, column=0, padx=15, pady=20, sticky=ttk.W
+            )
+            self.templates_groups = ttk.Combobox(
+                master, state="readonly", justify="center", values=self.templates
+            )
+            self.templates_groups.grid(row=2, column=1, pady=20)
+            self.templates_groups.set(translate("Available templates"))
+
+            ttk.Button(
+                master,
+                image=self.main_window.images.refresh,
+                bootstyle="primary.Link.TButton",
+                command=lambda: threading.Thread(
+                    target=lambda: parent.get_templates(settings, type),
+                    name="checking_groups",
+                    daemon=True,
+                ).start(),
+            ).grid(row=2, column=2, padx=15, pady=20, sticky=ttk.E)
+
+            # ttk.Label(
+            #     master,
+            #     text=translate(f"Match groups of villages with {type} templates"),
+            # ).grid(row=3, column=0, columnspan=3, padx=10, pady=10)
+
+            self.row = 4
+
+            self.add = Label(
+                master,
+                image=self.main_window.images.add,
+                image_on_hover=self.main_window.images.add_hover,
+                command=lambda: self.add_template_group_pair(master=master),
+            )
+            self.add.grid(row=100, column=0, columnspan=3, pady=(30, 40), sticky=ttk.N)
+
+        class TemplateGroupPair:
+            def __init__(self, master: ttk.Frame, parent: "Manager.Template") -> None:
+                self.groups = ttk.Combobox(
+                    master, values=parent.groups, state="readonly", justify=ttk.CENTER
+                )
+                self.groups.grid(
+                    row=parent.row,
+                    column=0,
+                    padx=15,
+                    pady=10,
+                    sticky=ttk.W,
+                )
+                self.groups.set(translate("Choose group"))
+
+                def templates_update() -> None:
+                    self.templates["values"] = parent.templates
+
+                self.templates = ttk.Combobox(
+                    master,
+                    values=parent.templates,
+                    state="readonly",
+                    postcommand=templates_update,
+                    justify=ttk.CENTER,
+                )
+                self.templates.grid(row=parent.row, column=1, pady=10)
+                self.templates.set(translate("Choose template"))
+
+                ttk.Button(
+                    master,
+                    image=parent.main_window.images.exit,
+                    style="danger.primary.Link.TButton",
+                    padding=(10, 0)
+                    # command=partial(
+                    #     delete_template, index + 20, fake_templates, template_name
+                    # ),
+                ).grid(row=parent.row, column=2, padx=15, pady=10, sticky=ttk.NS)
+
+        def add_template_group_pair(self, master: ttk.Frame) -> None:
+            self.TemplateGroupPair(master=master, parent=self)
+            self.row += 1
 
 
 class Notifications(ScrollableFrame):
@@ -3967,7 +3950,7 @@ class NavigationBar:
         self.manager = ttk.Button(
             self.header,
             text=translate("Account manager"),
-            state="disabled",
+            # state="disabled",
             command=lambda: main_window.manager.show(),
         )
         self.manager.grid(row=8, column=0, sticky=tk.EW)
@@ -4133,6 +4116,10 @@ class MainWindow:
         # All used images -> one time load
         class Images(NamedTuple):
             # Interface labels/buttons etc.
+
+            add: tk.PhotoImage = tk.PhotoImage(file="icons//add.png")
+            add_hover: tk.PhotoImage = tk.PhotoImage(file="icons//add_hover.png")
+            bin: tk.PhotoImage = tk.PhotoImage(file="icons//bin.png")
             start: tk.PhotoImage = tk.PhotoImage(file="icons//start.png")
             start_hover: tk.PhotoImage = tk.PhotoImage(file="icons//start_hover.png")
             settings: tk.PhotoImage = tk.PhotoImage(file="icons//settings.png")
@@ -4146,7 +4133,6 @@ class MainWindow:
             minimize: tk.PhotoImage = tk.PhotoImage(file="icons//minimize.png")
             plus: tk.PhotoImage = tk.PhotoImage(file="icons//plus.png")
             refresh: tk.PhotoImage = tk.PhotoImage(file="icons//refresh.png")
-            info: tk.PhotoImage = tk.PhotoImage(file="icons//info.png")
             question: tk.PhotoImage = tk.PhotoImage(file="icons//question.png")
             question_x24: tk.PhotoImage = tk.PhotoImage(file="icons//question_x24.png")
             home: tk.PhotoImage = tk.PhotoImage(file="icons//home.png")
@@ -4225,7 +4211,6 @@ class MainWindow:
         self.navigation_frame = ttk.Frame(self.main_frame)
         self.navigation_frame.grid(row=1, column=0, sticky=tk.NS)
         self.navigation_frame.rowconfigure(0, weight=1)
-        # self.navigation_frame.rowconfigure(1, weight=1)
 
         ttk.Separator(self.main_frame, orient=tk.VERTICAL).grid(
             row=1, column=1, pady=(5, 0), sticky=tk.NS
@@ -4260,6 +4245,7 @@ class MainWindow:
         self.minimize_button = ttk.Button(
             self.custom_bar,
             bootstyle="primary.Link.TButton",
+            padding=(10, 5),
             image=self.images.minimize,
             command=self.hide,
         )
@@ -4299,7 +4285,8 @@ class MainWindow:
 
         self.exit_button = ttk.Button(
             self.custom_bar,
-            bootstyle="primary.Link.TButton",
+            style="danger.primary.Link.TButton",
+            padding=(10, 5),
             image=self.images.exit,
             command=on_exit,
         )
@@ -5389,7 +5376,6 @@ class MainWindow:
             except NoSuchWindowException as e:
                 logger.info("NoSuchWindowException")
                 try:
-                    # print(self.driver.get_log("driver"))
                     self.driver.switch_to.window(self.driver.window_handles[0])
                 except Exception as e:
                     subprocess.run(
