@@ -122,14 +122,21 @@ class Home(ScrollableFrame):
 
         text.add("Nowości\n", "h1")
         text.add(
-            "- Ikona aplikacji jest teraz zawsze widoczna w pasku zadań a nie tylko po zminimalizowaniu okna. Dodatkowo aplikację można od teraz minimalizować, tak jak inne okna systemowe, domyślnie klikając w ikonę na pasku zadań.\n"
+            "- Ikona aplikacji jest teraz zawsze widoczna w pasku zadań a nie tylko "
+            "po zminimalizowaniu okna. Dodatkowo aplikację można od teraz minimalizować, "
+            "tak jak inne okna systemowe, domyślnie klikając w ikonę na pasku zadań.\n"
         )
         text.add("Poprawki\n", "h1")
         text.add(
-            "- Naprawiono błąd który powodował zawieszenie bota po zamknięciu przeglądarki przez użytkownika. Ta poprawka będzie wymagała dalszych zmian ponieważ do momentu wykrycia zamkniętej przeglądarki i jej ponownego uruchomienia upływa stosunkowo dużo czasu. Około 15s to za dużo o co najmniej 14s..\n"
+            "- Naprawiono błąd który powodował zawieszenie bota po zamknięciu przeglądarki "
+            "przez użytkownika. Ta poprawka będzie wymagała dalszych zmian ponieważ do "
+            "momentu wykrycia zamkniętej przeglądarki i jej ponownego uruchomienia upływa "
+            "stosunkowo dużo czasu. Około 15s to za dużo o co najmniej 14s..\n"
         )
         text.add(
-            "- Poprawiono zaokrąglanie liczby jednostek w trakcie wysyłki na zbieractwo. Poprzednio z powodu zaokrągleń do pełnych jednostek zdażało się, że w wiosce zostawały 2-3 pojedyncze jednostki które powinny zostać wysłane."
+            "- Poprawiono zaokrąglanie liczby jednostek w trakcie wysyłki na zbieractwo. "
+            "Poprzednio z powodu zaokrągleń do pełnych jednostek zdażało się, że w wiosce "
+            "zostawały 2-3 pojedyncze jednostki które powinny zostać wysłane."
         )
 
         cf_current_changes.add(
@@ -171,10 +178,13 @@ class Home(ScrollableFrame):
         text.add("- Uwzględniono zmiane czasu z letniego na zimowy.\n")
         text.add("- Dodano dalszą część tłumaczenia interfejsu w języku angielskim.\n")
         text.add(
-            "- Poprawiono błąd który powodował wyświetlenie komunikatu o tymczasowej niedostępności bazy danych kiedy tak na prawdę problem zwiazany był z nieprawidłowymi danymi w trakcie logowania.\n"
+            "- Poprawiono błąd który powodował wyświetlenie komunikatu o tymczasowej "
+            "niedostępności bazy danych kiedy tak na prawdę problem zwiazany był z "
+            "nieprawidłowymi danymi w trakcie logowania.\n"
         )
         text.add(
-            "- Usunięto niepotrzebne próby otwarcia bonusu dziennego na światach z wyłączonymi funkcjami premium.\n"
+            "- Usunięto niepotrzebne próby otwarcia bonusu dziennego na światach z "
+            "wyłączonymi funkcjami premium.\n"
         )
 
         cf_last_changes_1_0_71.add(
@@ -191,7 +201,9 @@ class Home(ScrollableFrame):
         text.add("Nowości\n", "h1")
         text.add("- Dodano obsługę światów specjalnych takich jak arkadia\n")
         text.add(
-            "- Dodano język angielski do interfejsu aplikacji. Zmiany języka można dokonać po przejściu do panelu z ustawieniami. W celu wprowadzenia zmian należy uruchomić ponownie aplikację.\n"
+            "- Dodano język angielski do interfejsu aplikacji. Zmiany języka można "
+            "dokonać po przejściu do panelu z ustawieniami. W celu wprowadzenia zmian "
+            "należy uruchomić ponownie aplikację.\n"
         )
         text.add("Poprawki\n", "h1")
         text.add("- Poprawiono wykrywanie i rozwiązywanie captchy.\n")
@@ -215,7 +227,8 @@ class Home(ScrollableFrame):
         text = Text(cf_last_changes_1_0_69)
         text.add("Poprawki\n", "h1")
         text.add(
-            "- Naprawiono błąd związany z wyświetlanymi wioskami w zakładce monety występujący w trakcie zmiany światów.\n"
+            "- Naprawiono błąd związany z wyświetlanymi wioskami w zakładce monety "
+            "występujący w trakcie zmiany światów.\n"
         )
 
         cf_last_changes_1_0_69.add(
@@ -231,10 +244,12 @@ class Home(ScrollableFrame):
         text = Text(cf_last_changes_1_0_68)
         text.add("Poprawki\n", "h1")
         text.add(
-            "- Naprawiono błąd występujący w trakcie farmienia związany z próbą kliknięcia w captche która znajdywała się poza ekranem.\n"
+            "- Naprawiono błąd występujący w trakcie farmienia związany z próbą "
+            "kliknięcia w captche która znajdywała się poza ekranem.\n"
         )
         text.add(
-            "- Wydłużono maksymalny czas oczekiwania na załadowania niektórych stron dla osób posiadający wolniejsze łącze internetowe.\n"
+            "- Wydłużono maksymalny czas oczekiwania na załadowania niektórych "
+            "stron dla osób posiadający wolniejsze łącze internetowe.\n"
         )
 
         cf_last_changes_1_0_68.add(
@@ -257,9 +272,11 @@ class Home(ScrollableFrame):
         text.add("- Dodano nową funkcję uniki.\n")
         text.add("Poprawki\n", "h1")
         text.add(
-            "- Poprawiono działanie szablonu C. Od teraz tylko jeden atak (Szablonu C) będzie wysłany na daną wioskę barbarzyńską. "
-            "Zakładamy, że jeśli wysłany został atak z szablonu C to powinien on zebrać wszystkie dostępne surowce więc nie ma potrzeby wysyłania kolejnych ataków tego typu. "
-            "W tym czasie szablon A i B będzie nadal wysyłany bez zmian.\n"
+            "- Poprawiono działanie szablonu C. Od teraz tylko jeden atak (Szablonu C) "
+            "będzie wysłany na daną wioskę barbarzyńską. Zakładamy, że jeśli wysłany "
+            "został atak z szablonu C to powinien on zebrać wszystkie dostępne surowce "
+            "więc nie ma potrzeby wysyłania kolejnych ataków tego typu. W tym czasie "
+            "szablon A i B będzie nadal wysyłany bez zmian.\n"
         )
 
         cf_incoming_changes.add(
@@ -687,7 +704,7 @@ class Gathering(ScrollableFrame):
         )
         add_int_validation(self.gathering_max_resources_input, default=500)
 
-        # ------------------------------------------------------------------------------------------------------------------
+        # -----------------------------------------------------------------------------
         ttk.Label(self, text=translate("Allowed units to be used")).grid(
             row=8, columnspan=2, padx=10, pady=(20, 15), sticky="W"
         )
@@ -944,7 +961,7 @@ class Gathering(ScrollableFrame):
         add_int_validation(self.knight_left)
         add_int_validation(self.knight_max)
 
-        # ------------------------------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------
         ttk.Label(self, text=translate("Scavenging levels to be skipped")).grid(
             row=13, columnspan=2, padx=10, pady=(20, 15), sticky="W"
         )
@@ -2095,15 +2112,21 @@ class Scheduler(ScrollableFrame):
 
         ToolTip(
             info,
-            text="W poniższych polach można podać konkretną liczbę jednostek do wysłania, wpisać słowo max lub formułę.\n\n"
-            "Podanie konkretnej liczby np. 50 w komórce z lk oznacza wysłanie równo 50lk. Jeśli w wiosce taka ilość nie będzie dostępna to atak nie zostanie wysłany.\n\n"
-            "Słowo max oznacza wybranie maksymalnej ilości jednostki danego typu dostępnej w wiosce w chwili wysyłania "
-            "ataku/wsparcia. Dla ułatwienia można kliknąć w ikonę jednostki co w przypadku pustej komórki "
-            "doda wartość max a w pozostałych przypadkach wyczyści ją.\n\nFormuła ma postać wyrażenia min-max.\n"
-            "Przykładowo 50-250 oznacza minialmną ilość równą 50 i maksymalną równą 250. W takiej sytuacji możliwe są trzy scenariuesze:\n"
+            text="W poniższych polach można podać konkretną liczbę jednostek do wysłania, "
+            "wpisać słowo max lub formułę.\n\nPodanie konkretnej liczby np. 50 w komórce "
+            "z lk oznacza wysłanie równo 50lk. Jeśli w wiosce taka ilość nie będzie dostępna "
+            "to atak nie zostanie wysłany.\n\nSłowo max oznacza wybranie maksymalnej ilości "
+            "jednostki danego typu dostępnej w wiosce w chwili wysyłania ataku/wsparcia. Dla "
+            "ułatwienia można kliknąć w ikonę jednostki co w przypadku pustej komórki doda "
+            "wartość max a w pozostałych przypadkach wyczyści ją.\n\nFormuła ma postać "
+            "wyrażenia min-max.\n"
+            "Przykładowo 50-250 oznacza minialmną ilość równą 50 i maksymalną równą 250. "
+            "W takiej sytuacji możliwe są trzy scenariuesze:\n"
             "1. W wiosce znajduję się mniej niż 50 jednostek danego typu. Atak nie zostanie wysłany.\n"
-            "2. W wiosce znajduję się liczba jednostek pomiędzy wartością min i max np. 150. Atak zostanie wysłany z aktualnie dostępną ilością (150) jednostek danego typu.\n"
-            "3. W wiosce znajduję się więcej jednostek niż podana wartość max. Atak zostanie wysłany z maksymalną podaną ilością (250) jednostek danego typu.",
+            "2. W wiosce znajduję się liczba jednostek pomiędzy wartością min i max np. 150. "
+            "Atak zostanie wysłany z aktualnie dostępną ilością (150) jednostek danego typu.\n"
+            "3. W wiosce znajduję się więcej jednostek niż podana wartość max. Atak zostanie "
+            "wysłany z maksymalną podaną ilością (250) jednostek danego typu.",
             wraplength=400,
             topmost=True,
         )
@@ -2453,7 +2476,8 @@ class Scheduler(ScrollableFrame):
                 sticky=tk.W,
             )
             text = "\n".join(
-                f'{troop["priority_number"]} {troop_name.upper()}  Min={troop["min_value"]}  Max={troop["max_value"]}'
+                f'{troop["priority_number"]} {troop_name.upper()}  Min={troop["min_value"]}  '
+                f'Max={troop["max_value"]}'
                 for troop_name, troop in fake_templates[
                     list(fake_templates)[index]
                 ].items()

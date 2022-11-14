@@ -48,10 +48,10 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
     captcha_check(driver=driver, settings=settings)
     # Check current label command and ommit changing it if it is already correct
     label_command_value = driver.execute_script(
-        """return document.querySelector(
-        '#paged_view_content > div.overview_filters > form > table > tbody > tr:nth-child(2) > td:nth-child(2) > input[type=text]'
-        ).value;
-        """
+        "return document.querySelector("
+        "'#paged_view_content > div.overview_filters > form > table > tbody > "
+        "tr:nth-child(2) > td:nth-child(2) > input[type=text]'"
+        ").value;"
     )
     translate = {"pl": "Atak", "de": "Angriff"}
     if label_command_value != translate[COUNTRY_CODE]:
@@ -277,7 +277,8 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
 
     captcha_check(driver=driver, settings=settings)
 
-    # Sprawdza czy znajduję się w prawidłowej grupie jeśli nie to przechodzi do prawidłowej -> tylko dla posiadaczy konta premium
+    # Sprawdza czy znajduję się w prawidłowej grupie jeśli nie to przechodzi do prawidłowej
+    # tylko dla posiadaczy konta premium
     if (
         driver.execute_script("return premium")
         and int(driver.execute_script("return game_data.player.villages")) > 1
@@ -800,7 +801,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             )
         ][:-1]
 
-        # Zapobiega wczytaniu pustego kodu źródłowego - gdy driver.page_source zwróci pusty lub nieaktulny kod HTML
+        # Zapobiega wczytaniu pustego kodu źródłowego gdy driver.page_source zwróci pusty/nieaktulny kod HTML
         if not troops_name:
             for _ in range(50):
                 time.sleep(0.05)
@@ -1050,8 +1051,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             }
         )
 
-        # Przełącz wioskę i sprawdź czy nie jest to wioska startowa jeśli tak zwróć listę słowników z czasem i linkiem do poszczególnych wiosek
-        driver.find_element(By.ID, "ds_body").send_keys("d")
+        driver.find_element(By.ID, "ds_body").send_keys("d")  # Przełącz wioskę
         current_village_id = game_data(driver, "village.id")
         if starting_village == current_village_id:
             return list_of_dicts
@@ -1197,7 +1197,6 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
             if village_coords in settings["market"]["market_exclude_villages"]:
                 continue
 
-            # Skip if there is no market built or no merchant available
             if not village["market_merchant"]["available"]:
                 continue
 
@@ -1205,7 +1204,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                 village["resources"][resource] -= settings["market"][resource][
                     "leave_in_storage"
                 ]
-            # If village does not have enough resources skip to next one
+
             if all(resource < 1 for resource in village["resources"].values()):
                 continue
 
@@ -1318,11 +1317,9 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     if (
                         current_exchange_rate
                         > settings["market"][resource_name]["max_exchange_rate"]
-                        # Pomiń jeśli kurs jest powyżej ustalonej wartości
                         or current_exchange_rate >= village["resources"][resource_name]
-                    ):  # Pomiń jeśli kurs jest wyższy od dostępnych surowców
+                    ):
                         continue
-                    # For the lowest exchange rate
                     if exchange_rate == min_exchange_rate:
                         if resource_to_sell > int(
                             max_exchange_rate
@@ -1334,7 +1331,6 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                                 / SUM_EXCHANGE_RATE
                                 * STARTING_TRANSPORT_CAPACITY
                             )
-                    # For the highest exchange rate
                     elif exchange_rate == max_exchange_rate:
                         if resource_to_sell > int(
                             min_exchange_rate
@@ -1375,7 +1371,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     input.send_keys(f"{resource_to_sell}")
                     input.send_keys(Keys.ENTER)
 
-                    try:  # //*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]
+                    try:
                         final_resource_amount_to_sell = WebDriverWait(
                             driver, 3, 0.025
                         ).until(
@@ -1444,7 +1440,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
 
                         driver.find_element(
                             By.CLASS_NAME, "btn.evt-cancel-btn.btn-confirm-no"
-                        ).click()  # Click cancel button
+                        ).click()
 
                         final_resource_amount_to_sell = (
                             village["resources"][resource_name] - current_exchange_rate
@@ -1523,7 +1519,6 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                 previous_tabs = set(driver.window_handles)
                 driver.switch_to.new_window("tab")
                 driver.get(send_info["url"])
-                # Search and get new tab
                 new_tab = set(driver.window_handles).difference(previous_tabs)
                 new_tabs.append(*new_tab)
             else:
@@ -1716,7 +1711,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                     template_data["max_value"]
                                     * template_data["population"]
                                 )
-                        else:  # available_troop_number < template_data["min_value"]
+                        else:
                             return len(list_to_send), attacks_to_repeat_to_do
                         troop_input.send_keys(troop_number)
                         if current_population >= min_population:
@@ -1744,12 +1739,10 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                     f"return document.querySelector('#unit_input_{troop_name}').getAttribute('data-all-count')"
                                 )
                             )
-                            # less than minimum
                             if available_in_village < min_troop_number:
                                 if len(list_to_send) == 1:
                                     return 1, attacks_to_repeat_to_do
                                 break
-                            # between min and max
                             if (
                                 min_troop_number
                                 <= available_in_village
@@ -1772,7 +1765,6 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             total_attacks_number = send_info["total_attacks_number"]
                             if total_attacks_number > 1:
                                 total_attacks_number -= 1
-                                # Add dict to list of attacks to repeat and in the end add to self.to_do
                                 attacks_to_repeat_to_do.append(
                                     {
                                         "func": "send_troops",
@@ -2250,7 +2242,6 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
             """
         ):
             time.sleep(2)
-        # Request resources
         driver.execute_script(call_resources)
         # Submit request
         driver.execute_script(

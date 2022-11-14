@@ -752,24 +752,3 @@ def unwanted_page_content(
             msg="unwanted_page_content -> error while handling common errors",
         )
         return False
-
-
-# def on_new_tab(driver: webdriver.Chrome, settings: dict) -> None:
-#     while True:
-#         main_window = driver.current_window_handle
-#         if "window" not in settings["temp"]:
-#             settings["temp"]["window"] = []
-
-#         switched = False
-#         for window in driver.window_handles:
-#             if window not in settings["temp"]["window"]:
-#                 driver.switch_to.window(window)
-#                 switched = True
-#                 driver.execute_cdp_cmd(
-#                     "Page.addScriptToEvaluateOnNewDocument",
-#                     {"source": coords_copy},
-#                 )
-#                 settings["temp"]["window"].append(window)
-#         if switched:
-#             driver.switch_to.window(main_window)
-#         time.sleep(0.1)
