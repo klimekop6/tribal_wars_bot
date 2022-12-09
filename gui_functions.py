@@ -9,7 +9,7 @@ from ttkbootstrap.validation import ValidationEvent, validator
 from app_logging import get_logger
 
 if TYPE_CHECKING:
-    from bot_main import MainWindow
+    from app_gui.windows.main_window import MainWindow
 
 logger = get_logger(__name__)
 
@@ -273,27 +273,10 @@ def invoke_checkbuttons(parent, main_window: "MainWindow") -> None:
 def on_button_release(event: tk.Event) -> None:
     """Adds function to some widgets like Entry, Text, Spinbox etc.
     It is selecting all text inside widget after button_release event.
-    Also it loes focus and clear selection if user click outside of widget.
     """
 
     widget: ttk.Entry = event.widget
-    widget.selection_range(0, "end")
-    widget.focus()
-
-    def block_class_binding(event) -> str:
-        return "break"
-
-    id_block_class = widget.bind("<ButtonRelease-1>", block_class_binding)
-
-    def unblock_class_binding(binds: list) -> None:
-        if widget.winfo_exists():
-            try:
-                widget.unbind("<ButtonRelease-1>", funcid=id_block_class)
-                widget.unbind("<FocusOut>", id_unblock_class)
-            except Exception:
-                pass
-
-    id_unblock_class = widget.bind("<FocusOut>", unblock_class_binding, add="+")
+    widget.after_idle(lambda: widget.selection_range(0, "end"))
 
 
 def save_entry_to_settings(

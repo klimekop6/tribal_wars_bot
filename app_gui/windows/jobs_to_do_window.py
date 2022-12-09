@@ -5,7 +5,7 @@ from ttkbootstrap import localization
 from ttkbootstrap.tableview import Tableview
 
 if TYPE_CHECKING:
-    from bot_main import MainWindow
+    from app_gui.windows.main_window import MainWindow
 
 from gui_functions import center
 from my_widgets import TopLevel

@@ -24,7 +24,13 @@ import email_notifications
 from app_functions import base_url, captcha_check, unwanted_page_content
 from app_logging import get_logger
 from config import SMS_API_TOKEN
-from constants import TROOPS_SPEED
+from constants import (
+    TROOPS_CAPACITY,
+    TROOPS_DEFF,
+    TROOPS_OFF,
+    TROOPS_POPULATION,
+    TROOPS_SPEED,
+)
 
 logger = get_logger(__name__)
 
@@ -81,10 +87,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
         etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
         WebDriverWait(driver, 5, 0.1).until(
             EC.element_to_be_clickable(
-                (
-                    By.XPATH,
-                    '//*[@id="paged_view_content"]/div[2]/form/table/tbody/tr[6]/td/input',
-                )
+                (By.CSS_SELECTOR, "#paged_view_content  input[type='submit']")
             )
         ).click()
         WebDriverWait(driver, 5, 0.1).until(
@@ -377,17 +380,22 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         # Pomija wioskę jeśli nie ma z niej nic do wysłania
         skip = {"A": False, "B": False}
         for template in template_troops:
+            if all(not troops for troops in template_troops[template].values()):
+                skip[template] = True
+                continue
             for troop_name, troop_number in template_troops[template].items():
                 if available_troops[troop_name] - troop_number < 0:
                     skip[template] = True
                     break
+
         if skip["A"] and skip["B"]:
             ActionChains(driver).send_keys("d").perform()
-            if game_data(driver, "village.id" in used_villages):
+            if game_data(driver, "village.id") in used_villages:
                 break
             used_villages.append(game_data(driver, "village.id"))
             continue
 
+        template_troops[template]
         # Lista przycisków do wysyłki szablonów A, B i C
         villages_to_farm = {}
 
@@ -840,27 +848,45 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
 
         # Odblokowane i dostępne poziomy zbieractwa
         troops_to_send = {
-            1: {"capacity": 1},
-            2: {"capacity": 0.4},
-            3: {"capacity": 0.2},
             4: {"capacity": 4 / 30},
+            3: {"capacity": 0.2},
+            2: {"capacity": 0.4},
+            1: {"capacity": 1},
         }
         for number, row in enumerate(
-            zip(
-                doc.xpath('//*[@id="scavenge_screen"]/div/div[2]/div/div[3]/div'),
-                (
-                    settings["gathering"]["ommit"][ele]
-                    for ele in settings["gathering"]["ommit"]
-                ),
-            )
+            doc.xpath('//*[@id="scavenge_screen"]/div/div[2]/div/div[3]/div')
         ):
-            if row[0].get("class") != "inactive-view" or row[1]:
+            if row.get("class") != "inactive-view":
                 del troops_to_send[number + 1]
-
-        # if not troops_to_send:
 
         # Ukrywa chat
         driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
+
+        if settings["gathering"]["auto_adjust"]:
+
+            army_capacity = sum(
+                TROOPS_CAPACITY[troop_name] * troop_number
+                for troop_name, troop_number in available_troops.items()
+            )
+            army_population = sum(
+                TROOPS_POPULATION[troop_name] * troop_number
+                for troop_name, troop_number in available_troops.items()
+            )
+            if army_population < 25 and len(troops_to_send) > 3:
+                del troops_to_send[1]
+                del troops_to_send[2]
+                del troops_to_send[3]
+            elif len(troops_to_send) > 3 and army_capacity < 2000:
+                del troops_to_send[1]
+                del troops_to_send[2]
+            elif len(troops_to_send) > 3 and army_capacity < 13625:
+                del troops_to_send[1]
+            elif len(troops_to_send) > 2 and army_capacity < 8175:
+                if 1 in troops_to_send:
+                    del troops_to_send[1]
+            elif len(troops_to_send) > 1 and army_capacity < 3000:
+                if 1 in troops_to_send:
+                    del troops_to_send[1]
 
         # Obliczenie i wysyłanie wojsk na zbieractwo
         sum_capacity = sum(troops_to_send[key]["capacity"] for key in troops_to_send)
@@ -884,16 +910,6 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                     available_troop_number - total_troops_number_te_send
                 )
 
-        units_capacity = {
-            "spear": 25,
-            "sword": 15,
-            "axe": 10,
-            "archer": 10,
-            "light": 80,
-            "marcher": 50,
-            "heavy": 50,
-            "knight": 100,
-        }
         max_resources = settings["gathering_max_resources"]
         reduce_ratio = None
         for key in troops_to_send:
@@ -903,7 +919,8 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 sum_troops_capacity = (
                     sum(
                         [
-                            troops_to_send[key][troop_name] * units_capacity[troop_name]
+                            troops_to_send[key][troop_name]
+                            * TROOPS_CAPACITY[troop_name]
                             if troops_to_send[key][troop_name] > 0
                             else 0
                             for troop_name in available_troops
@@ -940,21 +957,11 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             army_sum = 0
             for troop_name in available_troops:
                 if troops_to_send[key][troop_name] > 0:
-                    match troop_name:
-                        case "light":
-                            army_sum += troops_to_send[key]["light"] * 4 * reduce_ratio
-                        case "marcher":
-                            army_sum += (
-                                troops_to_send[key]["marcher"] * 5 * reduce_ratio
-                            )
-                        case "heavy":
-                            army_sum += troops_to_send[key]["heavy"] * 6 * reduce_ratio
-                        case "knight":
-                            army_sum += (
-                                troops_to_send[key]["knight"] * 10 * reduce_ratio
-                            )
-                        case _:
-                            army_sum += troops_to_send[key][troop_name] * reduce_ratio
+                    army_sum += (
+                        troops_to_send[key][troop_name]
+                        * TROOPS_POPULATION[troop_name]
+                        * reduce_ratio
+                    )
             if army_sum < 10:
                 if key == 1:
                     troops_to_send.clear()
@@ -1014,7 +1021,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 {
                     "func": "gathering",
                     "url_to_gathering": kwargs["url_to_gathering"],
-                    "start_time": time.time() + journey_time + 3,
+                    "start_time": time.time() + journey_time + random.randint(5, 30),
                     "server_world": settings["server_world"],
                     "settings": settings,
                     "errors_number": 0,
@@ -1044,7 +1051,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 "func": "gathering",
                 "url_to_gathering": base_url(settings)
                 + f"village={current_village_id}&screen=place&mode=scavenge",
-                "start_time": time.time() + journey_time + 3,
+                "start_time": time.time() + journey_time + random.randint(5, 30),
                 "server_world": settings["server_world"],
                 "settings": settings,
                 "errors_number": 0,
@@ -1562,41 +1569,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                     troop_button_id = troop.xpath("a")[1].get("id")
                                     driver.find_element(By.ID, troop_button_id).click()
 
-                    troops_off = {
-                        "axe": 18,
-                        "light": 10,
-                        "marcher": 10,
-                        "ram": 30,
-                        "catapult": 30,
-                        "knight": 10,
-                        "snob": 35,
-                    }
-
-                    troops_deff = {
-                        "spear": 18,
-                        "sword": 22,
-                        "archer": 18,
-                        "spy": 9,
-                        "heavy": 11,
-                        "catapult": 30,
-                        "knight": 10,
-                        "snob": 35,
-                    }
-
-                    troops_all = {
-                        "spear": 18,
-                        "sword": 22,
-                        "axe": 18,
-                        "archer": 18,
-                        "spy": 9,
-                        "light": 10,
-                        "marcher": 10,
-                        "heavy": 11,
-                        "ram": 30,
-                        "catapult": 30,
-                        "knight": 10,
-                        "snob": 35,
-                    }
+                    troops_off = TROOPS_OFF.copy()
+                    troops_deff = TROOPS_DEFF.copy()
+                    troops_all = TROOPS_SPEED
 
                     if (
                         send_info["send_snob"] == "send_snob"
@@ -1640,21 +1615,27 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             input_field.send_keys(troop_number)
 
                     else:
-                        # Choose all troops to send with exceptions
+
+                        def update_troops_with_user_preferences(troops: dict) -> None:
+                            if "troops_to_include" in send_info:
+                                for troop in send_info["troops_to_include"]:
+                                    troops[troop] = TROOPS_SPEED[troop]
+                            if "troops_to_exclude" in send_info:
+                                for troop in send_info["troops_to_exclude"]:
+                                    del troops[troop]
+
                         match send_info["army_type"]:
 
                             case "only_off":
-
-                                choose_all_units_with_exceptions(troops_dict=troops_off)
+                                update_troops_with_user_preferences(troops_off)
+                                choose_all_units_with_exceptions(troops_off)
 
                             case "only_deff":
-
-                                choose_all_units_with_exceptions(
-                                    troops_dict=troops_deff
-                                )
+                                update_troops_with_user_preferences(troops_deff)
+                                choose_all_units_with_exceptions(troops_deff)
 
                             case _:
-                                choose_all_units_with_exceptions(troops_dict=troops_all)
+                                choose_all_units_with_exceptions(troops_all)
 
                     if send_info["send_snob"] == "send_snob":
                         if send_info["snob_amount"]:

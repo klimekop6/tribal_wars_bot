@@ -9,6 +9,7 @@ import time
 import winreg
 from typing import TYPE_CHECKING
 
+import compress_json
 import requests
 from anycaptcha import AnycaptchaClient, HCaptchaTaskProxyless
 from selenium import webdriver
@@ -24,13 +25,14 @@ from selenium_stealth import stealth
 from ttkbootstrap.toast import ToastNotification
 from webdriver_manager.chrome import ChromeDriverManager
 
+from app_gui.windows.new_world import NewWorldWindow
 from app_logging import get_logger
 from config import ANY_CAPTCHA_API_KEY
 from decorators import log_errors
 from gui_functions import custom_error, set_default_entries
 
 if TYPE_CHECKING:
-    from bot_main import MainWindow
+    from app_gui.windows.main_window import MainWindow
 
 logger = get_logger(__name__)
 
@@ -263,6 +265,8 @@ def delegate_things_to_other_thread(
     """Used to speedup app start doing stuff while connecting to database or API"""
 
     def add_new_default_settings(_settings: dict[str, dict]) -> None:
+        _settings["gathering"].setdefault("auto_adjust", False)
+
         _settings.setdefault("coins", {"villages": {}})
         _settings["coins"].setdefault("villages", {})
         _settings["coins"].setdefault("mine_coin", False)
@@ -346,7 +350,7 @@ def first_app_lunch(settings: dict) -> None:
 
 def first_app_login(settings: dict, main_window: "MainWindow") -> None:
     set_default_entries(entries=main_window.entries_content)
-    main_window.add_new_world_window(settings=settings, obligatory=True)
+    NewWorldWindow(parent=main_window, settings=settings, obligatory=True)
     settings["first_lunch"] = False
 
 
@@ -407,10 +411,8 @@ def get_villages_id(settings: dict[str], update: bool = False) -> dict:
 
 def load_settings(file_path: str = "settings.json") -> dict:
     try:
-        f = open(file_path)
-        settings = json.load(f)
+        return compress_json.load(file_path)
     except FileNotFoundError:
-        f = open("settings.json", "w")
         settings = {"first_lunch": True}
         settings["gathering_troops"] = {
             "spear": {"use": False, "left_in_village": 0, "send_max": 0},
@@ -423,9 +425,7 @@ def load_settings(file_path: str = "settings.json") -> dict:
             "knight": {"use": False, "left_in_village": 0, "send_max": 0},
         }
         settings["groups"] = None
-        json.dump(settings, f)
-    finally:
-        f.close()
+        compress_json.dump(settings, "settings.json")
         return settings
 
 
@@ -591,15 +591,13 @@ def save_settings_to_files(settings: dict, settings_by_worlds: dict) -> None:
         _settings = settings_by_worlds[server_world]
         if "temp" in _settings:
             del _settings["temp"]
-        with open(f"settings/{server_world}.json", "w") as settings_json_file:
-            json.dump(_settings, settings_json_file)
+        compress_json.dump(_settings, f"settings/{server_world}.json")
 
     # Initial/global settings save in file
     if "temp" in settings:
         del settings["temp"]
     settings["scheduler"]["ready_schedule"] = []
-    with open("settings.json", "w") as settings_json_file:
-        json.dump(settings, settings_json_file)
+    compress_json.dump(settings, "settings.json")
 
 
 def unwanted_page_content(

@@ -2,11 +2,12 @@ import tkinter as tk
 from typing import TYPE_CHECKING
 
 import ttkbootstrap as ttk
+
 from gui_functions import center
 from my_widgets import TopLevel
 
 if TYPE_CHECKING:
-    from bot_main import MainWindow
+    from app_gui.windows.main_window import MainWindow
 
 
 class PaymentWindow:

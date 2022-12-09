@@ -1,4 +1,8 @@
 import tkinter as tk
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app_gui.windows.main_window import MainWindow
 
 import ttkbootstrap as ttk
 from ttkbootstrap.scrolled import ScrolledFrame
@@ -8,7 +12,12 @@ from gui_functions import forget_row
 
 class TopLevel(tk.Toplevel):
     def __init__(
-        self, title_text: str = "", timer: tk.StringVar = None, *args, **kwargs
+        self,
+        title_text: str = "",
+        timer: tk.StringVar = None,
+        main_window: "MainWindow" = None,
+        *args,
+        **kwargs,
     ) -> None:
         super().__init__(*args, **kwargs)
 
@@ -67,12 +76,36 @@ class TopLevel(tk.Toplevel):
             "<Button-1>", lambda event: self._get_pos(event, "title_label")
         )
 
+        def on_click(event: tk.Event) -> None | str:
+            widget: tk.Widget = event.widget
+            if "combobox" in widget.winfo_name():
+                if main_window:
+                    self.lift(main_window)
+                return "break"
+            self.lift()
+            return "break"
+
         if timer:
             self.title_timer.bind(
                 "<Button-1>", lambda event: self._get_pos(event, "title_timer")
             )
 
-        self.lift()
+        def on_focus(event: tk.Event) -> None:
+            self.lift()
+            self.unbind("<FocusIn>")
+            self.unbind("<Button-1>")
+            self.bind("<FocusOut>", lambda _: self.bind("<FocusIn>", on_focus))
+            self.bind(
+                "<FocusOut>", lambda _: self.bind("<Button-1>", on_click, add="+")
+            )
+
+        def on_map(event: tk.Event):
+            self.after_idle(self.focus)
+            self.after_idle(self.lift)
+            self.update_idletasks()
+            self.bind("<FocusIn>", on_focus)
+
+        self.bind("<Map>", on_map)
 
     def _hide(self):
         self.attributes("-alpha", 0.0)
@@ -110,6 +143,7 @@ class ScrollableFrame(ScrolledFrame):
         master=None,
         padding=0,
         bootstyle=ttk.DEFAULT,
+        scrollbar_style=ttk.DEFAULT,
         autohide=True,
         height=200,
         width=300,
@@ -118,7 +152,15 @@ class ScrollableFrame(ScrolledFrame):
         **kwargs,
     ):
         super().__init__(
-            master, padding, bootstyle, autohide, height, width, scrollheight, **kwargs
+            master,
+            padding,
+            bootstyle,
+            scrollbar_style,
+            autohide,
+            height,
+            width,
+            scrollheight,
+            **kwargs,
         )
 
         self.master = master
