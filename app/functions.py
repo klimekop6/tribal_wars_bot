@@ -25,14 +25,14 @@ from selenium_stealth import stealth
 from ttkbootstrap.toast import ToastNotification
 from webdriver_manager.chrome import ChromeDriverManager
 
-from app_gui.windows.new_world import NewWorldWindow
-from app_logging import get_logger
-from config import ANY_CAPTCHA_API_KEY
-from decorators import log_errors
-from gui_functions import custom_error, set_default_entries
+from app.config import ANY_CAPTCHA_API_KEY
+from app.decorators import log_errors
+from app.logging import get_logger
+from gui.functions import custom_error, set_default_entries
+from gui.windows.new_world import NewWorldWindow
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 logger = get_logger(__name__)
 
@@ -114,7 +114,7 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
                 iframe_width = driver.execute_script(
                     f"return document.querySelector('{captcha_selector} iframe').clientWidth"
                 )
-            except BaseException:
+            except Exception:
                 iframe_width = 303
             driver.execute_script(
                 f"""const captcha_container = document.querySelectorAll("{captcha_selector} *:last-child")[0];
@@ -133,11 +133,18 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
 
         def hard_solve_captcha(captcha_selector: str) -> bool:
             token = get_token(captcha_selector)
-            driver.execute_script("document.querySelector('#kspec').remove();")
+            try:
+                driver.execute_script("document.querySelector('#kspec').remove();")
+            except Exception:
+                logger.info("Unable to find #kspec div")
             if token:
-                driver.execute_script(
-                    f"document.getElementById('anycaptchaSolveButton').onclick('{token}');"
-                )
+                try:
+                    driver.execute_script(
+                        f"document.getElementById('anycaptchaSolveButton').onclick('{token}');"
+                    )
+                except Exception:
+                    logger.info("Unable to find 'anycaptchaSolveButton'")
+                    return False
                 return True
             return False
 
@@ -195,7 +202,7 @@ def account_access(func) -> None:
 
         try:
             requirements_satisfied = func(*args, **kwargs)
-        except BaseException as exception:
+        except Exception as exception:
             logger.error("error catched by decorator log_errors")
 
         if not requirements_satisfied:
@@ -507,7 +514,7 @@ def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
         log_error(driver, msg="bot_functions -> log_in no error raised")
         return False
 
-    except BaseException:
+    except Exception:
         log_error(driver, msg="bot_functions -> log_in error raised")
         return False
 
@@ -552,10 +559,6 @@ def run_driver(settings: dict) -> webdriver.Chrome:
                     service=Service(ChromeDriverManager(cache_valid_range=7).install()),
                     options=chrome_options,
                 )
-                # driver.execute_cdp_cmd(
-                #     "Page.addScriptToEvaluateOnNewDocument",
-                #     {"source": COORDS_COPY},
-                # )
                 break
             except:
                 time.sleep(2)
@@ -565,7 +568,7 @@ def run_driver(settings: dict) -> webdriver.Chrome:
                 )
                 time.sleep(3)
         return driver
-    except BaseException as exc:
+    except Exception as exc:
         logger.error(exc)
 
     stealth(
@@ -692,7 +695,7 @@ def unwanted_page_content(
 
                         return False
 
-                    except BaseException:
+                    except Exception:
                         return False
 
                 # Próbuję odebrać bonus dzienny jeśli się nie uda odświeża stronę i próbuję ponownie.
@@ -744,7 +747,7 @@ def unwanted_page_content(
                 log_error(driver=driver, msg="unwanted_page_content -> uknown error")
             return False
 
-    except BaseException:
+    except Exception:
         log_error(
             driver=driver,
             msg="unwanted_page_content -> error while handling common errors",

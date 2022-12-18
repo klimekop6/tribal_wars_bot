@@ -4,7 +4,7 @@ import traceback
 
 import requests
 
-from config import APP_VERSION, PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN
+from app.config import APP_VERSION, PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN
 
 
 class CustomLogFormatter(logging.Formatter):

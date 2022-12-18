@@ -6,13 +6,13 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from ttkbootstrap import localization
 
-import app_functions
+import app.functions as functions
 from bot_functions import game_data
-from gui_functions import custom_error
-from my_widgets import Label, ScrollableFrame
+from gui.functions import custom_error
+from gui.widgets.my_widgets import Label, ScrollableFrame
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 translate = localization.MessageCatalog.translate
 
@@ -100,11 +100,11 @@ class Manager(ScrollableFrame):
     def get_template_url(
         self, driver: webdriver.Chrome, settings: dict, am_value: str
     ) -> str:
-        base_url = app_functions.base_url(settings)
+        base_url = functions.base_url(settings)
         village_id = game_data(driver, "village.id")
         return base_url + f"village={village_id}&screen=am_{am_value}&mode=template"
 
-    @app_functions.account_access
+    @functions.account_access
     def get_army_templates(
         self, driver: webdriver.Chrome, settings: dict, widget: ttk.Combobox = None
     ) -> bool:
@@ -123,7 +123,7 @@ class Manager(ScrollableFrame):
 
         return True
 
-    @app_functions.account_access
+    @functions.account_access
     def get_buildings_templates(
         self, driver: webdriver.Chrome, settings: dict, widget: ttk.Combobox
     ) -> bool:
@@ -139,7 +139,7 @@ class Manager(ScrollableFrame):
 
         return True
 
-    @app_functions.account_access
+    @functions.account_access
     def get_tech_templates(
         self, driver: webdriver.Chrome, settings: dict, widget: ttk.Combobox
     ) -> bool:

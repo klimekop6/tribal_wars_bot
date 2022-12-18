@@ -3,8 +3,8 @@ import threading
 
 import requests
 
-from app_logging import get_logger
-from config import PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN
+from app.config import PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN
+from app.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -28,7 +28,7 @@ def threaded(func):
 
             try:
                 self.response: requests.Response = func(self, *args, **kwargs)
-            except BaseException:
+            except Exception:
                 logger.error("Connection error")
                 return False
             if self.response.status_code >= 400:

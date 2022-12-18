@@ -6,10 +6,10 @@ import ttkbootstrap as ttk
 from ttkbootstrap.scrolled import ScrolledFrame
 from ttkbootstrap.validation import ValidationEvent, validator
 
-from app_logging import get_logger
+from app.logging import get_logger
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 logger = get_logger(__name__)
 

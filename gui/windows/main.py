@@ -19,21 +19,12 @@ from selenium.common.exceptions import (
 from ttkbootstrap import localization
 from ttkbootstrap.tooltip import ToolTip
 
-import app_functions
+import app.functions as functions
 import bot_functions
-from app_gui.inner_frames.coins import Coins
-from app_gui.inner_frames.farm import Farm
-from app_gui.inner_frames.gathering import Gathering
-from app_gui.inner_frames.home import Home
-from app_gui.inner_frames.market import Market
-from app_gui.inner_frames.notifications import Notifications
-from app_gui.inner_frames.scheduler import Scheduler
-from app_gui.inner_frames.settings import Settings
-from app_gui.windows.jobs_to_do_window import JobsToDoWindow
-from app_gui.windows.new_world import NewWorldWindow
-from app_logging import get_logger
-from decorators import log_errors
-from gui_functions import (
+from app.decorators import log_errors
+from app.logging import get_logger
+from app.tribal_wars_bot_api import TribalWarsBotApi
+from gui.functions import (
     center,
     custom_error,
     fill_entry_from_settings,
@@ -42,8 +33,17 @@ from gui_functions import (
     on_button_release,
     save_entry_to_settings,
 )
-from my_widgets import TopLevel
-from tribal_wars_bot_api import TribalWarsBotApi
+from gui.widgets.my_widgets import TopLevel
+from gui.windows.jobs_to_do import JobsToDoWindow
+from gui.windows.main_tabs.coins import Coins
+from gui.windows.main_tabs.farm import Farm
+from gui.windows.main_tabs.gathering import Gathering
+from gui.windows.main_tabs.home import Home
+from gui.windows.main_tabs.market import Market
+from gui.windows.main_tabs.notifications import Notifications
+from gui.windows.main_tabs.scheduler import Scheduler
+from gui.windows.main_tabs.settings import Settings
+from gui.windows.new_world import NewWorldWindow
 
 translate = localization.MessageCatalog.translate
 
@@ -453,7 +453,7 @@ class MainWindow:
             settings["user_name"] = self.user_data["user_name"]
             if "user_password" in settings:
                 settings["user_password"] = self.user_data["password"]
-            app_functions.save_settings_to_files(
+            functions.save_settings_to_files(
                 settings=settings, settings_by_worlds=self.settings_by_worlds
             )
             hidden_root.destroy()
@@ -570,7 +570,7 @@ class MainWindow:
             return
         self.control_panel.villages_groups.set("Updating..")
         save_entry_to_settings(entries=self.entries_content, settings=settings)
-        app_functions.check_groups(
+        functions.check_groups(
             driver=self.driver,
             settings=settings,
             widgets=[
@@ -739,7 +739,7 @@ class MainWindow:
             return
 
         # Check if_paid
-        if not app_functions.paid(str(self.user_data["active_until"])):
+        if not functions.paid(str(self.user_data["active_until"])):
             response = TribalWarsBotApi(
                 f"/user?user_name={self.user_data['user_name']}"
             ).get()
@@ -752,7 +752,7 @@ class MainWindow:
                 on_func_stop()
                 return
             self.user_data = response.json()
-            if not app_functions.paid(str(self.user_data["active_until"])):
+            if not functions.paid(str(self.user_data["active_until"])):
                 custom_error(
                     message="Ważność konta wygasła.\n"
                     "Przejdź do ustawień i kliknij przedłuż ważność konta.",
@@ -993,12 +993,12 @@ class MainWindow:
 
             logger.info(f"restarting browser coused by {self.to_do[0]['func']}")
             self.driver.quit()
-            self.driver = app_functions.run_driver(settings=settings)
-            logged = app_functions.log_in(self.driver, _settings)
+            self.driver = functions.run_driver(settings=settings)
+            logged = functions.log_in(self.driver, _settings)
 
         # Open browser if not already opend
         if not self.driver:
-            self.driver = app_functions.run_driver(settings=settings)
+            self.driver = functions.run_driver(settings=settings)
 
         # Grid and set timer in custombar
         self.title_timer.grid(row=0, column=2, padx=5)
@@ -1051,7 +1051,7 @@ class MainWindow:
                             del self.to_do[index]
                         settings_send_amount = current_settings_send_amount
 
-                    if not app_functions.paid(str(self.user_data["active_until"])):
+                    if not functions.paid(str(self.user_data["active_until"])):
                         response = TribalWarsBotApi(
                             f"/user?user_name={self.user_data['user_name']}"
                         ).get()
@@ -1065,7 +1065,7 @@ class MainWindow:
                                     break
                         if response.ok:
                             self.user_data = response.json()
-                        if not app_functions.paid(str(self.user_data["active_until"])):
+                        if not functions.paid(str(self.user_data["active_until"])):
                             self.running = False
                             break
                         self.control_panel.acc_expire_time.config(
@@ -1079,8 +1079,8 @@ class MainWindow:
                     if not self.to_do:
                         break
                     time_left = self.to_do[0]["start_time"] - time.time()
-                except BaseException:
-                    app_functions.log_error(self.driver)
+                except Exception:
+                    functions.log_error(self.driver)
 
             if not self.running:
                 break
@@ -1095,11 +1095,11 @@ class MainWindow:
             try:
                 try:
                     if not logged:
-                        logged = app_functions.log_in(self.driver, _settings)
+                        logged = functions.log_in(self.driver, _settings)
 
                     try:
-                        app_functions.captcha_check(self.driver, _settings)
-                    except BaseException:
+                        functions.captcha_check(self.driver, _settings)
+                    except Exception:
                         pass
 
                     match self.to_do[0]["func"]:
@@ -1180,10 +1180,14 @@ class MainWindow:
                                 attacks_to_repeat,
                             ) = bot_functions.send_troops(self.driver, _settings)
 
-                            # Clean from _settings and self.to_do
+                            # Clean from _settings
                             del _settings["scheduler"]["ready_schedule"][
                                 0:send_number_times
                             ]
+                            if attacks_to_repeat:
+                                _settings["scheduler"]["ready_schedule"].sort(
+                                    key=lambda x: x["send_time"]
+                                )
 
                             if send_number_times > 1:
                                 index_to_del = []
@@ -1219,12 +1223,8 @@ class MainWindow:
                             "taskkill /IM chromedriver.exe /F /T",
                             creationflags=subprocess.CREATE_NO_WINDOW,
                         )
-                        self.driver = app_functions.run_driver(settings=settings)
-                    # self.driver.execute_cdp_cmd(
-                    #     "Page.addScriptToEvaluateOnNewDocument",
-                    #     {"source": COORDS_COPY},
-                    # )
-                    logged = app_functions.log_in(self.driver, _settings)
+                        self.driver = functions.run_driver(settings=settings)
+                    logged = functions.log_in(self.driver, _settings)
                 except UnexpectedAlertPresentException:
                     logger.info("UnexpectedAlertPresentException")
                     self.to_do[0]["errors_number"] += 1
@@ -1233,7 +1233,7 @@ class MainWindow:
                         continue
                     self.driver.switch_to.alert.dismiss()
                     self.driver.switch_to.default_content()
-                except BaseException as e:
+                except Exception as e:
                     # WebDriverException
                     if "chrome not reachable" in str(e):
                         logger.error("Chrome is not reachable error", exc_info=True)
@@ -1241,8 +1241,8 @@ class MainWindow:
                             "taskkill /IM chromedriver.exe /F /T",
                             creationflags=subprocess.CREATE_NO_WINDOW,
                         )
-                        self.driver = app_functions.run_driver(settings=settings)
-                        logged = app_functions.log_in(self.driver, _settings)
+                        self.driver = functions.run_driver(settings=settings)
+                        logged = functions.log_in(self.driver, _settings)
                         continue
                     if "cannot determine loading status" in str(e):
                         continue
@@ -1268,9 +1268,7 @@ class MainWindow:
 
                     # Deal with known things like popups, captcha etc.
                     if (
-                        app_functions.unwanted_page_content(
-                            self.driver, _settings, html
-                        )
+                        functions.unwanted_page_content(self.driver, _settings, html)
                         or self.to_do[0]["errors_number"] % 2 == 1
                     ):
                         continue
@@ -1278,7 +1276,7 @@ class MainWindow:
                     # Unknown error
                     restart_browser()
                     continue
-            except BaseException:
+            except Exception:
                 logger.info(f"Fatal error occured")
             # Zamyka stronę plemion jeśli do następnej czynności pozostało więcej niż 5min
             logged = log_out_when_free_time(_settings)

@@ -1,5 +1,5 @@
-import email_notifications
-from app_logging import get_logger
+import app.notifications.email as email
+from app.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -9,10 +9,10 @@ def log_errors(send_email: bool = False, re_raise: bool = False):
         def wrapper(*args, **kwargs):
             try:
                 return func(*args, **kwargs)
-            except BaseException as exception:
+            except Exception as exception:
                 logger.error("error catched by decorator log_errors")
                 if send_email:
-                    email_notifications.send_email(
+                    email.send_email(
                         email_recepients=kwargs["settings"]["notifications"][
                             "email_address"
                         ],

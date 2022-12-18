@@ -8,25 +8,25 @@ import requests
 import xmltodict
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 from typing import TYPE_CHECKING
 
 import ttkbootstrap as ttk
 
-from config import PYTHON_ANYWHERE_WORLD_SETTINGS
-from gui_functions import (
+from app.config import PYTHON_ANYWHERE_WORLD_SETTINGS
+from app.tribal_wars_bot_api import TribalWarsBotApi
+from gui.functions import (
     center,
     custom_error,
     invoke_checkbuttons,
     save_entry_to_settings,
     set_default_entries,
 )
-from my_widgets import TopLevel
-from tribal_wars_bot_api import TribalWarsBotApi
+from gui.widgets.my_widgets import TopLevel
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 
 class NewWorldWindow:
@@ -53,9 +53,9 @@ class NewWorldWindow:
         game_url["values"] = [
             "plemiona.pl",
             "die-staemme.de",
-            "tribalwars.net",
+            "tribalwars.net",  # same - origin
             "tribalwars.nl",
-            "tribalwars.se",
+            "tribalwars.se",  # same
             "tribalwars.com.br",
             "tribalwars.com.pt",
             "divokekmeny.cz",
@@ -63,19 +63,19 @@ class NewWorldWindow:
             "triburile.ro",
             "voyna-plemyon.ru",
             "fyletikesmaxes.gr",
-            "no.tribalwars.com",
+            "no.tribalwars.com",  # same
             "divoke-kmene.sk",
             "klanhaboru.hu",
-            "tribalwars.dk",
+            "tribalwars.dk",  # same
             "tribals.it",
             "klanlar.org",
             "guerretribale.fr",
             "guerrastribales.es",
             "tribalwars.ae",
             "tribalwars.co.uk",
-            "vojnaplemen.si",
-            "plemena.com",
-            "tribalwars.asia",
+            "vojnaplemen.si",  # same
+            "plemena.com",  # same
+            "tribalwars.asia",  # same
             "tribalwars.us",
         ]
 
@@ -182,6 +182,7 @@ def add_new_world(
             "end_hour": world_config["config"]["night"]["end_hour"],
             "speed": world_config["config"]["speed"],
             "unit_speed": world_config["config"]["unit_speed"],
+            "gmt_time_offset": gmt_time_offset(country_code),
             "daily_bonus": None,
         }
         return True
@@ -228,12 +229,15 @@ def add_new_world(
             (k, v) for k, v in settings.items() if k != "globals"
         )
 
-    if game_url == "tribalwars.net":
-        country_code = "en"
-    elif game_url == "divokekmeny.cz":
-        country_code = "cs"
-    else:
-        country_code = game_url[game_url.rfind(".") + 1 :]
+    def get_country_code(game_url: str) -> str:
+        if game_url == "tribalwars.net":
+            return "en"
+        elif game_url == "divokekmeny.cz":
+            return "cs"
+        else:
+            return game_url[game_url.rfind(".") + 1 :]
+
+    country_code = get_country_code(game_url)
     server_world = f"{country_code}{world_number}"
 
     if not os.path.isdir("settings"):
@@ -349,3 +353,61 @@ def add_new_world(
         settings.update(parent.settings_by_worlds[server_world])
 
         return True
+
+
+def gmt_time_offset(country_code: str) -> int:
+    match country_code:
+        case "de" | "pl" | "cs" | "ch" | "sk" | "hu" | "it" | "fr" | "es":
+            return 1
+        case "en" | "nl" | "pt" | "uk":
+            return 0
+        case "ro" | "gr":
+            return 2
+        case "ru":
+            return 3
+        case "ae":
+            return 4
+        case "br":
+            return -3
+        case "us":
+            return -6
+        case "org":
+            return 8
+
+
+def unit_speed_modifier(settings: dict) -> float:
+    try:
+        return settings["world_config"]["unit_speed_modifier"]
+
+    except KeyError:
+        try:
+            settings["world_config"]["unit_speed_modifier"] = 1 / (
+                float(settings["world_config"]["speed"])
+                * float(settings["world_config"]["unit_speed"])
+            )
+
+            return settings["world_config"]["unit_speed_modifier"]
+
+        except KeyError:
+            try:
+                response = requests.get(
+                    f"{PYTHON_ANYWHERE_WORLD_SETTINGS}/{settings['server_world']}.xml"
+                )
+
+            except KeyError:
+                return 1.0
+
+            if not response.ok:
+                return 1.0
+
+            world_config = xmltodict.parse(response.content)
+            settings["world_config"]["speed"] = world_config["config"]["speed"]
+            settings["world_config"]["unit_speed"] = world_config["config"][
+                "unit_speed"
+            ]
+            settings["world_config"]["unit_speed_modifier"] = 1 / (
+                float(settings["world_config"]["speed"])
+                * float(settings["world_config"]["unit_speed"])
+            )
+
+            return settings["world_config"]["unit_speed_modifier"]

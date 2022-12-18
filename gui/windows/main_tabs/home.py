@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING
 import ttkbootstrap as ttk
 from ttkbootstrap import localization
 
-from config import APP_VERSION
-from my_widgets import CollapsingFrame, ScrollableFrame, Text
+from app.config import APP_VERSION
+from gui.widgets.my_widgets import CollapsingFrame, ScrollableFrame, Text
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 translate = localization.MessageCatalog.translate
 
@@ -44,18 +44,55 @@ class Home(ScrollableFrame):
 
         text.add("Poprawki\n", "h1")
         text.add(
-            "- Poprawiono wyliczane prędkości przemarszu wojsk dla niestandardowych ustawień świata.\n"
+            "- Poprawiono dostrzeżone błędy w trakcie korzystania z funkcji "
+            'nawrotek ("Powtórz atak po powrocie jednostek").\n'
         )
 
         cf_current_changes.add(
             child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.80",
+            title=f"{translate('Changes in patch')} 1.0.82",
             bootstyle="dark",
         )
 
         # Previous changes
         ttk.Label(self, text=translate("Last changes"), font=("TkFixedFont", 11)).grid(
             row=5, column=0, pady=(25, 15), sticky=ttk.W
+        )
+
+        # 1.0.81
+        cf_last_changes_1_0_81 = CollapsingFrame(self)
+        cf_last_changes_1_0_81.grid(row=9, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_81)
+
+        text.add("Poprawki\n", "h1")
+        text.add(
+            "- Poprawka dotyczy uwzględnienia różnicy czasu lokalnego ustawionego w systemie a "
+            "czasu gry na serwerze. Od teraz nie powinno już być problemów z planerem bez względu na "
+            "różnice w strefach czasowych.\n"
+        )
+
+        cf_last_changes_1_0_81.add(
+            child=text.frame,
+            title=f"{translate('Changes in patch')} 1.0.81",
+            bootstyle="dark",
+        )
+
+        # 1.0.80
+        cf_last_changes_1_0_80 = CollapsingFrame(self)
+        cf_last_changes_1_0_80.grid(row=10, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_80)
+
+        text.add("Poprawki\n", "h1")
+        text.add(
+            "- Poprawiono wyliczane prędkości przemarszu wojsk dla niestandardowych ustawień świata.\n"
+        )
+
+        cf_last_changes_1_0_80.add(
+            child=text.frame,
+            title=f"{translate('Changes in patch')} 1.0.80",
+            bootstyle="dark",
         )
 
         # 1.0.79
@@ -109,66 +146,6 @@ class Home(ScrollableFrame):
         cf_last_changes_1_0_77.add(
             child=text.frame,
             title=f"{translate('Changes in patch')} 1.0.77",
-            bootstyle="dark",
-        )
-
-        # 1.0.76
-        cf_last_changes_1_0_76 = CollapsingFrame(self)
-        cf_last_changes_1_0_76.grid(row=14, column=0, pady=(0, 5), sticky=ttk.EW)
-
-        text = Text(cf_last_changes_1_0_76)
-        text.add("Nowości\n", "h1")
-        text.add(
-            "- W zbieractwie dodano nową funkcję do włączenia której zadaniem jest "
-            "inteligente pomijanie poziomów zbieractwa w celu uzyskania maksymalnej "
-            "efektywności zbieranych surowców.\n"
-        )
-        text.add("Poprawki\n", "h1")
-        text.add(
-            "- Zbieractwo działa teraz identycznie do legalnego skryptu znajdującego "
-            "się w skryptotece plemion. Dodatkowo wojska nie będą ponownie wysyłane "
-            "zawsze sekundę po ich powrocie a w przedziale od 5 do 30 sekund później. "
-            "Celem jest upodobnienie działań do rzeczywistego użytkownika. "
-        )
-
-        cf_last_changes_1_0_76.add(
-            child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.76",
-            bootstyle="dark",
-        )
-
-        # 1.0.75
-        cf_last_changes_1_0_75 = CollapsingFrame(self)
-        cf_last_changes_1_0_75.grid(row=15, column=0, pady=(0, 5), sticky=ttk.EW)
-
-        text = Text(cf_last_changes_1_0_75)
-        text.add("Nowości\n", "h1")
-        text.add(
-            "- Wszystkie przyciski których zadaniem było zamknięcie lub usunięcie "
-            "będą podświetlane na czerwonym tle po najechaniu myszką.\n"
-        )
-        text.add(
-            "- Dodano w ustawieniach opcję wyłączenia funkcji oszczędzania energii "
-            "przez przeglądarkę google Chrome. Więcej informacji znajduję się po "
-            "najechaniu na ikonę znaku zapytania naprzeciwko nowego pola ustawień.\n"
-        )
-        text.add("Poprawki\n", "h1")
-        text.add(
-            "- Naprawiono tworzenie etykiet ataków na światach z wieżą strażniczą.\n"
-        )
-        text.add(
-            "- Skrócono o połowę czas potrzebny do wykrycia i ponownego uruchomienia "
-            "zamkniętego okna przeglądarki.\n"
-        )
-        text.add(
-            "- Skompresowano wszystkie wykorzystywane ikony w aplikacji w celu "
-            "szybszego pobierania i uruchamiania aplikacji a także nieznacznie "
-            "mniejszego zużycia pamięci ram.\n"
-        )
-
-        cf_last_changes_1_0_75.add(
-            child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.75",
             bootstyle="dark",
         )
 

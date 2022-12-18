@@ -15,15 +15,16 @@ from ttkbootstrap.tableview import Tableview
 from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_validation
 
-from app_functions import get_villages_id
-from config import PYTHON_ANYWHERE_WORLD_SETTINGS
-from constants import TROOPS, TROOPS_DEFF, TROOPS_OFF, TROOPS_SPEED
-from decorators import log_errors
-from gui_functions import center, change_state, custom_error, forget_row, is_int
-from my_widgets import ScrollableFrame, TopLevel
+from app.config import PYTHON_ANYWHERE_WORLD_SETTINGS
+from app.constants import TROOPS, TROOPS_DEFF, TROOPS_OFF, TROOPS_SPEED
+from app.decorators import log_errors
+from app.functions import get_villages_id
+from gui.functions import center, change_state, custom_error, forget_row, is_int
+from gui.widgets.my_widgets import ScrollableFrame, TopLevel
+from gui.windows.new_world import gmt_time_offset
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 translate = localization.MessageCatalog.translate
 
@@ -1133,9 +1134,22 @@ class Scheduler(ScrollableFrame):
         template_type = self.template_type.get()
 
         # Timings
+        try:
+            TIME_DIFFRENCE = (
+                datetime.utcoffset(datetime(2023, 1, 1).astimezone()).seconds
+                - settings["world_config"]["gmt_time_offset"] * 3600
+            )
+        except KeyError:
+            settings["world_config"]["gmt_time_offset"] = gmt_time_offset(
+                settings["country_code"]
+            )
+            TIME_DIFFRENCE = (
+                datetime.utcoffset(datetime(2023, 1, 1).astimezone()).seconds
+                - settings["world_config"]["gmt_time_offset"] * 3600
+            )
         time_change = False
         winter_time_change = datetime.strptime(
-            "30.10.2022 02:59:59:000", "%d.%m.%Y %H:%M:%S:%f"
+            "29.10.2023 02:59:59:000", "%d.%m.%Y %H:%M:%S:%f"
         ).timestamp()
         # summer_time_change
 
@@ -1407,7 +1421,9 @@ class Scheduler(ScrollableFrame):
                     "%d.%m.%Y %H:%M:%S:%f",
                 )[:-3]
                 send_info["send_time"] = (
-                    current_command_final_arrival_time_in_sec - travel_time_in_sec
+                    current_command_final_arrival_time_in_sec
+                    - travel_time_in_sec
+                    + TIME_DIFFRENCE
                 )  # sec since epoch
                 if set_low_priority:
                     send_info["low_priority"] = True
@@ -1419,7 +1435,7 @@ class Scheduler(ScrollableFrame):
             else:
                 send_info["arrival_time"] = arrival_time
                 send_info["send_time"] = (
-                    arrival_time_in_sec - travel_time_in_sec
+                    arrival_time_in_sec - travel_time_in_sec + TIME_DIFFRENCE
                 )  # sec since epoch
 
             if time_change:

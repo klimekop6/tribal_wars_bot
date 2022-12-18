@@ -15,16 +15,16 @@ from ttkbootstrap import localization
 from ttkbootstrap.toast import ToastNotification
 from ttkbootstrap.utility import enable_high_dpi_awareness
 
-import app_functions
-import app_style
-from app_gui.windows.log_in_window import LogInWindow
-from app_gui.windows.main_window import MainWindow
-from app_logging import CustomLogFormatter, get_logger
-from client_config import ClientConfig
-from config import APP_NAME, APP_VERSION
-from decorators import log_errors
-from gui_functions import center, custom_error
-from my_widgets import TopLevel
+import app.functions as functions
+from app.client_config import ClientConfig
+from app.config import APP_NAME, APP_VERSION
+from app.decorators import log_errors
+from app.logging import CustomLogFormatter, get_logger
+from gui.functions import center, custom_error
+from gui.style import configure_style
+from gui.widgets.my_widgets import TopLevel
+from gui.windows.log_in import LogInWindow
+from gui.windows.main import MainWindow
 
 translate = localization.MessageCatalog.translate
 os.environ["WDM_LOG"] = "false"
@@ -156,7 +156,7 @@ def check_for_updates(stable_release: bool = True) -> None:
         master.withdraw()
 
         style = ttk.Style(theme="darkly")
-        app_style.configure_style(style=style)
+        style.configure_style(style=style)
 
         custom_error(
             message="Dostępna jest nowa aktualizacja!\n"
@@ -191,7 +191,7 @@ def check_for_updates(stable_release: bool = True) -> None:
 
 def main() -> None:
 
-    settings = app_functions.load_settings()
+    settings = functions.load_settings()
     settings["temp"] = {}
 
     # Check for updates
@@ -205,7 +205,7 @@ def main() -> None:
             check_for_updates(stable_release=False)
 
     if settings["first_lunch"]:
-        app_functions.first_app_lunch(settings=settings)
+        functions.first_app_lunch(settings=settings)
 
     enable_high_dpi_awareness()
     hidden_root = tk.Tk()
@@ -214,7 +214,7 @@ def main() -> None:
 
     style = ttk.Style(theme="darkly")
 
-    app_style.configure_style(style=style)
+    configure_style(style=style)
 
     localization.initialize_localities()
     try:

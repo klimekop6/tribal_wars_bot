@@ -6,13 +6,13 @@ import ttkbootstrap as ttk
 from ttkbootstrap import localization
 from ttkbootstrap.tooltip import ToolTip
 
-from app_gui.windows.new_world import add_new_world
-from app_gui.windows.payment_window import PaymentWindow
-from gui_functions import custom_error
-from my_widgets import ScrollableFrame
+from gui.functions import custom_error
+from gui.widgets.my_widgets import ScrollableFrame
+from gui.windows.new_world import add_new_world
+from gui.windows.payment import PaymentWindow
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 translate = localization.MessageCatalog.translate
 

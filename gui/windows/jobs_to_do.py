@@ -5,10 +5,10 @@ from ttkbootstrap import localization
 from ttkbootstrap.tableview import Tableview
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
-from gui_functions import center
-from my_widgets import TopLevel
+from gui.functions import center
+from gui.widgets.my_widgets import TopLevel
 
 translate = localization.MessageCatalog.translate
 

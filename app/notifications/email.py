@@ -3,7 +3,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
 
-from config import EMAIL_SENDER_ACCOUNT, EMAIL_SENDER_PASSWORD, EMAIL_SENDER_USERNAME
+from app.config import (
+    EMAIL_SENDER_ACCOUNT,
+    EMAIL_SENDER_PASSWORD,
+    EMAIL_SENDER_USERNAME,
+)
 
 # Email Account
 EMAIL_SMTP_SERVER = "smtp-relay.sendinblue.com"

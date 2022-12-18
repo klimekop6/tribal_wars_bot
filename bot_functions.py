@@ -5,6 +5,7 @@ import threading
 import time
 import traceback
 import winsound
+from datetime import datetime
 from math import ceil, sqrt
 
 import lxml.html
@@ -20,17 +21,18 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from ttkbootstrap.toast import ToastNotification
 
-import email_notifications
-from app_functions import base_url, captcha_check, unwanted_page_content
-from app_logging import get_logger
-from config import SMS_API_TOKEN
-from constants import (
+import app.notifications.email as email
+from app.config import SMS_API_TOKEN
+from app.constants import (
     TROOPS_CAPACITY,
     TROOPS_DEFF,
     TROOPS_OFF,
     TROOPS_POPULATION,
     TROOPS_SPEED,
 )
+from app.functions import base_url, captcha_check, unwanted_page_content
+from app.logging import get_logger
+from gui.windows.new_world import gmt_time_offset, unit_speed_modifier
 
 logger = get_logger(__name__)
 
@@ -208,7 +210,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
             attacks_info = get_attacks_info()
 
             threading.Thread(
-                target=email_notifications.send_email,
+                target=email.send_email,
                 kwargs={
                     "email_recepients": settings["notifications"]["email_address"],
                     "email_subject": f"Wykryto grubasy {settings['world_in_title']}",
@@ -563,7 +565,9 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
             distance = tuple(
                 float(row.xpath("text()")[0]) for row in farm.xpath("tr/td[8]")
             )
-            army_speed = max(TROOPS_SPEED[unit] for unit in template_troops[template])
+            army_speed = max(
+                TROOPS_SPEED[unit] for unit in template_troops[template]
+            ) * unit_speed_modifier(settings)
             max_distance = 0.0
             if settings[template]["farm_rules"]["max_travel_time"]:
                 max_distance: float = (
@@ -667,7 +671,7 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                     while time.time() - start_time < 0.195:
                         time.sleep(0.01)
                     driver.execute_script(
-                        'return arguments[0].scrollIntoView({block: "center"});',
+                        'arguments[0].scrollIntoView({block: "center"});',
                         village,
                     )
                     try:
@@ -1124,12 +1128,12 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
 
         try:
             html_response = get_player_production_page()
-        except BaseException:
+        except Exception:
             if not unwanted_page_content(driver=driver, settings=settings, log=False):
                 driver.refresh()
             try:
                 html_response = get_player_production_page()
-            except BaseException:
+            except Exception:
                 if not unwanted_page_content(
                     driver=driver, settings=settings, log=False
                 ):
@@ -1499,6 +1503,53 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
     You can also use it for fakes.
     """
 
+    def add_attack_to_repeat(send_info: dict) -> None:
+        if send_info["template_type"] != "send_my_template":
+            return
+        if not send_info["repeat_attack"]:
+            return
+        if send_info["total_attacks_number"] < 2:
+            return
+
+        EXTRA_TIME = random.uniform(3, 15)
+        attacks_to_repeat_to_do.append(
+            {
+                "func": "send_troops",
+                "start_time": time.time() + 2 * send_info["travel_time"] + EXTRA_TIME,
+                "server_world": settings["server_world"],
+                "settings": settings,
+                "errors_number": 0,
+            }
+        )
+        # Add the same attack to scheduler with changed send_time etc.
+        attack_to_repeat = send_info.copy()
+        attack_to_repeat["low_priority"] = True
+        attack_to_repeat["total_attacks_number"] = send_info["total_attacks_number"] - 1
+        attack_to_repeat["send_time"] = (
+            time.time() + 2 * send_info["travel_time"] + EXTRA_TIME + 8
+        )
+        arrival_time_in_sec = attack_to_repeat["send_time"] + send_info["travel_time"]
+        try:
+            TIME_DIFFRENCE = (
+                datetime.utcoffset(datetime(2023, 1, 1).astimezone()).seconds
+                - settings["world_config"]["gmt_time_offset"] * 3600
+            )
+        except KeyError:
+            settings["world_config"]["gmt_time_offset"] = gmt_time_offset(
+                settings["country_code"]
+            )
+            TIME_DIFFRENCE = (
+                datetime.utcoffset(datetime(2023, 1, 1).astimezone()).seconds
+                - settings["world_config"]["gmt_time_offset"] * 3600
+            )
+
+        arrival_time = time.localtime(arrival_time_in_sec - TIME_DIFFRENCE)
+        attack_to_repeat["arrival_time"] = time.strftime(
+            f"%d.%m.%Y %H:%M:%S:{round(random.random()*1000):0>3}",
+            arrival_time,
+        )
+        attacks_to_repeat_scheduler.append(attack_to_repeat)
+
     # If for some reason there was func send_troops in to_do but there wasn't any
     # in settings["scheduler"]["ready_schedule"] than log error and return
     if not settings["scheduler"]["ready_schedule"]:
@@ -1512,6 +1563,8 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
         if cell_in_list["send_time"] > send_time + 8:
             break
         list_to_send.append(cell_in_list)
+        if len(list_to_send) >= 6:
+            break
 
     if len(list_to_send) > 1:
         origin_tab = driver.current_window_handle
@@ -1741,44 +1794,6 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         )
                         troop_input.send_keys(troop_number)
 
-                    if send_info["repeat_attack"]:
-                        if send_info["total_attacks_number"]:
-                            total_attacks_number = send_info["total_attacks_number"]
-                            if total_attacks_number > 1:
-                                total_attacks_number -= 1
-                                attacks_to_repeat_to_do.append(
-                                    {
-                                        "func": "send_troops",
-                                        "start_time": send_info["send_time"]
-                                        + 2 * send_info["travel_time"]
-                                        + 1,
-                                        "server_world": settings["server_world"],
-                                        "settings": settings,
-                                        "errors_number": 0,
-                                    }
-                                )
-                                # Add the same attack to scheduler with changed send_time etc.
-                                attack_to_add = send_info.copy()
-                                if total_attacks_number == 1:
-                                    attack_to_add["repeat_attack"] = 0
-                                attack_to_add[
-                                    "total_attacks_number"
-                                ] = total_attacks_number
-                                attack_to_add["send_time"] += (
-                                    2 * send_info["travel_time"] + 9
-                                )
-                                arrival_time_in_sec = (
-                                    attack_to_add["send_time"]
-                                    + send_info["travel_time"]
-                                )
-                                arrival_time = time.localtime(arrival_time_in_sec)
-                                attack_to_add["arrival_time"] = time.strftime(
-                                    f"%d.%m.%Y %H:%M:%S:{round(random.random()*1000):0>3}",
-                                    arrival_time,
-                                )
-                                attack_to_add["errors_number"] = 0
-                                attacks_to_repeat_scheduler.append(attack_to_add)
-
             # Click command_type button (attack or support)
             driver.execute_script(
                 f'document.getElementById("{send_info["command"]}").click();'
@@ -1795,8 +1810,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             continue
                         # If it's only one attack which can't be send, return and delete it
                         return 1, attacks_to_repeat_to_do
-                    for _ in range(send_info["snob_amount"]):
-                        driver.execute_script("arguments[0].click()", add_snoob)
+                    else:
+                        for _ in range(send_info["snob_amount"]):
+                            driver.execute_script("arguments[0].click()", add_snoob)
 
             # Split attacks -> own_template
             elif send_info["template_type"] == "send_my_template":
@@ -1813,8 +1829,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             continue
                         # If it's only one attack which can't be send, return and delete it
                         return 1, attacks_to_repeat_to_do
-                    for _ in range(split_attacks_number - 1):
-                        driver.execute_script("arguments[0].click()", add_attack)
+                    else:
+                        for _ in range(split_attacks_number - 1):
+                            driver.execute_script("arguments[0].click()", add_attack)
                     all_troops = (
                         "axe",
                         "light",
@@ -1842,10 +1859,10 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
         for index, send_info in enumerate(list_to_send):
             if index:
                 driver.switch_to.window(new_tabs[index - 1])
-            # Skip to next if didn't find element with id="date_arrival"
             current_time = driver.find_elements(
                 By.XPATH, '//*[@id="date_arrival"]/span'
             )
+            # Skip to next if didn't find element with id="date_arrival"
             if not current_time:
                 continue
             # If can choose catapult target
@@ -1864,21 +1881,18 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         driver.find_element(By.XPATH, "//select[@name='building']")
                     ).select_by_value(send_info["catapult_target"])
             current_time = current_time[0]
-            send_button = driver.find_element(By.ID, "troop_confirm_submit")
             arrival_time = re.search(
                 r"\d{2}:\d{2}:\d{2}", send_info["arrival_time"]
             ).group()
-
-            if current_time.text[-8:] < arrival_time:
+            send_button = driver.find_element(By.ID, "troop_confirm_submit")
+            if "low_priority" in send_info and send_info["low_priority"]:
+                driver.execute_script("arguments[0].click()", send_button)
+            elif current_time.text[-8:] < arrival_time:
                 ms = int(send_info["arrival_time"][-3:])
                 if ms <= 10:
                     sec = 0
                 else:
                     sec = ms / 1000
-                if "low_priority" in send_info:
-                    if send_info["low_priority"]:
-                        driver.execute_script("arguments[0].click()", send_button)
-                        continue
                 while True:
                     current_arrival_time = current_time.text[-8:]
                     if current_arrival_time == arrival_time:
@@ -1891,6 +1905,8 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         break
             else:
                 driver.execute_script("arguments[0].click()", send_button)
+
+            add_attack_to_repeat(send_info=send_info)
 
     finally:
         if len(list_to_send) > 1:
@@ -1931,13 +1947,13 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
         (send_number_times, attacks_to_repeat) = send_troops(
             driver=driver, settings=settings
         )
-    except BaseException:
+    except Exception:
         unwanted_page_content(driver=driver, settings=settings, log=False)
         try:
             (send_number_times, attacks_to_repeat) = send_troops(
                 driver=driver, settings=settings
             )
-        except BaseException:
+        except Exception:
             send_number_times = 1
             attacks_to_repeat = []
     finally:

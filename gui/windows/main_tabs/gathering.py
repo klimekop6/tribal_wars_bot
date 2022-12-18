@@ -5,11 +5,11 @@ import ttkbootstrap as ttk
 from ttkbootstrap import localization
 from ttkbootstrap.validation import add_validation
 
-from gui_functions import change_state, is_int
-from my_widgets import ScrollableFrame
+from gui.functions import change_state, is_int
+from gui.widgets.my_widgets import ScrollableFrame
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 translate = localization.MessageCatalog.translate
 

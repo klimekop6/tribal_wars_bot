@@ -2,12 +2,12 @@ import tkinter as tk
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app_gui.windows.main_window import MainWindow
+    from gui.windows.main import MainWindow
 
 import ttkbootstrap as ttk
 from ttkbootstrap.scrolled import ScrolledFrame
 
-from gui_functions import forget_row
+from gui.functions import forget_row
 
 
 class TopLevel(tk.Toplevel):
