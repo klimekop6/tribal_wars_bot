@@ -9,8 +9,8 @@ import time
 import winreg
 from typing import TYPE_CHECKING
 
+import compress_json
 import requests
-from anycaptcha import AnycaptchaClient, HCaptchaTaskProxyless
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.chrome.options import Options
@@ -18,19 +18,22 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium_stealth import stealth
 from ttkbootstrap.toast import ToastNotification
 from webdriver_manager.chrome import ChromeDriverManager
 
-from app_logging import get_logger
-from config import ANY_CAPTCHA_API_KEY
-from decorators import log_errors
-from gui_functions import custom_error, set_default_entries
+from app.config import TWO_CAPTCHA_API_KEY
+from app.decorators import log_errors
+from app.logging import get_logger
+from app.translator import TranslatorsServer
+from gui.functions import custom_error, set_default_entries
+from gui.windows.new_world import NewWorldWindow
 
 if TYPE_CHECKING:
-    from bot_main import MainWindow
+    from gui.windows.main import MainWindow
 
 logger = get_logger(__name__)
 
@@ -46,23 +49,31 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
     If exist, wait until solved and than update captcha counter.
     """
 
-    search_for_captcha = 'return document.querySelector(".h-captcha, .captcha")'
-    if driver.execute_script(search_for_captcha):
+    def captcha_on_page():
+        return driver.execute_script(
+            'return document.querySelector(".h-captcha, .captcha")'
+        )
+
+    if captcha_on_page():
         # Skip if it is not logged on page correctly
         if f"{settings['server_world']}" not in driver.current_url:
             return False
 
-        get_captcha_selector = """if (document.querySelector('.h-captcha')) {return '.h-captcha'}
-            else if (document.querySelector('.captcha')) {return '.captcha'}
-            else {return}
-            """
-        captcha_selector = driver.execute_script(get_captcha_selector)
+        def get_hcaptcha_selector() -> str:
+            return driver.execute_script(
+                """if (document.querySelector('.h-captcha')) {return '.h-captcha'}
+                else if (document.querySelector('.captcha')) {return '.captcha'}
+                else {return}
+                """
+            )
+
+        captcha_selector = get_hcaptcha_selector()
         if not driver.find_elements(By.CSS_SELECTOR, f"{captcha_selector} iframe"):
             return False
 
         logger.info("start solving captcha")
 
-        def simple_solve_captcha(captcha_selector: str) -> bool:
+        def simple_solve_hcaptcha(captcha_selector: str) -> bool:
             # Scroll to the element with class name equal to captche_selector
             driver.execute_script(
                 f"document.querySelector('{captcha_selector}').scrollIntoView(false);"
@@ -79,68 +90,300 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             driver.switch_to.default_content()
             try:
                 WebDriverWait(driver, 5, 0.1).until(
-                    lambda _: False
-                    if driver.execute_script(search_for_captcha)
-                    else True
+                    lambda _: False if captcha_on_page() else True
                 )
                 return True
             except TimeoutException:
                 ActionChains(driver).send_keys(Keys.ESCAPE).perform()
                 return False
 
-        def get_token(captcha_selector: str) -> str | bool:
-
-            api_key = ANY_CAPTCHA_API_KEY
-            website_url = driver.current_url[: driver.current_url.rfind("/")]
-            website_key = re.search(
-                r"&sitekey=(.*?)&",
-                WebDriverWait(driver, 3, 0.05)
-                .until(
-                    EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, f"{captcha_selector} iframe")
+        def get_hcaptcha_token(captcha_selector: str) -> str | bool:
+            def get_hcaptcha_sitekey() -> str:
+                return re.search(
+                    r"&sitekey=(.*?)&",
+                    WebDriverWait(driver, 3, 0.05)
+                    .until(
+                        EC.presence_of_element_located(
+                            (By.CSS_SELECTOR, f"{captcha_selector} iframe")
+                        )
                     )
-                )
-                .get_attribute("src"),
-            ).group(1)
-            client = AnycaptchaClient(api_key)
-            task = HCaptchaTaskProxyless(
-                website_url=website_url, website_key=website_key
-            )
-            job = client.createTask(task)
-            # Notify user that captcha solving is in process
-            try:
-                iframe_width = driver.execute_script(
-                    f"return document.querySelector('{captcha_selector} iframe').clientWidth"
-                )
-            except BaseException:
-                iframe_width = 303
-            driver.execute_script(
-                f"""const captcha_container = document.querySelectorAll("{captcha_selector} *:last-child")[0];
-                const div_to_add = "<div id='kspec' style='width: {iframe_width};'>Solving captcha please wait..</div>"
-                captcha_container.insertAdjacentHTML("afterend", div_to_add);"""
-            )
-            job.join()
-            result = job.get_solution_response()
+                    .get_attribute("src"),
+                ).group(1)
 
-            if result.find("ERROR") != -1:
-                logger.error(msg=f"task finished with error {result}")
-                return False
-            else:
-                # If everything is fine result contain token
-                return result
+            def data_to_solve_captcha() -> dict:
+                return {
+                    "key": TWO_CAPTCHA_API_KEY,
+                    "method": "hcaptcha",
+                    "sitekey": get_hcaptcha_sitekey(),
+                    "pageurl": driver.current_url[: driver.current_url.rfind("/")],
+                    "json": 1,
+                }
 
-        def hard_solve_captcha(captcha_selector: str) -> bool:
-            token = get_token(captcha_selector)
-            driver.execute_script("document.querySelector('#kspec').remove();")
-            if token:
+            def handle_api_error(error_msg: str) -> bool:
+                match error_msg:
+                    case "ERROR_NO_SLOT_AVAILABLE":
+                        time.sleep(5)
+                    case "ERROR_ZERO_BALANCE":
+                        time.sleep(60)
+                    case "MAX_USER_TURN":
+                        time.sleep(15)
+                    case _:
+                        logger.info(error_msg)
+                        return False
+                return True
+
+            def start_solving(required_data: dict) -> dict:
+                response = requests.post(
+                    url="http://2captcha.com/in.php", json=required_data
+                ).json()
+                while not response["status"]:
+                    if handle_api_error(response["request"]):
+                        response = requests.post(
+                            url="http://2captcha.com/in.php", json=required_data
+                        ).json()
+                    else:
+                        return {"status": 0}
+                return response
+
+            def get_result(task_id: str) -> dict:
+                start_time = time.time()
+                time.sleep(15)
+                data = {
+                    "key": "88cda22298739b2fd3835ef281692c02",
+                    "action": "get",
+                    "id": int(task_id),
+                    "json": 1,
+                }
+                response: dict = requests.get(
+                    url="http://2captcha.com/res.php", params=data
+                ).json()
+                while not response["status"]:
+                    if time.time() - start_time > 120:
+                        return {"status": 0, "request": "ERROR_TIMEOUT"}
+                    time.sleep(5)
+                    response = requests.get(
+                        url="http://2captcha.com/res.php", params=data
+                    ).json()
+                return response
+
+            def notify_user_about_solving_process() -> None:
+                try:
+                    iframe_width = driver.execute_script(
+                        f"return document.querySelector('{captcha_selector} iframe').clientWidth"
+                    )
+                except Exception:
+                    iframe_width = 303
                 driver.execute_script(
-                    f"document.getElementById('anycaptchaSolveButton').onclick('{token}');"
+                    f"""const captcha_container = document.querySelectorAll("{captcha_selector} *:last-child")[0];
+                    const div_to_add = "<div id='kspec' style='width: {iframe_width};'>Solving captcha please wait..</div>"
+                    captcha_container.insertAdjacentHTML("afterend", div_to_add);"""
                 )
+
+            notify_user_about_solving_process()
+
+            response = start_solving(required_data=data_to_solve_captcha())
+            if not response["status"]:
+                return False
+
+            response = get_result(task_id=response["request"])
+            if not response["status"]:
+                logger.info(response["request"])
+                return False
+
+            return response["request"]
+
+        def hard_solve_hcaptcha_using_token(captcha_selector: str) -> bool:
+            token = get_hcaptcha_token(captcha_selector)
+            try:
+                driver.execute_script("document.querySelector('#kspec').remove();")
+            except Exception:
+                logger.info("Unable to find #kspec div")
+            if token:
+                try:
+                    driver.execute_script(
+                        f"document.getElementById('anycaptchaSolveButton').onclick('{token}');"
+                    )
+                except Exception:
+                    logger.info("Unable to find 'anycaptchaSolveButton'")
+                    return False
                 return True
             return False
 
+        def hard_solve_hcaptcha_using_grid(captcha_selector: str) -> bool:
+            def switch_to_captcha_entry_iframe() -> None:
+                driver.switch_to.default_content()
+                WebDriverWait(driver, 5, 0.05).until(
+                    EC.frame_to_be_available_and_switch_to_it(
+                        (By.CSS_SELECTOR, f"{captcha_selector} iframe")
+                    )
+                )
+
+            def select_checkbox() -> None:
+                try:
+                    driver.find_element(By.ID, "checkbox").click()
+                finally:
+                    driver.switch_to.default_content()
+
+            def switch_to_captcha_challenge_frame() -> None:
+                driver.switch_to.default_content()
+                hcaptcha_frames = lambda: driver.find_elements(
+                    By.XPATH, '//iframe[contains(@title, "hCaptcha")]'
+                )
+                driver.switch_to.frame(
+                    WebDriverWait(driver, 5, 0.05).until(
+                        lambda _: len(hcaptcha_frames()) > 1
+                        and hcaptcha_frames()[1].is_displayed()
+                        and hcaptcha_frames()[1]
+                    )
+                )
+
+            def data_to_solve_captcha() -> dict:
+                return {
+                    "key": "88cda22298739b2fd3835ef281692c02",
+                    "method": "base64",
+                    "recaptcha": 1,
+                    "body": image_base64(),
+                    "textinstructions": instruction_text(),
+                    "imginstructions": instruction_image(),
+                    "recaptcharows": 3,
+                    "recaptchacols": 3,
+                    "json": 1,
+                    "language": 2,
+                    "lang": "en",
+                }
+
+            def image_base64():
+                return (
+                    WebDriverWait(driver, 5)
+                    .until(EC.element_to_be_clickable((By.CLASS_NAME, "task-grid")))
+                    .screenshot_as_base64
+                )
+
+            def instruction_text() -> str:
+                if instruction_lang() == "en":
+                    return driver.find_element(By.CLASS_NAME, "prompt-text").text
+                try:
+                    return TranslatorsServer().bing(
+                        driver.find_element(By.CLASS_NAME, "prompt-text").text
+                    )
+                except Exception:
+                    logger.error("Translation error")
+                    return "translation error, try to use image instruction"
+
+            def instruction_image():
+                return (
+                    WebDriverWait(driver, 5)
+                    .until(
+                        EC.element_to_be_clickable((By.CLASS_NAME, "challenge-example"))
+                    )
+                    .screenshot_as_base64
+                )
+
+            def instruction_lang() -> str:
+                return driver.find_element(
+                    By.CSS_SELECTOR, ".display-language div"
+                ).text.lower()
+
+            def start_solving(required_data: dict) -> dict:
+                response = requests.post(
+                    url="http://2captcha.com/in.php", json=required_data
+                ).json()
+                while not response["status"]:
+                    if handle_api_error(response["request"]):
+                        response = requests.post(
+                            url="http://2captcha.com/in.php", json=required_data
+                        ).json()
+                    else:
+                        return {"status": 0}
+                return response
+
+            def handle_api_error(error_msg: str) -> bool:
+                match error_msg:
+                    case "ERROR_NO_SLOT_AVAILABLE":
+                        time.sleep(5)
+                    case "ERROR_ZERO_BALANCE":
+                        time.sleep(60)
+                    case "MAX_USER_TURN":
+                        time.sleep(15)
+                    case _:
+                        logger.info(error_msg)
+                        return False
+                return True
+
+            def get_result(task_id: str) -> dict:
+                start_time = time.time()
+                time.sleep(10)
+                data = {
+                    "key": "88cda22298739b2fd3835ef281692c02",
+                    "action": "get",
+                    "id": int(task_id),
+                    "json": 1,
+                }
+                response: dict = requests.get(
+                    url="http://2captcha.com/res.php", params=data
+                ).json()
+                while not response["status"]:
+                    if time.time() - start_time > 120:
+                        return {"status": 0, "request": "ERROR_TIMEOUT"}
+                    time.sleep(5)
+                    response = requests.get(
+                        url="http://2captcha.com/res.php", params=data
+                    ).json()
+                return response
+
+            def select_captcha_images(images_to_click: str) -> None:
+                images_to_click = tuple(
+                    int(index)
+                    for index in images_to_click.replace("click:", "").split("/")
+                )
+                for index, image in enumerate(
+                    driver.find_elements(By.CSS_SELECTOR, ".task-grid .task-image"),
+                    start=1,
+                ):
+                    if index in images_to_click:
+                        time.sleep(0.05)
+                        image.click()
+
+            def submit() -> None:
+                time.sleep(0.5)
+                driver.find_element(By.CSS_SELECTOR, ".button-submit.button").click()
+
+            def get_is_successful() -> bool:
+                switch_to_captcha_entry_iframe()
+                anchor: WebElement = driver.find_element(
+                    By.CSS_SELECTOR, "#anchor #checkbox"
+                )
+                for _ in range(6):
+                    time.sleep(0.5)
+                    checked = anchor.get_attribute("aria-checked")
+                    if str(checked) == "true":
+                        return True
+                return False
+
+            captcha_selector = get_hcaptcha_selector()
+            switch_to_captcha_entry_iframe()
+            select_checkbox()
+            for _ in range(5):
+                switch_to_captcha_challenge_frame()
+                required_data = data_to_solve_captcha()
+                response = start_solving(required_data)
+                if not response["status"]:
+                    break
+
+                response = get_result(task_id=response["request"])
+                if not response["status"]:
+                    logger.info(response["request"])
+                    break
+
+                select_captcha_images(images_to_click=response["request"])
+                submit()
+                if get_is_successful():
+                    return True
+
+            return False
+
         try:
-            if simple_solve_captcha(captcha_selector):
+            if simple_solve_hcaptcha(captcha_selector):
                 logger.info("captcha solved the easy way")
                 return True
 
@@ -151,11 +394,32 @@ def captcha_check(driver: webdriver.Chrome, settings: dict[str]) -> bool:
             )
             logger.error(f"error when solving the easy way\n {driver.current_url}")
 
-        if not driver.execute_script(search_for_captcha):
+        if not captcha_on_page():
             logger.info("captcha solved the easy way after error")
             return True
 
-        if hard_solve_captcha(captcha_selector):
+        if (
+            driver.execute_script(
+                "return document.getElementById('anycaptchaSolveButton')"
+            )
+            is None
+        ):
+            try:
+                if hard_solve_hcaptcha_using_grid(captcha_selector):
+                    logger.info("captcha solved the hard way using grid method")
+                    settings["temp"]["captcha_counter"].set(
+                        settings["temp"]["captcha_counter"].get() + 1
+                    )
+                    return True
+            except Exception:
+                logger.error("hcaptcha grid solver failed")
+                driver.save_screenshot(
+                    f'logs/{time.strftime("%d.%m.%Y %H_%M_%S", time.localtime())}.png'
+                )
+            finally:
+                driver.switch_to.default_content()
+
+        elif hard_solve_hcaptcha_using_token(captcha_selector):
             logger.info("captcha solved the hard way")
             time.sleep(1)
             driver.save_screenshot(
@@ -193,7 +457,7 @@ def account_access(func) -> None:
 
         try:
             requirements_satisfied = func(*args, **kwargs)
-        except BaseException as exception:
+        except Exception as exception:
             logger.error("error catched by decorator log_errors")
 
         if not requirements_satisfied:
@@ -263,6 +527,8 @@ def delegate_things_to_other_thread(
     """Used to speedup app start doing stuff while connecting to database or API"""
 
     def add_new_default_settings(_settings: dict[str, dict]) -> None:
+        _settings["gathering"].setdefault("auto_adjust", False)
+
         _settings.setdefault("coins", {"villages": {}})
         _settings["coins"].setdefault("villages", {})
         _settings["coins"].setdefault("mine_coin", False)
@@ -346,7 +612,7 @@ def first_app_lunch(settings: dict) -> None:
 
 def first_app_login(settings: dict, main_window: "MainWindow") -> None:
     set_default_entries(entries=main_window.entries_content)
-    main_window.add_new_world_window(settings=settings, obligatory=True)
+    NewWorldWindow(parent=main_window, settings=settings, obligatory=True)
     settings["first_lunch"] = False
 
 
@@ -407,10 +673,8 @@ def get_villages_id(settings: dict[str], update: bool = False) -> dict:
 
 def load_settings(file_path: str = "settings.json") -> dict:
     try:
-        f = open(file_path)
-        settings = json.load(f)
+        return compress_json.load(file_path)
     except FileNotFoundError:
-        f = open("settings.json", "w")
         settings = {"first_lunch": True}
         settings["gathering_troops"] = {
             "spear": {"use": False, "left_in_village": 0, "send_max": 0},
@@ -423,9 +687,7 @@ def load_settings(file_path: str = "settings.json") -> dict:
             "knight": {"use": False, "left_in_village": 0, "send_max": 0},
         }
         settings["groups"] = None
-        json.dump(settings, f)
-    finally:
-        f.close()
+        compress_json.dump(settings, "settings.json")
         return settings
 
 
@@ -507,7 +769,7 @@ def log_in(driver: webdriver.Chrome, settings: dict) -> bool:
         log_error(driver, msg="bot_functions -> log_in no error raised")
         return False
 
-    except BaseException:
+    except Exception:
         log_error(driver, msg="bot_functions -> log_in error raised")
         return False
 
@@ -552,10 +814,6 @@ def run_driver(settings: dict) -> webdriver.Chrome:
                     service=Service(ChromeDriverManager(cache_valid_range=7).install()),
                     options=chrome_options,
                 )
-                # driver.execute_cdp_cmd(
-                #     "Page.addScriptToEvaluateOnNewDocument",
-                #     {"source": COORDS_COPY},
-                # )
                 break
             except:
                 time.sleep(2)
@@ -565,7 +823,7 @@ def run_driver(settings: dict) -> webdriver.Chrome:
                 )
                 time.sleep(3)
         return driver
-    except BaseException as exc:
+    except Exception as exc:
         logger.error(exc)
 
     stealth(
@@ -591,15 +849,13 @@ def save_settings_to_files(settings: dict, settings_by_worlds: dict) -> None:
         _settings = settings_by_worlds[server_world]
         if "temp" in _settings:
             del _settings["temp"]
-        with open(f"settings/{server_world}.json", "w") as settings_json_file:
-            json.dump(_settings, settings_json_file)
+        compress_json.dump(_settings, f"settings/{server_world}.json")
 
     # Initial/global settings save in file
     if "temp" in settings:
         del settings["temp"]
     settings["scheduler"]["ready_schedule"] = []
-    with open("settings.json", "w") as settings_json_file:
-        json.dump(settings, settings_json_file)
+    compress_json.dump(settings, "settings.json")
 
 
 def unwanted_page_content(
@@ -694,7 +950,7 @@ def unwanted_page_content(
 
                         return False
 
-                    except BaseException:
+                    except Exception:
                         return False
 
                 # Próbuję odebrać bonus dzienny jeśli się nie uda odświeża stronę i próbuję ponownie.
@@ -746,30 +1002,9 @@ def unwanted_page_content(
                 log_error(driver=driver, msg="unwanted_page_content -> uknown error")
             return False
 
-    except BaseException:
+    except Exception:
         log_error(
             driver=driver,
             msg="unwanted_page_content -> error while handling common errors",
         )
         return False
-
-
-# def on_new_tab(driver: webdriver.Chrome, settings: dict) -> None:
-#     while True:
-#         main_window = driver.current_window_handle
-#         if "window" not in settings["temp"]:
-#             settings["temp"]["window"] = []
-
-#         switched = False
-#         for window in driver.window_handles:
-#             if window not in settings["temp"]["window"]:
-#                 driver.switch_to.window(window)
-#                 switched = True
-#                 driver.execute_cdp_cmd(
-#                     "Page.addScriptToEvaluateOnNewDocument",
-#                     {"source": coords_copy},
-#                 )
-#                 settings["temp"]["window"].append(window)
-#         if switched:
-#             driver.switch_to.window(main_window)
-#         time.sleep(0.1)

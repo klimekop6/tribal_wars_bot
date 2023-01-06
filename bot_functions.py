@@ -5,6 +5,7 @@ import threading
 import time
 import traceback
 import winsound
+from datetime import datetime
 from math import ceil, sqrt
 
 import lxml.html
@@ -20,11 +21,18 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from ttkbootstrap.toast import ToastNotification
 
-import email_notifications
-from app_functions import base_url, captcha_check, unwanted_page_content
-from app_logging import get_logger
-from config import SMS_API_TOKEN
-from constants import TROOPS_SPEED
+import app.notifications.email as email
+from app.config import SMS_API_TOKEN
+from app.constants import (
+    TROOPS_CAPACITY,
+    TROOPS_DEFF,
+    TROOPS_OFF,
+    TROOPS_POPULATION,
+    TROOPS_SPEED,
+)
+from app.functions import base_url, captcha_check, unwanted_page_content
+from app.logging import get_logger
+from gui.windows.new_world import gmt_time_offset, unit_speed_modifier
 
 logger = get_logger(__name__)
 
@@ -48,12 +56,12 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
     captcha_check(driver=driver, settings=settings)
     # Check current label command and ommit changing it if it is already correct
     label_command_value = driver.execute_script(
-        """return document.querySelector(
-        '#paged_view_content > div.overview_filters > form > table > tbody > tr:nth-child(2) > td:nth-child(2) > input[type=text]'
-        ).value;
-        """
+        "return document.querySelector("
+        "'#paged_view_content > div.overview_filters > form > table > tbody > "
+        "tr:nth-child(2) > td:nth-child(2) > input[type=text]'"
+        ").value;"
     )
-    translate = {"pl": "Atak", "de": "Angriff"}
+    translate = {"pl": "Atak", "de": "Angriff", "en": "Attack"}
     if label_command_value != translate[COUNTRY_CODE]:
         if (  # Check if filter manager is opened if not than open it
             driver.find_element(By.XPATH, '//*[@id="paged_view_content"]/div[2]')
@@ -81,10 +89,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
         etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
         WebDriverWait(driver, 5, 0.1).until(
             EC.element_to_be_clickable(
-                (
-                    By.XPATH,
-                    '//*[@id="paged_view_content"]/div[2]/form/table/tbody/tr[6]/td/input',
-                )
+                (By.CSS_SELECTOR, "#paged_view_content  input[type='submit']")
             )
         ).click()
         WebDriverWait(driver, 5, 0.1).until(
@@ -145,7 +150,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
             )
         )
         etkyieta_rozkazu.clear()
-        translate = {"pl": "Szlachcic", "de": "AG"}
+        translate = {"pl": "Szlachcic", "de": "AG", "en": "Noble"}
         etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
         WebDriverWait(driver, 5, 0.1).until(
             EC.element_to_be_clickable(
@@ -205,7 +210,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
             attacks_info = get_attacks_info()
 
             threading.Thread(
-                target=email_notifications.send_email,
+                target=email.send_email,
                 kwargs={
                     "email_recepients": settings["notifications"]["email_address"],
                     "email_subject": f"Wykryto grubasy {settings['world_in_title']}",
@@ -277,7 +282,8 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
 
     captcha_check(driver=driver, settings=settings)
 
-    # Sprawdza czy znajduję się w prawidłowej grupie jeśli nie to przechodzi do prawidłowej -> tylko dla posiadaczy konta premium
+    # Sprawdza czy znajduję się w prawidłowej grupie jeśli nie to przechodzi do prawidłowej
+    # tylko dla posiadaczy konta premium
     if (
         driver.execute_script("return premium")
         and int(driver.execute_script("return game_data.player.villages")) > 1
@@ -376,17 +382,22 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
         # Pomija wioskę jeśli nie ma z niej nic do wysłania
         skip = {"A": False, "B": False}
         for template in template_troops:
+            if all(not troops for troops in template_troops[template].values()):
+                skip[template] = True
+                continue
             for troop_name, troop_number in template_troops[template].items():
                 if available_troops[troop_name] - troop_number < 0:
                     skip[template] = True
                     break
+
         if skip["A"] and skip["B"]:
             ActionChains(driver).send_keys("d").perform()
-            if game_data(driver, "village.id" in used_villages):
+            if game_data(driver, "village.id") in used_villages:
                 break
             used_villages.append(game_data(driver, "village.id"))
             continue
 
+        template_troops[template]
         # Lista przycisków do wysyłki szablonów A, B i C
         villages_to_farm = {}
 
@@ -554,7 +565,9 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
             distance = tuple(
                 float(row.xpath("text()")[0]) for row in farm.xpath("tr/td[8]")
             )
-            army_speed = max(TROOPS_SPEED[unit] for unit in template_troops[template])
+            army_speed = max(
+                TROOPS_SPEED[unit] for unit in template_troops[template]
+            ) * unit_speed_modifier(settings)
             max_distance = 0.0
             if settings[template]["farm_rules"]["max_travel_time"]:
                 max_distance: float = (
@@ -658,7 +671,7 @@ def auto_farm(driver: webdriver.Chrome, settings: dict[str, str | dict]) -> None
                     while time.time() - start_time < 0.195:
                         time.sleep(0.01)
                     driver.execute_script(
-                        'return arguments[0].scrollIntoView({block: "center"});',
+                        'arguments[0].scrollIntoView({block: "center"});',
                         village,
                     )
                     try:
@@ -800,7 +813,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             )
         ][:-1]
 
-        # Zapobiega wczytaniu pustego kodu źródłowego - gdy driver.page_source zwróci pusty lub nieaktulny kod HTML
+        # Zapobiega wczytaniu pustego kodu źródłowego gdy driver.page_source zwróci pusty/nieaktulny kod HTML
         if not troops_name:
             for _ in range(50):
                 time.sleep(0.05)
@@ -839,27 +852,45 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
 
         # Odblokowane i dostępne poziomy zbieractwa
         troops_to_send = {
-            1: {"capacity": 1},
-            2: {"capacity": 0.4},
-            3: {"capacity": 0.2},
             4: {"capacity": 4 / 30},
+            3: {"capacity": 0.2},
+            2: {"capacity": 0.4},
+            1: {"capacity": 1},
         }
         for number, row in enumerate(
-            zip(
-                doc.xpath('//*[@id="scavenge_screen"]/div/div[2]/div/div[3]/div'),
-                (
-                    settings["gathering"]["ommit"][ele]
-                    for ele in settings["gathering"]["ommit"]
-                ),
-            )
+            doc.xpath('//*[@id="scavenge_screen"]/div/div[2]/div/div[3]/div')
         ):
-            if row[0].get("class") != "inactive-view" or row[1]:
+            if row.get("class") != "inactive-view":
                 del troops_to_send[number + 1]
-
-        # if not troops_to_send:
 
         # Ukrywa chat
         driver.execute_script('document.getElementById("chat-wrapper").innerHTML = "";')
+
+        if settings["gathering"]["auto_adjust"]:
+
+            army_capacity = sum(
+                TROOPS_CAPACITY[troop_name] * troop_number
+                for troop_name, troop_number in available_troops.items()
+            )
+            army_population = sum(
+                TROOPS_POPULATION[troop_name] * troop_number
+                for troop_name, troop_number in available_troops.items()
+            )
+            if army_population < 25 and len(troops_to_send) > 3:
+                del troops_to_send[1]
+                del troops_to_send[2]
+                del troops_to_send[3]
+            elif len(troops_to_send) > 3 and army_capacity < 2000:
+                del troops_to_send[1]
+                del troops_to_send[2]
+            elif len(troops_to_send) > 3 and army_capacity < 13625:
+                del troops_to_send[1]
+            elif len(troops_to_send) > 2 and army_capacity < 8175:
+                if 1 in troops_to_send:
+                    del troops_to_send[1]
+            elif len(troops_to_send) > 1 and army_capacity < 3000:
+                if 1 in troops_to_send:
+                    del troops_to_send[1]
 
         # Obliczenie i wysyłanie wojsk na zbieractwo
         sum_capacity = sum(troops_to_send[key]["capacity"] for key in troops_to_send)
@@ -883,16 +914,6 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                     available_troop_number - total_troops_number_te_send
                 )
 
-        units_capacity = {
-            "spear": 25,
-            "sword": 15,
-            "axe": 10,
-            "archer": 10,
-            "light": 80,
-            "marcher": 50,
-            "heavy": 50,
-            "knight": 100,
-        }
         max_resources = settings["gathering_max_resources"]
         reduce_ratio = None
         for key in troops_to_send:
@@ -902,7 +923,8 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 sum_troops_capacity = (
                     sum(
                         [
-                            troops_to_send[key][troop_name] * units_capacity[troop_name]
+                            troops_to_send[key][troop_name]
+                            * TROOPS_CAPACITY[troop_name]
                             if troops_to_send[key][troop_name] > 0
                             else 0
                             for troop_name in available_troops
@@ -939,21 +961,11 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
             army_sum = 0
             for troop_name in available_troops:
                 if troops_to_send[key][troop_name] > 0:
-                    match troop_name:
-                        case "light":
-                            army_sum += troops_to_send[key]["light"] * 4 * reduce_ratio
-                        case "marcher":
-                            army_sum += (
-                                troops_to_send[key]["marcher"] * 5 * reduce_ratio
-                            )
-                        case "heavy":
-                            army_sum += troops_to_send[key]["heavy"] * 6 * reduce_ratio
-                        case "knight":
-                            army_sum += (
-                                troops_to_send[key]["knight"] * 10 * reduce_ratio
-                            )
-                        case _:
-                            army_sum += troops_to_send[key][troop_name] * reduce_ratio
+                    army_sum += (
+                        troops_to_send[key][troop_name]
+                        * TROOPS_POPULATION[troop_name]
+                        * reduce_ratio
+                    )
             if army_sum < 10:
                 if key == 1:
                     troops_to_send.clear()
@@ -1013,7 +1025,7 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 {
                     "func": "gathering",
                     "url_to_gathering": kwargs["url_to_gathering"],
-                    "start_time": time.time() + journey_time + 3,
+                    "start_time": time.time() + journey_time + random.randint(5, 30),
                     "server_world": settings["server_world"],
                     "settings": settings,
                     "errors_number": 0,
@@ -1043,15 +1055,14 @@ def gathering_resources(driver: webdriver.Chrome, **kwargs) -> list:
                 "func": "gathering",
                 "url_to_gathering": base_url(settings)
                 + f"village={current_village_id}&screen=place&mode=scavenge",
-                "start_time": time.time() + journey_time + 3,
+                "start_time": time.time() + journey_time + random.randint(5, 30),
                 "server_world": settings["server_world"],
                 "settings": settings,
                 "errors_number": 0,
             }
         )
 
-        # Przełącz wioskę i sprawdź czy nie jest to wioska startowa jeśli tak zwróć listę słowników z czasem i linkiem do poszczególnych wiosek
-        driver.find_element(By.ID, "ds_body").send_keys("d")
+        driver.find_element(By.ID, "ds_body").send_keys("d")  # Przełącz wioskę
         current_village_id = game_data(driver, "village.id")
         if starting_village == current_village_id:
             return list_of_dicts
@@ -1117,12 +1128,12 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
 
         try:
             html_response = get_player_production_page()
-        except BaseException:
+        except Exception:
             if not unwanted_page_content(driver=driver, settings=settings, log=False):
                 driver.refresh()
             try:
                 html_response = get_player_production_page()
-            except BaseException:
+            except Exception:
                 if not unwanted_page_content(
                     driver=driver, settings=settings, log=False
                 ):
@@ -1197,7 +1208,6 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
             if village_coords in settings["market"]["market_exclude_villages"]:
                 continue
 
-            # Skip if there is no market built or no merchant available
             if not village["market_merchant"]["available"]:
                 continue
 
@@ -1205,7 +1215,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                 village["resources"][resource] -= settings["market"][resource][
                     "leave_in_storage"
                 ]
-            # If village does not have enough resources skip to next one
+
             if all(resource < 1 for resource in village["resources"].values()):
                 continue
 
@@ -1318,11 +1328,9 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     if (
                         current_exchange_rate
                         > settings["market"][resource_name]["max_exchange_rate"]
-                        # Pomiń jeśli kurs jest powyżej ustalonej wartości
                         or current_exchange_rate >= village["resources"][resource_name]
-                    ):  # Pomiń jeśli kurs jest wyższy od dostępnych surowców
+                    ):
                         continue
-                    # For the lowest exchange rate
                     if exchange_rate == min_exchange_rate:
                         if resource_to_sell > int(
                             max_exchange_rate
@@ -1334,7 +1342,6 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                                 / SUM_EXCHANGE_RATE
                                 * STARTING_TRANSPORT_CAPACITY
                             )
-                    # For the highest exchange rate
                     elif exchange_rate == max_exchange_rate:
                         if resource_to_sell > int(
                             min_exchange_rate
@@ -1375,7 +1382,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
                     input.send_keys(f"{resource_to_sell}")
                     input.send_keys(Keys.ENTER)
 
-                    try:  # //*[@id="confirmation-msg"]/div/table/tbody/tr[2]/td[2]
+                    try:
                         final_resource_amount_to_sell = WebDriverWait(
                             driver, 3, 0.025
                         ).until(
@@ -1444,7 +1451,7 @@ def premium_exchange(driver: webdriver.Chrome, settings: dict) -> None:
 
                         driver.find_element(
                             By.CLASS_NAME, "btn.evt-cancel-btn.btn-confirm-no"
-                        ).click()  # Click cancel button
+                        ).click()
 
                         final_resource_amount_to_sell = (
                             village["resources"][resource_name] - current_exchange_rate
@@ -1496,6 +1503,53 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
     You can also use it for fakes.
     """
 
+    def add_attack_to_repeat(send_info: dict) -> None:
+        if send_info["template_type"] != "send_my_template":
+            return
+        if not send_info["repeat_attack"]:
+            return
+        if send_info["total_attacks_number"] < 2:
+            return
+
+        EXTRA_TIME = random.uniform(3, 15)
+        attacks_to_repeat_to_do.append(
+            {
+                "func": "send_troops",
+                "start_time": time.time() + 2 * send_info["travel_time"] + EXTRA_TIME,
+                "server_world": settings["server_world"],
+                "settings": settings,
+                "errors_number": 0,
+            }
+        )
+        # Add the same attack to scheduler with changed send_time etc.
+        attack_to_repeat = send_info.copy()
+        attack_to_repeat["low_priority"] = True
+        attack_to_repeat["total_attacks_number"] = send_info["total_attacks_number"] - 1
+        attack_to_repeat["send_time"] = (
+            time.time() + 2 * send_info["travel_time"] + EXTRA_TIME + 8
+        )
+        arrival_time_in_sec = attack_to_repeat["send_time"] + send_info["travel_time"]
+        try:
+            TIME_DIFFRENCE = (
+                datetime.utcoffset(datetime(2023, 1, 1).astimezone()).seconds
+                - settings["world_config"]["gmt_time_offset"] * 3600
+            )
+        except KeyError:
+            settings["world_config"]["gmt_time_offset"] = gmt_time_offset(
+                settings["country_code"]
+            )
+            TIME_DIFFRENCE = (
+                datetime.utcoffset(datetime(2023, 1, 1).astimezone()).seconds
+                - settings["world_config"]["gmt_time_offset"] * 3600
+            )
+
+        arrival_time = time.localtime(arrival_time_in_sec - TIME_DIFFRENCE)
+        attack_to_repeat["arrival_time"] = time.strftime(
+            f"%d.%m.%Y %H:%M:%S:{round(random.random()*1000):0>3}",
+            arrival_time,
+        )
+        attacks_to_repeat_scheduler.append(attack_to_repeat)
+
     # If for some reason there was func send_troops in to_do but there wasn't any
     # in settings["scheduler"]["ready_schedule"] than log error and return
     if not settings["scheduler"]["ready_schedule"]:
@@ -1509,6 +1563,8 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
         if cell_in_list["send_time"] > send_time + 8:
             break
         list_to_send.append(cell_in_list)
+        if len(list_to_send) >= 6:
+            break
 
     if len(list_to_send) > 1:
         origin_tab = driver.current_window_handle
@@ -1523,7 +1579,6 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                 previous_tabs = set(driver.window_handles)
                 driver.switch_to.new_window("tab")
                 driver.get(send_info["url"])
-                # Search and get new tab
                 new_tab = set(driver.window_handles).difference(previous_tabs)
                 new_tabs.append(*new_tab)
             else:
@@ -1541,13 +1596,21 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
             match send_info["template_type"]:
                 case "send_all":
 
-                    def choose_all_units_with_exceptions(troops_dict: dict) -> None:
-                        """Choose all units and than unclick all unnecessary"""
+                    def remove_slower_units(troops: dict) -> None:
 
                         slowest_troop_speed = TROOPS_SPEED[send_info["slowest_troop"]]
-                        for troop_name, troop_speed in list(troops_dict.items()):
+                        for troop_name, troop_speed in list(troops.items()):
                             if troop_speed > slowest_troop_speed:
-                                del troops_dict[troop_name]
+                                del troops[troop_name]
+
+                    def choose_all_units_with_exceptions(troops: dict) -> None:
+                        """Choose all units and than unclick all unnecessary"""
+
+                        if not (
+                            send_info["command"] == "target_support"
+                            and send_info["slowest_troop"] == "knight"
+                        ):
+                            remove_slower_units(troops)
 
                         driver.execute_script(
                             f'document.getElementById("selectAllUnits").click();'
@@ -1563,45 +1626,13 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 if troop.get("class") == "nowrap unit-input-faded":
                                     continue
                                 troop_name = troop.xpath("a")[1].get("data-unit")
-                                if troop_name not in troops_dict:
+                                if troop_name not in troops:
                                     troop_button_id = troop.xpath("a")[1].get("id")
                                     driver.find_element(By.ID, troop_button_id).click()
 
-                    troops_off = {
-                        "axe": 18,
-                        "light": 10,
-                        "marcher": 10,
-                        "ram": 30,
-                        "catapult": 30,
-                        "knight": 10,
-                        "snob": 35,
-                    }
-
-                    troops_deff = {
-                        "spear": 18,
-                        "sword": 22,
-                        "archer": 18,
-                        "spy": 9,
-                        "heavy": 11,
-                        "catapult": 30,
-                        "knight": 10,
-                        "snob": 35,
-                    }
-
-                    troops_all = {
-                        "spear": 18,
-                        "sword": 22,
-                        "axe": 18,
-                        "archer": 18,
-                        "spy": 9,
-                        "light": 10,
-                        "marcher": 10,
-                        "heavy": 11,
-                        "ram": 30,
-                        "catapult": 30,
-                        "knight": 10,
-                        "snob": 35,
-                    }
+                    troops_off = TROOPS_OFF.copy()
+                    troops_deff = TROOPS_DEFF.copy()
+                    troops_all = TROOPS_SPEED.copy()
 
                     if (
                         send_info["send_snob"] == "send_snob"
@@ -1645,21 +1676,27 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             input_field.send_keys(troop_number)
 
                     else:
-                        # Choose all troops to send with exceptions
+
+                        def update_troops_with_user_preferences(troops: dict) -> None:
+                            if "troops_to_include" in send_info:
+                                for troop in send_info["troops_to_include"]:
+                                    troops[troop] = TROOPS_SPEED[troop]
+                            if "troops_to_exclude" in send_info:
+                                for troop in send_info["troops_to_exclude"]:
+                                    del troops[troop]
+
                         match send_info["army_type"]:
 
                             case "only_off":
-
-                                choose_all_units_with_exceptions(troops_dict=troops_off)
+                                update_troops_with_user_preferences(troops_off)
+                                choose_all_units_with_exceptions(troops_off)
 
                             case "only_deff":
-
-                                choose_all_units_with_exceptions(
-                                    troops_dict=troops_deff
-                                )
+                                update_troops_with_user_preferences(troops_deff)
+                                choose_all_units_with_exceptions(troops_deff)
 
                             case _:
-                                choose_all_units_with_exceptions(troops_dict=troops_all)
+                                choose_all_units_with_exceptions(troops_all)
 
                     if send_info["send_snob"] == "send_snob":
                         if send_info["snob_amount"]:
@@ -1716,7 +1753,7 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                     template_data["max_value"]
                                     * template_data["population"]
                                 )
-                        else:  # available_troop_number < template_data["min_value"]
+                        else:
                             return len(list_to_send), attacks_to_repeat_to_do
                         troop_input.send_keys(troop_number)
                         if current_population >= min_population:
@@ -1744,12 +1781,10 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                     f"return document.querySelector('#unit_input_{troop_name}').getAttribute('data-all-count')"
                                 )
                             )
-                            # less than minimum
                             if available_in_village < min_troop_number:
                                 if len(list_to_send) == 1:
                                     return 1, attacks_to_repeat_to_do
                                 break
-                            # between min and max
                             if (
                                 min_troop_number
                                 <= available_in_village
@@ -1767,45 +1802,6 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         )
                         troop_input.send_keys(troop_number)
 
-                    if send_info["repeat_attack"]:
-                        if send_info["total_attacks_number"]:
-                            total_attacks_number = send_info["total_attacks_number"]
-                            if total_attacks_number > 1:
-                                total_attacks_number -= 1
-                                # Add dict to list of attacks to repeat and in the end add to self.to_do
-                                attacks_to_repeat_to_do.append(
-                                    {
-                                        "func": "send_troops",
-                                        "start_time": send_info["send_time"]
-                                        + 2 * send_info["travel_time"]
-                                        + 1,
-                                        "server_world": settings["server_world"],
-                                        "settings": settings,
-                                        "errors_number": 0,
-                                    }
-                                )
-                                # Add the same attack to scheduler with changed send_time etc.
-                                attack_to_add = send_info.copy()
-                                if total_attacks_number == 1:
-                                    attack_to_add["repeat_attack"] = 0
-                                attack_to_add[
-                                    "total_attacks_number"
-                                ] = total_attacks_number
-                                attack_to_add["send_time"] += (
-                                    2 * send_info["travel_time"] + 9
-                                )
-                                arrival_time_in_sec = (
-                                    attack_to_add["send_time"]
-                                    + send_info["travel_time"]
-                                )
-                                arrival_time = time.localtime(arrival_time_in_sec)
-                                attack_to_add["arrival_time"] = time.strftime(
-                                    f"%d.%m.%Y %H:%M:%S:{round(random.random()*1000):0>3}",
-                                    arrival_time,
-                                )
-                                attack_to_add["errors_number"] = 0
-                                attacks_to_repeat_scheduler.append(attack_to_add)
-
             # Click command_type button (attack or support)
             driver.execute_script(
                 f'document.getElementById("{send_info["command"]}").click();'
@@ -1822,8 +1818,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             continue
                         # If it's only one attack which can't be send, return and delete it
                         return 1, attacks_to_repeat_to_do
-                    for _ in range(send_info["snob_amount"]):
-                        driver.execute_script("arguments[0].click()", add_snoob)
+                    else:
+                        for _ in range(send_info["snob_amount"]):
+                            driver.execute_script("arguments[0].click()", add_snoob)
 
             # Split attacks -> own_template
             elif send_info["template_type"] == "send_my_template":
@@ -1840,8 +1837,9 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                             continue
                         # If it's only one attack which can't be send, return and delete it
                         return 1, attacks_to_repeat_to_do
-                    for _ in range(split_attacks_number - 1):
-                        driver.execute_script("arguments[0].click()", add_attack)
+                    else:
+                        for _ in range(split_attacks_number - 1):
+                            driver.execute_script("arguments[0].click()", add_attack)
                     all_troops = (
                         "axe",
                         "light",
@@ -1869,10 +1867,10 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
         for index, send_info in enumerate(list_to_send):
             if index:
                 driver.switch_to.window(new_tabs[index - 1])
-            # Skip to next if didn't find element with id="date_arrival"
             current_time = driver.find_elements(
                 By.XPATH, '//*[@id="date_arrival"]/span'
             )
+            # Skip to next if didn't find element with id="date_arrival"
             if not current_time:
                 continue
             # If can choose catapult target
@@ -1891,21 +1889,18 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         driver.find_element(By.XPATH, "//select[@name='building']")
                     ).select_by_value(send_info["catapult_target"])
             current_time = current_time[0]
-            send_button = driver.find_element(By.ID, "troop_confirm_submit")
             arrival_time = re.search(
                 r"\d{2}:\d{2}:\d{2}", send_info["arrival_time"]
             ).group()
-
-            if current_time.text[-8:] < arrival_time:
+            send_button = driver.find_element(By.ID, "troop_confirm_submit")
+            if "low_priority" in send_info and send_info["low_priority"]:
+                driver.execute_script("arguments[0].click()", send_button)
+            elif current_time.text[-8:] < arrival_time:
                 ms = int(send_info["arrival_time"][-3:])
                 if ms <= 10:
                     sec = 0
                 else:
                     sec = ms / 1000
-                if "low_priority" in send_info:
-                    if send_info["low_priority"]:
-                        driver.execute_script("arguments[0].click()", send_button)
-                        continue
                 while True:
                     current_arrival_time = current_time.text[-8:]
                     if current_arrival_time == arrival_time:
@@ -1918,6 +1913,8 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                         break
             else:
                 driver.execute_script("arguments[0].click()", send_button)
+
+            add_attack_to_repeat(send_info=send_info)
 
     finally:
         if len(list_to_send) > 1:
@@ -1958,13 +1955,13 @@ def send_troops_in_the_middle(driver: webdriver.Chrome, settings: dict) -> None:
         (send_number_times, attacks_to_repeat) = send_troops(
             driver=driver, settings=settings
         )
-    except BaseException:
+    except Exception:
         unwanted_page_content(driver=driver, settings=settings, log=False)
         try:
             (send_number_times, attacks_to_repeat) = send_troops(
                 driver=driver, settings=settings
             )
-        except BaseException:
+        except Exception:
             send_number_times = 1
             attacks_to_repeat = []
     finally:
@@ -2250,7 +2247,6 @@ def mine_coin(driver: webdriver.Chrome, settings: dict) -> None:
             """
         ):
             time.sleep(2)
-        # Request resources
         driver.execute_script(call_resources)
         # Submit request
         driver.execute_script(

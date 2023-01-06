@@ -8,25 +8,25 @@ translate = localization.MessageCatalog.translate
 
 from typing import TYPE_CHECKING
 
-from app_functions import (
+from app.functions import (
     delegate_things_to_other_thread,
     expiration_warning,
     first_app_login,
 )
-from app_logging import add_event_handler, get_logger
-from gui_functions import (
+from app.logging import add_event_handler, get_logger
+from app.tribal_wars_bot_api import TribalWarsBotApi
+from gui.functions import (
     center,
     custom_error,
     get_pos,
     invoke_checkbuttons,
     show_or_hide_password,
 )
-from tribal_wars_bot_api import TribalWarsBotApi
 
-from .register_window import RegisterWindow
+from .register import RegisterWindow
 
 if TYPE_CHECKING:
-    from bot_main import MainWindow
+    from gui.windows.main import MainWindow
 
 # Logging module settings
 if not os.path.exists("logs"):
@@ -199,11 +199,11 @@ class LogInWindow:
         main_window.hidden_root.focus()
         add_event_handler(settings=settings)
         self.update_db_running_status(main_window=main_window)
+        main_window.master.update()
+        center(main_window.master, parent=parent)
         if settings["first_lunch"]:
             first_app_login(settings=settings, main_window=main_window)
         expiration_warning(settings=settings, main_window=main_window)
-        main_window.master.update()
-        center(main_window.master, parent=parent)
         main_window.master.update_idletasks()
         main_window.master.attributes("-alpha", 1.0)
 

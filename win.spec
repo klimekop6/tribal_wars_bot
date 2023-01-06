@@ -4,7 +4,7 @@
 block_cipher = None
 
 
-a = Analysis(['C:\\Users\\klime\\VS Code\\selenium_chrome\\bot_main.py'],
+a = Analysis(['C:\\Users\\klime\\VS Code\\selenium_chrome\\main.py'],
              pathex=['C:\\Users\\klime\\VS Code\\selenium_chrome'],
              binaries=[],
              datas=[('.venv_tribal_wars\\Lib\\site-packages\\ttkbootstrap', 'ttkbootstrap'),

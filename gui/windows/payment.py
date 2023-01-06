@@ -2,16 +2,22 @@ import tkinter as tk
 from typing import TYPE_CHECKING
 
 import ttkbootstrap as ttk
-from gui_functions import center
-from my_widgets import TopLevel
+
+from gui.functions import center
+from gui.widgets.my_widgets import TopLevel
 
 if TYPE_CHECKING:
-    from bot_main import MainWindow
+    from gui.windows.main import MainWindow
 
 
 class PaymentWindow:
     def __init__(self, parent: "MainWindow") -> None:
-        self.master = TopLevel(title_text="Tribal Wars Bot")
+        if hasattr(parent, "payment_window"):
+            if parent.payment_window.winfo_exists():
+                parent.payment_window.lift()
+                return
+
+        self.master = parent.payment_window = TopLevel(title_text="Tribal Wars Bot")
         self.master.geometry("555x505")
 
         self.text = ttk.Text(

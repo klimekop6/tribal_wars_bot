@@ -12,10 +12,10 @@ from ttkbootstrap import localization
 from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.validation import add_validation, validator
 
-from email_notifications import send_email
-from gui_functions import center, custom_error, forget_row, show_or_hide_password
-from my_widgets import TopLevel
-from tribal_wars_bot_api import TribalWarsBotApi
+from app.notifications.email import send_email
+from app.tribal_wars_bot_api import TribalWarsBotApi
+from gui.functions import center, custom_error, forget_row, show_or_hide_password
+from gui.widgets.my_widgets import TopLevel
 
 translate = localization.MessageCatalog.translate
 

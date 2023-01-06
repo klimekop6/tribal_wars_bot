@@ -4,7 +4,7 @@ import traceback
 
 import requests
 
-from config import PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN, APP_VERSION
+from app.config import APP_VERSION, PYTHON_ANYWHERE_API, PYTHON_ANYWHERE_API_TOKEN
 
 
 class CustomLogFormatter(logging.Formatter):
@@ -83,9 +83,10 @@ def add_event_handler(settings: dict) -> None:
 
     logging_handler = CustomLoggingHandler(user_name=settings["user_name"])
     logging.getLogger("__main__").addHandler(logging_handler)
-    logging.getLogger("app_functions").addHandler(logging_handler)
+    logging.getLogger("app.functions").addHandler(logging_handler)
     logging.getLogger("bot_functions").addHandler(logging_handler)
-    logging.getLogger("decorators").addHandler(logging_handler)
-    logging.getLogger("log_in_window").addHandler(logging_handler)
-    logging.getLogger("gui_functions").addHandler(logging_handler)
-    logging.getLogger("tribal_wars_bot_api").addHandler(logging_handler)
+    logging.getLogger("app.decorators").addHandler(logging_handler)
+    logging.getLogger("gui.windows.log_in").addHandler(logging_handler)
+    logging.getLogger("gui.functions").addHandler(logging_handler)
+    logging.getLogger("app.tribal_wars_bot_api").addHandler(logging_handler)
+    # print(logging.root.manager.loggerDict)
