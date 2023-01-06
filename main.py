@@ -13,7 +13,6 @@ import ttkbootstrap as ttk
 from pyupdater.client import Client
 from ttkbootstrap import localization
 from ttkbootstrap.toast import ToastNotification
-from ttkbootstrap.utility import enable_high_dpi_awareness
 
 import app.functions as functions
 from app.client_config import ClientConfig
@@ -156,7 +155,7 @@ def check_for_updates(stable_release: bool = True) -> None:
         master.withdraw()
 
         style = ttk.Style(theme="darkly")
-        style.configure_style(style=style)
+        configure_style(style=style)
 
         custom_error(
             message="Dostępna jest nowa aktualizacja!\n"
@@ -190,7 +189,6 @@ def check_for_updates(stable_release: bool = True) -> None:
 
 
 def main() -> None:
-
     settings = functions.load_settings()
     settings["temp"] = {}
 
@@ -207,7 +205,6 @@ def main() -> None:
     if settings["first_lunch"]:
         functions.first_app_lunch(settings=settings)
 
-    enable_high_dpi_awareness()
     hidden_root = tk.Tk()
     hidden_root.attributes("-alpha", 0)
     hidden_root.title("TribalWarsBot")
@@ -239,5 +236,13 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # import cProfile
+    # import pstats
+
+    # with cProfile.Profile() as pr:
 
     main()
+
+    # stats = pstats.Stats(pr)
+    # stats.sort_stats(pstats.SortKey.TIME)
+    # stats.dump_stats(filename="needs_profiling.prof")

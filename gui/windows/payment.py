@@ -12,7 +12,12 @@ if TYPE_CHECKING:
 
 class PaymentWindow:
     def __init__(self, parent: "MainWindow") -> None:
-        self.master = TopLevel(title_text="Tribal Wars Bot")
+        if hasattr(parent, "payment_window"):
+            if parent.payment_window.winfo_exists():
+                parent.payment_window.lift()
+                return
+
+        self.master = parent.payment_window = TopLevel(title_text="Tribal Wars Bot")
         self.master.geometry("555x505")
 
         self.text = ttk.Text(

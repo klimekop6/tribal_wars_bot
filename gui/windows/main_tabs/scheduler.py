@@ -238,20 +238,33 @@ class Scheduler(ScrollableFrame):
             row=5, column=0, columnspan=2, padx=10, pady=(10, 5), sticky=ttk.W
         )
         self.command_type = ttk.StringVar()
+
+        def command_type_attack_callback() -> None:
+            if self.template_type.get() == "send_all":
+                self.choose_catapult_target.config(state="readonly")
+            on_catapult_value_change()
+
         self.command_type_attack = ttk.Radiobutton(
             self,
             text=translate("Attack"),
             value="target_attack",
             variable=self.command_type,
+            command=command_type_attack_callback,
         )
         self.command_type_attack.grid(
             row=6, column=0, padx=(30, 5), pady=5, sticky=ttk.W
         )
+
+        def command_type_support_callback() -> None:
+            self.choose_catapult_target.config(state="disabled")
+            on_catapult_value_change()
+
         self.command_type_support = ttk.Radiobutton(
             self,
             text=translate("Support"),
             value="target_support",
             variable=self.command_type,
+            command=command_type_support_callback,
         )
         self.command_type_support.grid(
             row=7, column=0, padx=(30, 5), pady=5, sticky=ttk.W
@@ -269,8 +282,9 @@ class Scheduler(ScrollableFrame):
         def all_troops_radiobutton_command() -> None:
             # send_all
             self.choose_slowest_troop.config(state="readonly")
-            self.choose_catapult_target.config(state="readonly")
             self.choose_catapult_target.set("Default")
+            if self.command_type.get() != "target_support":
+                self.choose_catapult_target.config(state="readonly")
             self.all_troops.event_generate("<Button-1>")
 
             # send_fake
@@ -512,8 +526,10 @@ class Scheduler(ScrollableFrame):
 
         def on_catapult_value_change(*args) -> None:
             if (
-                not self.choose_catapult_target2.winfo_ismapped()
+                self.template_type.get() == "send_my_template"
+                and not self.choose_catapult_target2.winfo_ismapped()
                 and self.troops["catapult"].get()
+                and self.command_type.get() != "target_support"
             ):
                 ttk.Label(self, text=translate("Catapult target")).grid(
                     row=43,
@@ -533,7 +549,8 @@ class Scheduler(ScrollableFrame):
                 )
                 return
             if (
-                self.choose_catapult_target2.winfo_ismapped()
+                self.command_type.get() == "target_support"
+                or self.choose_catapult_target2.winfo_ismapped()
                 and not self.troops["catapult"].get()
             ):
                 forget_row(self, row_number=43)
@@ -1709,18 +1726,20 @@ class Scheduler(ScrollableFrame):
         self.update_idletasks()
 
     def show_existing_schedule(self, settings: dict, main_window) -> None:
-        if hasattr(self, "existing_schedule_window"):
-            if self.existing_schedule_window.winfo_exists():
+        if hasattr(self, "schedule_window"):
+            if self.schedule_window.winfo_exists():
+                self.schedule_window.lift()
                 return
 
-        self.existing_schedule_window = TopLevel(title_text="Tribal Wars Bot")
+        self.schedule_window = TopLevel(title_text="Tribal Wars Bot")
 
-        content_frame = self.existing_schedule_window.content_frame
+        content_frame = self.schedule_window.content_frame
 
         self.coldata = [
             {"text": translate("Send date"), "stretch": False, "anchor": "center"},
             {"text": translate("World"), "stretch": False, "anchor": "center"},
             {"text": translate("Command"), "stretch": False, "anchor": "center"},
+            {"text": translate("Comebacks"), "stretch": False, "anchor": "center"},
             {"text": translate("Type"), "stretch": False, "anchor": "center"},
             {
                 "text": translate("Starting village"),
@@ -1757,6 +1776,9 @@ class Scheduler(ScrollableFrame):
                     )[:-3],
                     server_world,
                     schedule_translate[row["command"]],
+                    row["total_attacks_number"] - 1
+                    if "send_my_template" in row["template_type"]
+                    else 0,
                     schedule_translate[row["template_type"]],
                     row["send_from"],
                     row["send_to"],
@@ -1779,9 +1801,9 @@ class Scheduler(ScrollableFrame):
         )
         table.grid(row=0, column=0)
 
-        center(window=self.existing_schedule_window, parent=main_window.master)
-        self.existing_schedule_window.update_idletasks()
-        self.existing_schedule_window.attributes("-alpha", 1.0)
+        center(window=self.schedule_window, parent=main_window.master)
+        self.schedule_window.update_idletasks()
+        self.schedule_window.attributes("-alpha", 1.0)
 
     class TroopsWindow:
         def __init__(

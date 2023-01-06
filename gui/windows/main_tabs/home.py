@@ -42,15 +42,24 @@ class Home(ScrollableFrame):
 
         text = Text(cf_current_changes)
 
+        text.add("Nowość\n", "h1")
+        text.add(
+            "- Dodano podgląd pozostałej liczby nawrotek wysyłanych ataków z planera.\n"
+        )
         text.add("Poprawki\n", "h1")
         text.add(
-            "- Poprawiono dostrzeżone błędy w trakcie korzystania z funkcji "
-            'nawrotek ("Powtórz atak po powrocie jednostek").\n'
+            "- Naprawiono błąd który powodował wyświetlenie okna zmiany światów za oknem głównym aplikacji.\n"
+        )
+        text.add(
+            "- Pole wyboru celu ostrzału katapult w planerze będzie wyłączone w przypadku zaznaczenia 'Wsparcie' zamiast 'Atak'.\n"
+        )
+        text.add(
+            "- Naprawiono brak zmiany kursora myszki po najechaniu na pola do wprowadzania liczb lub tekstu.\n"
         )
 
         cf_current_changes.add(
             child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.82",
+            title=f"{translate('Changes in patch')} 1.0.85",
             bootstyle="dark",
         )
 
@@ -59,9 +68,75 @@ class Home(ScrollableFrame):
             row=5, column=0, pady=(25, 15), sticky=ttk.W
         )
 
+        # 1.0.84
+        cf_last_changes_1_0_84 = CollapsingFrame(self)
+        cf_last_changes_1_0_84.grid(row=14, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_84)
+
+        text.add("Hotfix\n", "h1")
+        text.add(
+            "- Porawka dotyczy problemów z captchą. Dnia 27.12.2022 wystąpiła awaria u usługodawcy "
+            "'https://anycaptcha.com/' który dotychczas odpowiadał za podsyłanie rozwiązanych captchy. "
+            "W związku z powyższym postanowiłem zmienić usługodawcę na 'https://2captcha.com/' który powinien "
+            "w teori zaoferować lepszą jakość usługi."
+        )
+
+        cf_last_changes_1_0_84.add(
+            child=text.frame,
+            title=f"{translate('Changes in patch')} 1.0.84",
+            bootstyle="dark",
+        )
+
+        # 1.0.83
+        cf_last_changes_1_0_83 = CollapsingFrame(self)
+        cf_last_changes_1_0_83.grid(row=15, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_83)
+
+        text.add("Poprawki\n", "h1")
+        text.add("- Naprawiono etykiety ataków na światach specjalnych\n")
+        text.add(
+            "- Naprawiono limit czasowy przemarszu wysyłanych jednostek w dodatkowych ustawieniach farmy "
+            "na światach specjalnych\n"
+        )
+        text.add(
+            "- Dodano wyjątek dla wyślij wszystkie w przypadku wybrania wsparcia i rycerza jako "
+            "najwolniejszej jednostki. Wszystkie pozostałe jednostki będą prawidłowo uwzględnione "
+            "zgodnie z pozostałymi ustawieniami tj. wybierz tylko offensywne/deffensywne jednostki.\n"
+        )
+        text.add(
+            "- Poprawiono stackowanie się okien bota (kolejność okien na wierzchu) w przypadku przełączania "
+            "się pomiędzy aplikacjami w systemie lub ich zamykania/otwierania/minimalizowania.\n"
+        )
+
+        cf_last_changes_1_0_83.add(
+            child=text.frame,
+            title=f"{translate('Changes in patch')} 1.0.83",
+            bootstyle="dark",
+        )
+
+        # 1.0.82
+        cf_last_changes_1_0_82 = CollapsingFrame(self)
+        cf_last_changes_1_0_82.grid(row=16, column=0, pady=(0, 5), sticky=ttk.EW)
+
+        text = Text(cf_last_changes_1_0_82)
+
+        text.add("Poprawki\n", "h1")
+        text.add(
+            "- Poprawiono dostrzeżone błędy w trakcie korzystania z funkcji "
+            'nawrotek ("Powtórz atak po powrocie jednostek").\n'
+        )
+
+        cf_last_changes_1_0_82.add(
+            child=text.frame,
+            title=f"{translate('Changes in patch')} 1.0.82",
+            bootstyle="dark",
+        )
+
         # 1.0.81
         cf_last_changes_1_0_81 = CollapsingFrame(self)
-        cf_last_changes_1_0_81.grid(row=9, column=0, pady=(0, 5), sticky=ttk.EW)
+        cf_last_changes_1_0_81.grid(row=17, column=0, pady=(0, 5), sticky=ttk.EW)
 
         text = Text(cf_last_changes_1_0_81)
 
@@ -80,7 +155,7 @@ class Home(ScrollableFrame):
 
         # 1.0.80
         cf_last_changes_1_0_80 = CollapsingFrame(self)
-        cf_last_changes_1_0_80.grid(row=10, column=0, pady=(0, 5), sticky=ttk.EW)
+        cf_last_changes_1_0_80.grid(row=18, column=0, pady=(0, 5), sticky=ttk.EW)
 
         text = Text(cf_last_changes_1_0_80)
 
@@ -92,60 +167,6 @@ class Home(ScrollableFrame):
         cf_last_changes_1_0_80.add(
             child=text.frame,
             title=f"{translate('Changes in patch')} 1.0.80",
-            bootstyle="dark",
-        )
-
-        # 1.0.79
-        cf_last_changes_1_0_79 = CollapsingFrame(self)
-        cf_last_changes_1_0_79.grid(row=11, column=0, pady=(0, 5), sticky=ttk.EW)
-
-        text = Text(cf_last_changes_1_0_79)
-
-        text.add("Nowość\n", "h1")
-        text.add(
-            "- Utworzono wyjątek w trakcie dodawania światów dla globalnych serwerów turniejowych. "
-            "Serwer aktualnego turnieju to tribalwars.net a numer świata to c4. Uwaga, świat nie był testowany. "
-            "W razie jakiś błędów/problemów dajcie znać na discordzie k.spec#9583 lub pod adres k.spec@tuta.io \n"
-        )
-
-        cf_last_changes_1_0_79.add(
-            child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.79",
-            bootstyle="dark",
-        )
-
-        # 1.0.78
-        cf_last_changes_1_0_78 = CollapsingFrame(self)
-        cf_last_changes_1_0_78.grid(row=12, column=0, pady=(0, 5), sticky=ttk.EW)
-
-        text = Text(cf_last_changes_1_0_78)
-
-        text.add("Poprawki\n", "h1")
-        text.add(
-            "- Naprawiono błąd związany z automatycznym farmieniem. Błąd pojawiał "
-            "się tylko w tedy gdy w wioskach nie było żadnych wojsk do wysłania.\n"
-        )
-
-        cf_last_changes_1_0_78.add(
-            child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.78",
-            bootstyle="dark",
-        )
-
-        # 1.0.77
-        cf_last_changes_1_0_77 = CollapsingFrame(self)
-        cf_last_changes_1_0_77.grid(row=13, column=0, pady=(0, 5), sticky=ttk.EW)
-
-        text = Text(cf_last_changes_1_0_77)
-
-        text.add("Poprawki\n", "h1")
-        text.add(
-            "- Naprawiono błąd blokujący zbieractwo dla nowych graczy (dotyczy tylko tych którzy utworzyli nowe konta w ostatniej wersji 1.7.6)\n"
-        )
-
-        cf_last_changes_1_0_77.add(
-            child=text.frame,
-            title=f"{translate('Changes in patch')} 1.0.77",
             bootstyle="dark",
         )
 

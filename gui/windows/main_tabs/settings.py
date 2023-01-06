@@ -194,6 +194,20 @@ class Settings(ScrollableFrame):
             variable=entries_content["globals"]["stable_release"],
         ).grid(row=6, columnspan=3, padx=15, pady=10, sticky=ttk.W)
 
+        disable_stable_release_info = ttk.Label(
+            self, image=main_window.images.question_x24
+        )
+        disable_stable_release_info.grid(row=6, column=2, padx=15, pady=10)
+        ToolTip(
+            disable_stable_release_info,
+            text=translate(
+                "Enabling this option will include the beta version of the application in the update process. "
+                "These are test/development versions which, in addition to new features, may contain new unreported bugs. "
+                "Recommended only for experienced users who are in contact with the creator of the bot."
+            ),
+            topmost=True,
+        )
+
         # Account information
 
         self.acc_info_frame = ttk.Labelframe(

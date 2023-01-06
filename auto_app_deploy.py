@@ -5,9 +5,7 @@ from itertools import chain
 
 import pysftp
 
-from app.config import PYTHON_ANYWHERE_PASSWORD, PYTHON_ANYWHERE_USERNAME
-
-APP_VERSION = "1.0.82"
+from app.config import APP_VERSION, PYTHON_ANYWHERE_PASSWORD, PYTHON_ANYWHERE_USERNAME
 
 pyupdater_path = pathlib.Path(r".venv_tribal_wars\Scripts\pyupdater")
 # Build app using pyupdater and win.spec file

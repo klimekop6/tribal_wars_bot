@@ -477,6 +477,9 @@ class MainWindow:
             "<Button-1>",
             lambda event: self.show_world_chooser_window(event, settings=settings),
         )
+        bind_tags = lambda tags: (tags[2], tags[1], tags[0], tags[3])
+        self.title_world.bindtags(bind_tags(self.title_world.bindtags()))
+
         self.title_timer.bind(
             "<Button-1>", lambda event: self.show_jobs_to_do_window(event)
         )
@@ -1322,10 +1325,10 @@ class MainWindow:
         master.bind("<Button-1>", on_main_window_click, add="+")
         master.withdraw()
 
-        def on_focus(event):
+        def on_visibility(event):
             master.lift()
 
-        hidden_root.bind("<FocusIn>", on_focus)
+        hidden_root.bind("<Visibility>", on_visibility)
 
     def show_jobs_to_do_window(self, event) -> None:
 
@@ -1383,7 +1386,6 @@ class MainWindow:
             if server_world in self.settings_by_worlds:
                 del self.settings_by_worlds[server_world]
 
-            self.master.unbind("<Button-1>", self.btn_func_id)
             self.world_chooser_window.destroy()
 
         def on_leave(event: tk.Event) -> None:
@@ -1393,14 +1395,20 @@ class MainWindow:
             def on_enter(event: tk.Event) -> None:
                 if event.widget != self.world_chooser_window:
                     return
-                self.master.unbind("<Button-1>", self.btn_func_id)
+                self.master.unbind("<Button-1>", self.title_world_func_id)
+                del self.title_world_func_id
 
-            def quit(event: tk.Event) -> None:
-                self.master.unbind("<Button-1>", self.btn_func_id)
-                self.world_chooser_window.destroy()
-
-            self.btn_func_id = self.master.bind("<Button-1>", quit, "+")
+            self.title_world_func_id = self.master.bind(
+                "<Button-1>", lambda _: self.world_chooser_window.destroy(), "+"
+            )
             self.world_chooser_window.bind("<Enter>", on_enter)
+
+        def on_destroy(event: tk.Event = None) -> None:
+            self.world_chooser_window.unbind("<Destroy>")
+            self.master.unbind("<Unmap>")
+            if hasattr(self, "title_world_func_id"):
+                self.master.unbind("<Button-1>", self.title_world_func_id)
+                del self.title_world_func_id
 
         self.world_chooser_window = ttk.Toplevel(
             self.title_world, borderwidth=2, relief="groove"
@@ -1483,7 +1491,9 @@ class MainWindow:
             sticky=ttk.NSEW,
         )
 
+        self.master.bind("<Unmap>", lambda _: self.world_chooser_window.destroy())
         self.world_chooser_window.bind("<Leave>", on_leave)
+        self.world_chooser_window.bind("<Destroy>", on_destroy)
         center(self.world_chooser_window, self.title_world)
         self.world_chooser_window.attributes("-alpha", 1.0)
         self.world_chooser_window.after_idle(

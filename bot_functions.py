@@ -61,7 +61,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
         "tr:nth-child(2) > td:nth-child(2) > input[type=text]'"
         ").value;"
     )
-    translate = {"pl": "Atak", "de": "Angriff"}
+    translate = {"pl": "Atak", "de": "Angriff", "en": "Attack"}
     if label_command_value != translate[COUNTRY_CODE]:
         if (  # Check if filter manager is opened if not than open it
             driver.find_element(By.XPATH, '//*[@id="paged_view_content"]/div[2]')
@@ -150,7 +150,7 @@ def attacks_labels(driver: webdriver.Chrome, settings: dict[str, str | dict]) ->
             )
         )
         etkyieta_rozkazu.clear()
-        translate = {"pl": "Szlachcic", "de": "AG"}
+        translate = {"pl": "Szlachcic", "de": "AG", "en": "Noble"}
         etkyieta_rozkazu.send_keys(translate[COUNTRY_CODE])
         WebDriverWait(driver, 5, 0.1).until(
             EC.element_to_be_clickable(
@@ -1596,13 +1596,21 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
             match send_info["template_type"]:
                 case "send_all":
 
-                    def choose_all_units_with_exceptions(troops_dict: dict) -> None:
-                        """Choose all units and than unclick all unnecessary"""
+                    def remove_slower_units(troops: dict) -> None:
 
                         slowest_troop_speed = TROOPS_SPEED[send_info["slowest_troop"]]
-                        for troop_name, troop_speed in list(troops_dict.items()):
+                        for troop_name, troop_speed in list(troops.items()):
                             if troop_speed > slowest_troop_speed:
-                                del troops_dict[troop_name]
+                                del troops[troop_name]
+
+                    def choose_all_units_with_exceptions(troops: dict) -> None:
+                        """Choose all units and than unclick all unnecessary"""
+
+                        if not (
+                            send_info["command"] == "target_support"
+                            and send_info["slowest_troop"] == "knight"
+                        ):
+                            remove_slower_units(troops)
 
                         driver.execute_script(
                             f'document.getElementById("selectAllUnits").click();'
@@ -1618,13 +1626,13 @@ def send_troops(driver: webdriver.Chrome, settings: dict) -> tuple[int, list]:
                                 if troop.get("class") == "nowrap unit-input-faded":
                                     continue
                                 troop_name = troop.xpath("a")[1].get("data-unit")
-                                if troop_name not in troops_dict:
+                                if troop_name not in troops:
                                     troop_button_id = troop.xpath("a")[1].get("id")
                                     driver.find_element(By.ID, troop_button_id).click()
 
                     troops_off = TROOPS_OFF.copy()
                     troops_deff = TROOPS_DEFF.copy()
-                    troops_all = TROOPS_SPEED
+                    troops_all = TROOPS_SPEED.copy()
 
                     if (
                         send_info["send_snob"] == "send_snob"
